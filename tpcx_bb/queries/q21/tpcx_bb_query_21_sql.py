@@ -134,8 +134,8 @@ if __name__ == "__main__":
     client = attach_to_cluster(cli_args)
 
     bc = BlazingContext(
-        allocator="existing",
         dask_client=client,
+        pool=True,
         network_interface=os.environ.get("INTERFACE", "eth0"),
     )
 
