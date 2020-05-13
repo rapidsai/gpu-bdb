@@ -108,7 +108,6 @@ MAX_SYSTEM_MEMORY=$(free -m | awk '/^Mem:/{print $2}')M
 dask-cuda-worker --rmm-pool-size=$POOL_SIZE --device-memory-limit $DEVICE_MEMORY_LIMIT --local-directory $WORKER_DIR  --rmm-pool-size=$POOL_SIZE --memory-limit=$MAX_SYSTEM_MEMORY --enable-tcp-over-ucx --scheduler-file lab-sched.json  >> $LOGDIR/worker.log 2>&1 &
 ```
 
-
 ## Running the Queries
 
 To run the query, starting from the repository root, go to the `queries` directory:
@@ -156,7 +155,30 @@ conda env create --name $CONDA_ENV -f tpcx-bb/conda/rapids-bsql-tpcx-bb.yml
 conda activate rapids-bsql-tpcx-bb
 ```
 
-The BSQL versions of the queries can be run in the same manner as the Dask-only versions.
+### Cluster Configuration for TCP
+
+Before spinning up the scheduler setup the following environment variables on all nodes
+```bash
+export INTERFACE=ib0
+```
+
+**Note**: `ib0`` can replaced by the desired network interface available on the nodes for communication.
+
+To use TCP for communications, start the `dask-scheduler` with the following:
+```bash
+nohup dask-scheduler --interface ib0 > $LOGDIR/dask-scheduler.log 2>&1 &
+```
+
+Start the `dask-cuda-workers` with the following:
+```bash
+nohup dask-cuda-worker --local-directory $WORKER_DIR  --interface ib0 --scheduler-file lab-sched.json >> $LOGDIR/dask-worker.log 2>&1 &
+```
+More information on cluster setup and configurations [here](#cluster-configuration).
+
+### Running Queries
+
+The BSQL versions of the queries require can be run in the same manner as the Dask-only version ensuring that the `INTERFACE` environment variable is set on the node running the query.
+
 
 
 ## Data Generation
