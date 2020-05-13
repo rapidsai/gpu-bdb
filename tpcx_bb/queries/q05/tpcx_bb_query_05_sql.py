@@ -173,6 +173,8 @@ def main(data_dir):
 
 
 if __name__ == "__main__":
+    import cuml
+
     client = attach_to_cluster(cli_args)
 
     bc = BlazingContext(
