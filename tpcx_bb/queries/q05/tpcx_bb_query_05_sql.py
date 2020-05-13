@@ -29,7 +29,7 @@ from xbb_tools.utils import (
     tpcxbb_argparser,
 )
 
-from tools.cupy_metrics import cupy_conf_mat, cupy_precision_score
+from xbb_tools.cupy_metrics import cupy_conf_mat, cupy_precision_score
 import cupy as cp
 from sklearn.metrics import roc_auc_score
 
