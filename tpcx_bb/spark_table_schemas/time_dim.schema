@@ -1,0 +1,10 @@
+t_time_sk                 bigint              --not null
+  , t_time_id                 string              --not null
+  , t_time                    int
+  , t_hour                    int
+  , t_minute                  int
+  , t_second                  int
+  , t_am_pm                   string
+  , t_shift                   string
+  , t_sub_shift               string
+  , t_meal_time               string

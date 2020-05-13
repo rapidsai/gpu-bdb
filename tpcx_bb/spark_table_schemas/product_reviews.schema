@@ -1,0 +1,8 @@
+pr_review_sk            bigint              --not null
+  , pr_review_date          string
+  , pr_review_time          string 
+  , pr_review_rating        int                 --not null
+  , pr_item_sk              bigint              --not null
+  , pr_user_sk              bigint
+  , pr_order_sk             bigint
+  , pr_review_content       string --not null

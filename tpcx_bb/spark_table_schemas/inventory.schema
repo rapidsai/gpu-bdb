@@ -1,0 +1,4 @@
+inv_date_sk               bigint                --not null
+  , inv_item_sk               bigint                --not null
+  , inv_warehouse_sk          bigint                --not null
+  , inv_quantity_on_hand      int

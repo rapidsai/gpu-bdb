@@ -1,0 +1,3 @@
+ib_income_band_sk         bigint              --not null
+  , ib_lower_bound            int
+  , ib_upper_bound            int

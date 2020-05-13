@@ -1,0 +1,6 @@
+imp_sk                  bigint                --not null
+  , imp_item_sk             bigint                --not null
+  , imp_competitor          string
+  , imp_competitor_price    decimal(7,2)
+  , imp_start_date          bigint
+  , imp_end_date            bigint

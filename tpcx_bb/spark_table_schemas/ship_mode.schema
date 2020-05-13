@@ -1,0 +1,6 @@
+sm_ship_mode_sk           bigint              --not null
+  , sm_ship_mode_id           string              --not null
+  , sm_type                   string
+  , sm_code                   string
+  , sm_carrier                string
+  , sm_contract               string

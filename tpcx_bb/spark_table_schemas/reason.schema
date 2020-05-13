@@ -1,0 +1,3 @@
+r_reason_sk               bigint              --not null
+  , r_reason_id               string              --not null
+  , r_reason_desc             string

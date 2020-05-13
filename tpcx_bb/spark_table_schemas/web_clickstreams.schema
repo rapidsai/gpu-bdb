@@ -1,0 +1,6 @@
+wcs_click_date_sk       bigint
+  , wcs_click_time_sk       bigint
+  , wcs_sales_sk            bigint
+  , wcs_item_sk             bigint
+  , wcs_web_page_sk         bigint
+  , wcs_user_sk             bigint

@@ -1,0 +1,5 @@
+hd_demo_sk                bigint                --not null
+  , hd_income_band_sk         bigint
+  , hd_buy_potential          string
+  , hd_dep_count              int
+  , hd_vehicle_count          int
