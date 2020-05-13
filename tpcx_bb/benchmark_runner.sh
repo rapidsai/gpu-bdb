@@ -4,12 +4,6 @@
 
 # Benchmarking runner shell script
 
-# Example Usage
-# ./runner.sh --data_dir=new/data/dir --dask_dir=/dask/dir --file_format=parquet --spark_schema_dir=schema/dir --pool_mode=True --pool_size='1kB'
-# Args that are not supplied will use the default.
-# The first argument differentiates between which version of the queries to run (blazing vs dask_cudf) implementations,
-
-
 ARGS=${*:2}
 
 if [ $1 = "blazing" ]; then
