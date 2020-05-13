@@ -151,6 +151,8 @@ def main(client):
         global_position_column="sentence_tokenized_global_pos",
     )
 
+    # This file comes from the official TPCx-BB kit
+    # We extracted it from bigbenchqueriesmr.jar
     with open("negativeSentiment.txt") as fh:
         negativeSentiment = list(map(str.strip, fh.readlines()))
         # dedupe for one extra record in the source file
