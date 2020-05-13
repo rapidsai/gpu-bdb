@@ -89,6 +89,8 @@ def main(client):
         global_position_column="sentence_tokenized_global_pos",
     )
 
+    # These files come from the official TPCx-BB kit
+    # We extracted them from bigbenchqueriesmr.jar
     neg_sent_df = load_sentiment_words("negativeSentiment.txt", "NEG")
     pos_sent_df = load_sentiment_words("positiveSentiment.txt", "POS")
 
