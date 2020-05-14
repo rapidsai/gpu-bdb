@@ -11,7 +11,7 @@ This repository provides implementations of the TPCx-BB queries using [RAPIDS](h
 
 We provide a conda environment definition specifying all RAPIDS dependencies needed to run our query implementations. To install and activate it:
 
-```
+```bash
 CONDA_ENV="rapids-tpcx-bb"
 conda env create --name $CONDA_ENV -f tpcx-bb/conda/rapids-tpcx-bb.yml
 conda activate rapids-tpcx-bb
@@ -19,7 +19,7 @@ conda activate rapids-tpcx-bb
 
 For Query 27, we rely on [spacy](https://spacy.io/). To download the necessary language model after activating the Conda environment:
 
-```
+```bash
 python -m spacy download en_core_web_sm
 ````
 
@@ -27,14 +27,14 @@ python -m spacy download en_core_web_sm
 ### Installing RAPIDS TPCxBB Tools
 This repository includes a small local module containing utility functions for running the queries. You can install it with the following:
 
-```
+```bash
 cd tpcx-bb/tpcx_bb
 python setup.py install --force
 ```
 
 This will install a package named `xbb-tools` into your Conda environment. It should look like this:
 
-```
+```bash
 conda list | grep xbb
 xbb-tools                 0.1                      pypi_0    pypi
 ```
@@ -46,7 +46,7 @@ Note that this Conda environment needs to be replicated or installed manually on
 ## Cluster Configuration
 We use the `dask-scheduler` and `dask-cuda-worker` command line interfaces to start a Dask cluster. Before spinning up the scheduler, set the following environment variables:
 
-```
+```bash
 export DASK_DISTRIBUTED__COMM__TIMEOUTS__CONNECT="100s"
 export DASK_DISTRIBUTED__COMM__TIMEOUTS__TCP="600s"
 export DASK_DISTRIBUTED__COMM__RETRY__DELAY__MIN="1s"
@@ -61,7 +61,7 @@ Next, run the `dask-scheduler` and `dask-cuda-worker` commands with several addi
 
 For the `dask-scheduler`, use the following:
 
-```
+```bash
 LOGDIR="/raid/logs"
 
 DASK_UCX__CUDA_COPY=True DASK_UCX__TCP=True DASK_UCX__NVLINK=True DASK_UCX__INFINIBAND=False DASK_UCX__RDMACM=False nohup dask-scheduler --dashboard-address 8787 --interface ib0 --protocol ucx > $LOGDIR/scheduler.log 2>&1 &
@@ -71,7 +71,7 @@ We use `--interface ib0`. You'll need to change this to the name of a network in
 
 For the `dask-cuda-workers`, use the following:
 
-```
+```bash
 DEVICE_MEMORY_LIMIT="25GB"
 POOL_SIZE="30GB"
 LOGDIR="/raid/logs"
@@ -89,7 +89,7 @@ Note that we also pass a scheduler file to `--scheduler-file`, indicating where 
 
 To use UCX without NVLink, start the scheduler with the following:
 
-```
+```bash
 LOGDIR="/raid/logs"
 
 DASK_UCX__CUDA_COPY=True DASK_UCX__TCP=True nohup dask-scheduler --interface ib0 --protocol ucx  > $LOGDIR/scheduler.log 2>&1 &
@@ -97,7 +97,7 @@ DASK_UCX__CUDA_COPY=True DASK_UCX__TCP=True nohup dask-scheduler --interface ib0
 
 Start the workers with the following:
 
-```
+```bash
 DEVICE_MEMORY_LIMIT="25GB"
 POOL_SIZE="30GB"
 LOGDIR="/raid/logs"
@@ -108,18 +108,17 @@ MAX_SYSTEM_MEMORY=$(free -m | awk '/^Mem:/{print $2}')M
 dask-cuda-worker --rmm-pool-size=$POOL_SIZE --device-memory-limit $DEVICE_MEMORY_LIMIT --local-directory $WORKER_DIR  --rmm-pool-size=$POOL_SIZE --memory-limit=$MAX_SYSTEM_MEMORY --enable-tcp-over-ucx --scheduler-file lab-sched.json  >> $LOGDIR/worker.log 2>&1 &
 ```
 
-
 ## Running the Queries
 
 To run the query, starting from the repository root, go to the `queries` directory:
 
-```
+```bash
 cd tpcx_bb/rapids-queries/
 ```
 
 Choose a query to run, and `cd` to that directory. We'll pick query 07.
 
-```
+```bash
 cd q07
 ```
 
@@ -127,7 +126,7 @@ Activate the conda environment with `conda activate rapids-tpcx-bb`.
 
 The queries assume that they can attach to a running Dask cluster. Command line arguments are used to determine the cluster and dataset on which to run the queries. The following is an example of running query 07.
 
-```
+```bash
 SCHEDULER_IP=$YOUR_SCHEDULER_NODE_IP
 
 python tpcx_bb_query_07.py --data_dir=$DATA_DIR --cluster_host=$SCHEDULER_IP --output_dir=$OUTPUT_DIR
@@ -150,13 +149,43 @@ We include BlazingSQL implementations of several queries. As we continue scale t
 
 We provide a conda environment definition specifying all RAPIDS dependencies needed to run the BSQL query implementations. To install and activate it:
 
-```
+```bash
 CONDA_ENV="rapids-bsql-tpcx-bb"
 conda env create --name $CONDA_ENV -f tpcx-bb/conda/rapids-bsql-tpcx-bb.yml
 conda activate rapids-bsql-tpcx-bb
 ```
+The environment will also require installation of the `xbb_tools` module. More steps on installing this [here](#installing-rapids-tpcxbb-tools).
 
-The BSQL versions of the queries can be run in the same manner as the Dask-only versions.
+
+### Cluster Configuration for TCP
+
+Before spinning up the scheduler setup the following environment variables on all nodes
+```bash
+export INTERFACE="ib0"
+```
+
+**Note**: `ib0` must be replaced by a network interface available on your cluster
+
+Start the `dask-scheduler`:
+```bash
+nohup dask-scheduler --interface ib0 > $LOGDIR/dask-scheduler.log 2>&1 &
+```
+
+Start the `dask-cuda-workers`:
+```bash
+nohup dask-cuda-worker --local-directory $WORKER_DIR  --interface ib0 --scheduler-file lab-sched.json >> $LOGDIR/dask-worker.log 2>&1 &
+```
+More information on cluster setup and configurations [here](#cluster-configuration).
+
+### Running Queries
+
+The BlazingSQL + Dask query implementations can be run the same way as described for Dask only implementations. However, you must set the `INTERFACE` environment variable on the client node:
+```bash
+$ export INTERFACE="ib0"
+$ export SCHEDULER_IP=$YOUR_SCHEDULER_NODE_IP
+
+$ python tpcx_bb_query_07_sql.py --data_dir=$DATA_DIR --cluster_host=$SCHEDULER_IP --output_dir=$OUTPUT_DIR
+```
 
 
 ## Data Generation
