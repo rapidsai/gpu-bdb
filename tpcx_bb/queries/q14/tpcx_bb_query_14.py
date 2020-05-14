@@ -32,10 +32,7 @@ cli_args = tpcxbb_argparser()
 
 @benchmark(dask_profile=cli_args["dask_profile"])
 def read_tables():
-    table_reader = build_reader(
-        basepath=cli_args["data_dir"],
-        repartition_small_table=cli_args["repartition_small_table"],
-    )
+    table_reader = build_reader(basepath=cli_args["data_dir"])
 
     ws_columns = ["ws_ship_hdemo_sk", "ws_web_page_sk", "ws_sold_time_sk"]
     web_sales = table_reader.read("web_sales", relevant_cols=ws_columns)

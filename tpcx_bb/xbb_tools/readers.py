@@ -87,15 +87,11 @@ class ParquetReader(Reader):
     """Read TPCx-BB Parquet data"""
 
     def __init__(
-        self,
-        basepath,
-        repartition_small_table=False,
-        split_row_groups=False,
+        self, basepath,split_row_groups=False,
     ):
         self.table_path_mapping = {
             table: f"{basepath}{table}/*.parquet" for table in TABLE_NAMES
         }
-        self.repartition_small_table = repartition_small_table
         self.split_row_groups = split_row_groups
 
     def show_tables(self):
@@ -124,9 +120,11 @@ class ParquetReader(Reader):
                 **kwargs,
             )
 
-        if self.repartition_small_table and (
-            table in (SMALL_TABLES) or table in SUPER_SMALL_TABLES
-        ):
+        ## Repartition small tables to a single partition to prevent
+        ## distributed merges when possible
+        ## Only matters when partition size<3GB
+
+        if (table in SMALL_TABLES) or (table in SUPER_SMALL_TABLES):
             df = df.repartition(npartitions=1)
         return df
 
@@ -137,7 +135,7 @@ class ORCReader(Reader):
     # TODO
     def __init__(self, basepath):
         pass
-    
+
 
 class CSVReader(Reader):
     """Read TPCx-BB CSV data"""

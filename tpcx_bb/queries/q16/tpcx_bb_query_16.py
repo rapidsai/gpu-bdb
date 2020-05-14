@@ -83,10 +83,7 @@ def get_before_after_sales(df, q16_timestamp):
 
 @benchmark(dask_profile=cli_args["dask_profile"])
 def read_tables():
-    table_reader = build_reader(
-        basepath=cli_args["data_dir"],
-        repartition_small_table=cli_args["repartition_small_table"],
-    )
+    table_reader = build_reader(basepath=cli_args["data_dir"])
 
     web_sales_df = table_reader.read("web_sales", relevant_cols=websale_cols)
     web_returns_df = table_reader.read("web_returns", relevant_cols=web_returns_cols)

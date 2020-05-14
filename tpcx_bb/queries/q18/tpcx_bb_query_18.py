@@ -48,7 +48,7 @@ EOL_CHAR = "è"
 
 @benchmark(dask_profile=cli_args["dask_profile"])
 def read_tables():
-    table_reader = build_reader(basepath=cli_args["data_dir"],)
+    table_reader = build_reader(basepath=cli_args["data_dir"])
 
     store_sales_cols = [
         "ss_store_sk",
@@ -268,8 +268,6 @@ def main(client):
     sentences["sentence_tokenized_global_pos"] = sentences.x.cumsum()
     del sentences["x"]
 
-    # This file comes from the official TPCx-BB kit
-    # We extracted it from bigbenchqueriesmr.jar
     with open("negativeSentiment.txt") as fh:
         negativeSentiment = list(map(str.strip, fh.readlines()))
         # dedupe for one extra record in the source file

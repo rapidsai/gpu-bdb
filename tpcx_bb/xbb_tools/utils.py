@@ -43,11 +43,6 @@ def tpcxbb_argparser():
     )
     parser.add_argument("--dask_dir", default="./", type=str, help="Dask Dir")
     parser.add_argument(
-        "--repartition_small_table",
-        action="store_true",
-        help="Repartition small tables",
-    )
-    parser.add_argument(
         "--dask_profile", action="store_true", help="Include Dask Performance Report"
     )
     parser.add_argument(

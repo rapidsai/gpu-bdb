@@ -185,10 +185,7 @@ def prep_for_sessionization(df, review_cat_code):
 
 @benchmark(dask_profile=cli_args.get("dask_profile"),)
 def read_tables():
-    table_reader = build_reader(
-        basepath=cli_args["data_dir"],
-        repartition_small_table=cli_args["repartition_small_table"],
-    )
+    table_reader = build_reader(basepath=cli_args["data_dir"])
 
     date_dim_cols = ["d_date_sk", "d_date"]
     web_page_cols = ["wp_web_page_sk", "wp_type"]

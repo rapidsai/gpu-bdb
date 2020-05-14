@@ -41,7 +41,7 @@ eol_char = "è"
 def read_tables():
 
     ### splitting by row groups for better parallelism
-    table_reader = build_reader(basepath=cli_args["data_dir"], split_row_groups=True,)
+    table_reader = build_reader(basepath=cli_args["data_dir"], split_row_groups=True)
     product_reviews_cols = ["pr_item_sk", "pr_review_content", "pr_review_sk"]
 
     product_reviews_df = table_reader.read(
@@ -89,8 +89,6 @@ def main(client):
         global_position_column="sentence_tokenized_global_pos",
     )
 
-    # These files come from the official TPCx-BB kit
-    # We extracted them from bigbenchqueriesmr.jar
     neg_sent_df = load_sentiment_words("negativeSentiment.txt", "NEG")
     pos_sent_df = load_sentiment_words("positiveSentiment.txt", "POS")
 

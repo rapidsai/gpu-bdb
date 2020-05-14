@@ -48,10 +48,7 @@ ss_cols = ["ss_item_sk", "ss_sold_date_sk", "ss_quantity"]
 
 @benchmark(dask_profile=cli_args["dask_profile"])
 def read_tables():
-    table_reader = build_reader(
-        basepath=cli_args["data_dir"],
-        repartition_small_table=cli_args["repartition_small_table"],
-    )
+    table_reader = build_reader(basepath=cli_args["data_dir"])
     ### read tables
     ws_df = table_reader.read("web_sales", relevant_cols=ws_cols)
     item_df = table_reader.read("item", relevant_cols=item_cols)

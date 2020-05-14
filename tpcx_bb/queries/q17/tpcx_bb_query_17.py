@@ -55,10 +55,7 @@ promotion_cols = ["p_channel_email", "p_channel_dmail", "p_channel_tv", "p_promo
 
 @benchmark(dask_profile=cli_args["dask_profile"])
 def read_tables():
-    table_reader = build_reader(
-        basepath=cli_args["data_dir"],
-        repartition_small_table=cli_args["repartition_small_table"],
-    )
+    table_reader = build_reader(basepath=cli_args["data_dir"])
 
     store_sales_df = table_reader.read("store_sales", relevant_cols=store_sales_cols)
     item_df = table_reader.read("item", relevant_cols=item_cols)
