@@ -161,7 +161,7 @@ The environment will also require installation of the `xbb_tools` module. More s
 
 Before spinning up the scheduler setup the following environment variables on all nodes
 ```bash
-export INTERFACE=ib0
+export INTERFACE="ib0"
 ```
 
 **Note**: `ib0` must be replaced by a network interface available on your cluster
