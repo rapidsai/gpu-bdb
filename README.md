@@ -29,7 +29,8 @@ This repository includes a small local module containing utility functions for r
 
 ```
 cd tpcx-bb/tpcx_bb
-python setup.py install --force
+python -m pip install .
+
 ```
 
 This will install a package named `xbb-tools` into your Conda environment. It should look like this:
