@@ -161,4 +161,4 @@ The BSQL versions of the queries can be run in the same manner as the Dask-only 
 
 ## Data Generation
 
-The RAPIDS queries expect [Apache Parquet](http://parquet.apache.org/) formatted data. We provide a Jupyter notebook which can be used to convert bigBench dataGen's raw CSV files to optimally sized Parquet partitions.
+The RAPIDS queries expect [Apache Parquet](http://parquet.apache.org/) formatted data. We provide a [Jupyter notebook](tpcx_bb/data-conversion.ipynb) which can be used to convert bigBench dataGen's raw CSV files to optimally sized Parquet partitions.
