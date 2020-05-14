@@ -87,7 +87,7 @@ class ParquetReader(Reader):
     """Read TPCx-BB Parquet data"""
 
     def __init__(
-        self, basepath,split_row_groups=False,
+        self, basepath, split_row_groups=False,
     ):
         self.table_path_mapping = {
             table: f"{basepath}{table}/*.parquet" for table in TABLE_NAMES
