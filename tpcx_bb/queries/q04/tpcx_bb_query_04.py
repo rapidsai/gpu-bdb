@@ -33,10 +33,7 @@ q04_session_timeout_inSec = 3600
 
 @benchmark(dask_profile=cli_args["dask_profile"])
 def read_tables():
-    table_reader = build_reader(
-        basepath=cli_args["data_dir"],
-        repartition_small_table=cli_args["repartition_small_table"],
-    )
+    table_reader = build_reader(basepath=cli_args["data_dir"])
 
     wp_cols = ["wp_type", "wp_web_page_sk"]
     wp_df = table_reader.read("web_page", relevant_cols=wp_cols)

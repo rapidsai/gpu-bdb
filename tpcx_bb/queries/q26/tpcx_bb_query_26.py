@@ -45,10 +45,7 @@ N_ITER = 5
 
 @benchmark(dask_profile=cli_args.get("dask_profile"),)
 def read_tables():
-    table_reader = build_reader(
-        basepath=cli_args["data_dir"],
-        repartition_small_table=cli_args["repartition_small_table"],
-    )
+    table_reader = build_reader(basepath=cli_args["data_dir"])
 
     ss_cols = ["ss_customer_sk", "ss_item_sk"]
     items_cols = ["i_item_sk", "i_category", "i_class_id"]

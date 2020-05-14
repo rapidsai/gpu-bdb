@@ -66,10 +66,7 @@ except:
 
 @benchmark(dask_profile=cli_args.get("dask_profile"),)
 def read_tables():
-    table_reader = build_reader(
-        basepath=cli_args["data_dir"],
-        repartition_small_table=cli_args["repartition_small_table"],
-    )
+    table_reader = build_reader(basepath=cli_args["data_dir"])
 
     item_ddf = table_reader.read("item", relevant_cols=items_columns, index=False)
     customer_ddf = table_reader.read(

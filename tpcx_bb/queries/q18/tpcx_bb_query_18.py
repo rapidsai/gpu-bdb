@@ -48,7 +48,7 @@ EOL_CHAR = "è"
 
 @benchmark(dask_profile=cli_args["dask_profile"])
 def read_tables():
-    table_reader = build_reader(basepath=cli_args["data_dir"],)
+    table_reader = build_reader(basepath=cli_args["data_dir"])
 
     store_sales_cols = [
         "ss_store_sk",

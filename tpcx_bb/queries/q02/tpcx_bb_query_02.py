@@ -74,10 +74,7 @@ def reduction_function(df, q02_session_timeout_inSec):
 
 @benchmark(dask_profile=cli_args.get("dask_profile"),)
 def read_tables():
-    table_reader = build_reader(
-        basepath=cli_args["data_dir"],
-        repartition_small_table=cli_args["repartition_small_table"],
-    )
+    table_reader = build_reader(basepath=cli_args["data_dir"])
     wcs_cols = ["wcs_user_sk", "wcs_item_sk", "wcs_click_date_sk", "wcs_click_time_sk"]
     wcs_df = table_reader.read("web_clickstreams", relevant_cols=wcs_cols)
     return wcs_df

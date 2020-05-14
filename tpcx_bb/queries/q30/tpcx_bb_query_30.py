@@ -50,10 +50,7 @@ q30_limit = 40
 
 @benchmark(dask_profile=cli_args["dask_profile"])
 def read_tables():
-    table_reader = build_reader(
-        basepath=cli_args["data_dir"],
-        repartition_small_table=cli_args["repartition_small_table"],
-    )
+    table_reader = build_reader(basepath=cli_args["data_dir"])
 
     item_cols = ["i_category_id", "i_item_sk"]
     item_df = table_reader.read("item", relevant_cols=item_cols)

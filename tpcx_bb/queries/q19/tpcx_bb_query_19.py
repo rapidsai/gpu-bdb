@@ -37,7 +37,7 @@ eol_char = "è"
 
 @benchmark(dask_profile=cli_args["dask_profile"])
 def read_tables():
-    table_reader = build_reader(basepath=cli_args["data_dir"],)
+    table_reader = build_reader(basepath=cli_args["data_dir"])
     date_dim_cols = ["d_week_seq", "d_date_sk", "d_date"]
     date_dim_df = table_reader.read("date_dim", relevant_cols=date_dim_cols)
     store_returns_cols = ["sr_returned_date_sk", "sr_item_sk", "sr_return_quantity"]
