@@ -48,7 +48,7 @@ def convert_datestring_to_days(df, date_col="d_date", date_format="%Y-%m-%d"):
 
 @benchmark(dask_profile=cli_args["dask_profile"])
 def read_tables():
-    table_reader = build_reader(basepath=cli_args["data_dir"],)
+    table_reader = build_reader(basepath=cli_args["data_dir"])
     inv_columns = [
         "inv_item_sk",
         "inv_warehouse_sk",
