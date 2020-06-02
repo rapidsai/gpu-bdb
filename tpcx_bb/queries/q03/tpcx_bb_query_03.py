@@ -28,7 +28,6 @@ from distributed import wait
 import numpy as np
 
 from numba import cuda
-import rmm
 import glob
 from dask import delayed
 
@@ -99,7 +98,7 @@ def pre_repartition_task(wcs_fn, item_df, wcs_tstamp_min):
 
 def reduction_function(df, item_df_filtered):
     """
-         Combines all the reduction ops into a single frame 
+         Combines all the reduction ops into a single frame
     """
     product_view_results = apply_find_items_viewed(df, item_mappings=item_df_filtered)
 
@@ -176,7 +175,7 @@ def apply_find_items_viewed(df, item_mappings):
     size = len(sample)
 
     # we know this can be int32, since it's going to contain item_sks
-    out_arr = rmm.device_array(size * N, dtype=df["wcs_item_sk"].dtype)
+    out_arr = cuda.device_array(size * N, dtype=df["wcs_item_sk"].dtype)
 
     find_items_viewed_before_purchase_kernel.forall(size)(
         sample["relevant_idx_pos"],

@@ -18,8 +18,7 @@ import sys
 
 
 import numpy as np
-import rmm
-
+from numba import cuda
 
 from xbb_tools.utils import (
     benchmark,
@@ -72,7 +71,7 @@ def convert_datestring_to_days(df, date_col="d_date", date_format="%Y-%m-%d"):
     """
     Utility to convert datestring to int representing days
     """
-    datetime_array = rmm.device_array(len(df), dtype=np.int64)
+    datetime_array = cuda.device_array(len(df), dtype=np.int64)
     df[date_col].str.timestamp2int(
         format=date_format, units="D", devptr=datetime_array.device_ctypes_pointer.value
     )

@@ -24,8 +24,7 @@ from xbb_tools.utils import (
 )
 from xbb_tools.readers import build_reader
 
-import rmm
-
+from numba import cuda
 import numpy as np
 
 cli_args = tpcxbb_argparser()
@@ -61,7 +60,7 @@ def read_tables():
 
 # Utility function for datestring -> days
 def convert_datestring_to_days(df, date_col="d_date", date_format="%Y-%m-%d"):
-    datetime_array = rmm.device_array(len(df), dtype=np.int64)
+    datetime_array = cuda.device_array(len(df), dtype=np.int64)
     df[date_col].str.timestamp2int(
         format=date_format, units="D", devptr=datetime_array.device_ctypes_pointer.value
     )
