@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 
-import rmm
+from numba import cuda
 import numpy as np
 import sys
 
@@ -38,7 +38,7 @@ def inventory_before_after(df, date):
 
 
 def convert_datestring_to_days(df, date_col="d_date", date_format="%Y-%m-%d"):
-    datetime_array = rmm.device_array(len(df), dtype=np.int64)
+    datetime_array = cuda.device_array(len(df), dtype=np.int64)
     df[date_col].str.timestamp2int(
         format=date_format, units="D", devptr=datetime_array.device_ctypes_pointer.value
     )

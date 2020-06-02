@@ -17,7 +17,7 @@
 import numpy as np
 import cupy as cp
 
-import rmm
+from numba import cuda
 
 from cupyx.scipy.sparse import csr_matrix
 
@@ -134,7 +134,7 @@ def str_token_to_string_id_hash(token_sr, n_features):
         Returns a hashed series of the provided strings
     """
     import cudf
-    str_hash_array = rmm.device_array(len(token_sr), dtype=np.uint32)
+    str_hash_array = cuda.device_array(len(token_sr), dtype=np.uint32)
     token_sr.str.hash(devptr=str_hash_array.device_ctypes_pointer.value)
     # upcasting because we dont support unsigned ints currently
     # see github issue:https://github.com/rapidsai/cudf/issues/2819
