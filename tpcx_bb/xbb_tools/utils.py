@@ -41,16 +41,7 @@ from dask.utils import parse_bytes
 from dask_cuda import LocalCUDACluster
 from dask.distributed import Client, wait, performance_report, SSHCluster
 
-from tools.profiling import save_worker_profile_data, save_worker_incoming_transfer_logs
 import json
-
-
-from tools.gpu_memory_watcher import (
-    get_one_worker_per_node,
-    start_watching_across_workers,
-    finalize_watchers,
-)
-
 
 
 #################################
@@ -95,16 +86,10 @@ def run_dask_cudf_query(cli_args, cluster, client, query_func, write_func=write_
 
 def add_empty_cli_args(args):
     keys = [
-        "pool_size",
-        "rmm_allocator_mode",
-        "managed_memory",
         "tab",
-        "device_memory_limit",
-        "terminate_worker",
         "get_read_time",
         "split_row_groups",
         "dask_profile",
-        "spark_schema_dir",
         "verify_results",
     ]
 
@@ -162,11 +147,6 @@ def get_tpcxbb_argparser_commandline_args():
         help="Query Output Directry. Defaults to the directory of the query script.",
     )
     parser.add_argument("--dask_dir", default="./", type=str, help="Dask Dir")
-    parser.add_argument("--pool_mode", action="store_true", help="Use Pool Allocator")
-    parser.add_argument("--pool_size", default=None, type=str, help="Initial Pool size")
-    parser.add_argument(
-        "--managed_memory", action="store_true", help="Use Managed Memory Allocator"
-    )
     parser.add_argument(
         "--repartition_small_table",
         action="store_true",
@@ -203,16 +183,6 @@ def get_tpcxbb_argparser_commandline_args():
         default="parquet",
         type=str,
         help="The filetype of the query output file",
-    )
-    parser.add_argument(
-        "--capture_memory",
-        action="store_true",
-        help="Whether we should capture memory metrics locally during a query run",
-    )
-    parser.add_argument(
-        "--gpu_mem_watcher_path",
-        default="../../tools/gpu_memory_watcher.py",
-        help="Path to the gpu_memory_watcher module. Could be a relative path w.r.t where the workers were created.",
     )
 
     args = parser.parse_args()
