@@ -14,13 +14,6 @@
 # limitations under the License.
 #
 
-"""
-Implement simple scoring metrics using cupy (instead of going via host)
-
-Should be removed once cuML impelements their own scoring metrics.
-
-Thanks @beckernick for providing the initial implementations.
-"""
 import cupy as cp
 
 
