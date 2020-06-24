@@ -18,14 +18,15 @@ import os
 import requests
 import sys
 
+import dask
 from dask.distributed import Client
-
+from dask.utils import parse_bytes
 
 def attach_to_cluster(cli_args):
     """Attaches to an existing cluster if available.
     By default, tries to attach to a cluster running on localhost:8786 (dask's default).
 
-    This is currently hardcoded to assume the scheduler is running on port 8787.
+    This is currently hardcoded to assume the dashboard is running on port 8787.
     """
     host = cli_args.get("cluster_host")
     port = cli_args.get("cluster_port", "8786")
@@ -54,4 +55,63 @@ def attach_to_cluster(cli_args):
             os.mkdir(worker_dir)
 
     client.run(maybe_create_worker_directories)
+    
+    # Get ucx config variables
+    ucx_config = client.submit(_get_ucx_config).result()
+    cli_args.update(ucx_config)
+
+    # Save worker information
+    worker_counts = worker_count_info(client, gpu_sizes=["16GB", "32GB"])
+    cli_args["16GB_workers"] = worker_counts["16GB"]
+    cli_args["32GB_workers"] = worker_counts["32GB"]
+    
     return client
+
+
+def worker_count_info(client, gpu_sizes=["16GB", "32GB"], tol="2.1GB"):
+    """
+    Method accepts the Client object, GPU sizes and tolerance limit and returns
+    a dictionary containing number of workers per GPU size specified
+    """
+    counts_by_gpu_size = dict.fromkeys(gpu_sizes, 0)
+    worker_info = client.scheduler_info()["workers"]
+    for worker, info in worker_info.items():
+        # Assumption is that a node is homogeneous (on a specific node all gpus have the same size)
+        worker_device_memory = info["gpu"]["memory-total"][0]
+        for gpu_size in gpu_sizes:
+            if abs(parse_bytes(gpu_size) - worker_device_memory) < parse_bytes(tol):
+                counts_by_gpu_size[gpu_size] += 1
+                break
+
+    return counts_by_gpu_size
+
+
+def _get_ucx_config():
+    """
+    Get a subset of ucx config variables relevant for benchmarking
+    """
+    relevant_configs = ["infiniband", "nvlink"]
+    ucx_config = dask.config.get("ucx")
+    # Doing this since when relevant configs are not enabled the value is `None` instead of `False`
+    filtered_ucx_config = {
+        config: ucx_config.get(config) if ucx_config.get(config) else False
+        for config in relevant_configs
+    }
+
+    return filtered_ucx_config
+
+
+def import_query_libs():
+    library_list = [
+        "rmm",
+        "cudf",
+        "cuml",
+        "cupy",
+        "sklearn",
+        "dask_cudf",
+        "pandas",
+        "numpy",
+        "spacy",
+    ]
+    for lib in library_list:
+        importlib.import_module(lib)
