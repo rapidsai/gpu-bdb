@@ -48,7 +48,7 @@ import json
 # Query Runner Utilities
 #################################
 
-def run_dask_cudf_query(cli_args, cluster, client, query_func, write_func=write_result):
+def run_dask_cudf_query(cli_args, client, query_func, write_func=write_result):
     """
     Common utility to perform all steps needed to execute a dask-cudf version
     of the query. Includes attaching to cluster, running the query and writing results
@@ -72,12 +72,11 @@ def run_dask_cudf_query(cli_args, cluster, client, query_func, write_func=write_
 
         if os.environ.get("tpcxbb_benchmark_sweep_run") != "True":
             client.close()
-            if cluster:
-                cluster.close()
     except:
         cli_args["query_status"] = "Failed"
         print("Encountered Exception while running query")
         print(traceback.format_exc())
+    
     # google sheet benchmarking automation
     push_payload_to_googlesheet(cli_args)
 
@@ -197,37 +196,6 @@ def get_scale_factor(data_dir):
     return int(reg_match[2:])
 
 
-def assert_dataframes_pseudo_equal(df1, df2, significant=6):
-    """Verify the pseudo-equality of two dataframes, acknowledging that:
-        - Row ordering may not be consistent between files
-        - Column ordering may vary between files,
-        - Floating point math can be annoying, so we may need to assert
-            equality at a specified level of precision
-
-    and assuming that:
-        - Files do not contain their own index values
-        - Column presence does not vary between files
-        - Datetime columns are read into memory consistently as either Object or Datetime columns
-    """
-    from cudf.tests.utils import assert_eq
-
-    # check shape is the same
-    assert df1.shape == df2.shape
-
-    # check columns are the same
-    assert sorted(df1.columns.tolist()) == sorted(df2.columns.tolist())
-
-    # align column ordering across dataframes
-    df2 = df2[df1.columns]
-
-    # sort by every column, with the stable column ordering, then reset the index
-    df1 = df1.sort_values(by=df1.columns.tolist()).reset_index(drop=True)
-    df2 = df2.sort_values(by=df2.columns.tolist()).reset_index(drop=True)
-
-    # verify equality
-    assert_eq(df1, df2, check_less_precise=significant, check_dtype=False)
-
-
 def benchmark(csv=True, dask_profile=False, compute_result=False):
     def decorate(func):
         def profiled(*args, **kwargs):
@@ -301,6 +269,7 @@ def get_query_number():
     else:
         QUERY_NUM = os.getcwd().split("/")[-1][1:]
     return QUERY_NUM
+
 
 #################################
 # Result Writing
@@ -447,6 +416,37 @@ def write_clustering_result(result_dict, output_directory="./", filetype="csv"):
 #################################
 # Correctness Verification
 #################################
+
+def assert_dataframes_pseudo_equal(df1, df2, significant=6):
+    """Verify the pseudo-equality of two dataframes, acknowledging that:
+        - Row ordering may not be consistent between files
+        - Column ordering may vary between files,
+        - Floating point math can be annoying, so we may need to assert
+            equality at a specified level of precision
+
+    and assuming that:
+        - Files do not contain their own index values
+        - Column presence does not vary between files
+        - Datetime columns are read into memory consistently as either Object or Datetime columns
+    """
+    from cudf.tests.utils import assert_eq
+
+    # check shape is the same
+    assert df1.shape == df2.shape
+
+    # check columns are the same
+    assert sorted(df1.columns.tolist()) == sorted(df2.columns.tolist())
+
+    # align column ordering across dataframes
+    df2 = df2[df1.columns]
+
+    # sort by every column, with the stable column ordering, then reset the index
+    df1 = df1.sort_values(by=df1.columns.tolist()).reset_index(drop=True)
+    df2 = df2.sort_values(by=df2.columns.tolist()).reset_index(drop=True)
+
+    # verify equality
+    assert_eq(df1, df2, check_less_precise=significant, check_dtype=False)
+
 
 def calculate_label_overlap_percent(spark_labels, rapids_labels):
 
@@ -905,6 +905,7 @@ def push_payload_to_googlesheet(cli_args):
     s = gc.open(cli_args["sheet"])
     tab = s.worksheet(cli_args["tab"])
     tab.append_row(payload)
+
 
 #################################
 # Query Utilities
