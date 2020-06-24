@@ -48,7 +48,6 @@ import json
 # Query Runner Utilities
 #################################
 
-
 def run_dask_cudf_query(cli_args, cluster, client, query_func, write_func=write_result):
     """
     Common utility to perform all steps needed to execute a dask-cudf version
@@ -286,84 +285,26 @@ def benchmark(csv=True, dask_profile=False, compute_result=False):
     return decorate
 
 
-## this util creates a dtype dict to be ingested by blazing sql from spark schema
-
-### todo: revisit this mapping later
-spark_to_blazing_dtype_dict = {
-    "bigint": "int64",
-    "int": "int32",
-    "string": "str",
-    "decimal(5,2)": "float32",
-    "decimal(7,2)": "float64",
-    "decimal(15,2)": "float64",
-}
-
-
-def get_dtype_dict(fname):
+def get_query_number():
+    """This assumes a directory structure like:
+    - rapids-queries
+        - q01
+        - q02
+        ...
+    and that it is being executed in one of the sub-directories.
     """
-        Given the schema file name return a the dtype dict
-    """
-    with open(fname, "r") as f:
-        raw_lines = f.readlines()
-        data_lines = [line.strip().strip(",").strip() for line in raw_lines]
-        data_lines = [line for line in data_lines if line]
-        data_lines = [line.split()[:2] for line in data_lines]
-        data_dict = [
-            (col_name, spark_to_blazing_dtype_dict[spark_type])
-            for col_name, spark_type in data_lines
-        ]
+    ### when running  tpcxbb_benchmark_sweep_run we dont call it from query structure
+    ### we write it to a loaction instead
+    if os.environ.get("tpcxbb_benchmark_sweep_run") == "True":
+        with open("current_query_num.txt", "r") as file:
+            QUERY_NUM = file.read()
+    else:
+        QUERY_NUM = os.getcwd().split("/")[-1][1:]
+    return QUERY_NUM
 
-    return OrderedDict(data_dict)
-
-
-def generate_library_information():
-    KEY_LIBRARIES = [
-        "cudf",
-        "cuml",
-        "dask",
-        "distributed",
-        "ucx",
-        "ucx-py",
-        "dask-cuda",
-        "rmm",
-        "cupy",
-    ]
-
-    conda_list_command = (
-        os.environ.get("CONDA_PREFIX").partition("envs")[0] + "bin/conda list"
-    )
-    result = subprocess.run(
-        conda_list_command, stdout=subprocess.PIPE, shell=True
-    ).stdout.decode("utf-8")
-    df = pd.DataFrame(
-        [x.split() for x in result.split("\n")[3:]],
-        columns=["library", "version", "build", "channel"],
-    )
-    df = df[df.library.isin(KEY_LIBRARIES)]
-
-    lib_dict = dict(zip(df.library, df.version))
-    return lib_dict
-
-
-def push_payload_to_googlesheet(cli_args):
-    import gspread
-    from oauth2client.service_account import ServiceAccountCredentials
-
-    scope = [
-        "https://spreadsheets.google.com/feeds",
-        "https://www.googleapis.com/auth/drive",
-    ]
-    credentials_path = os.environ["GOOGLE_SHEETS_CREDENTIALS_PATH"]
-
-    credentials = ServiceAccountCredentials.from_json_keyfile_name(
-        credentials_path, scope
-    )
-    gc = gspread.authorize(credentials)
-    payload = build_benchmark_googlesheet_payload(cli_args)
-    s = gc.open(cli_args["sheet"])
-    tab = s.worksheet(cli_args["tab"])
-    tab.append_row(payload)
-
+#################################
+# Result Writing
+#################################
 
 @benchmark()
 def write_result(payload, filetype="parquet", output_directory="./"):
@@ -501,64 +442,6 @@ def write_clustering_result(result_dict, output_directory="./", filetype="csv"):
         data.to_parquet(f"{output_directory}{clustering_result_name}", index=False)
 
     return 0
-
-
-def train_clustering_model(training_df, n_clusters, max_iter, n_init):
-    """Trains a KMeans clustering model on the 
-    given dataframe and returns the resulting
-    labels and WSSSE"""
-
-    from cuml.cluster.kmeans import KMeans
-
-    best_sse = 0
-    best_model = None
-
-    # Optimizing by doing multiple seeding iterations.
-    for i in range(n_init):
-        model = KMeans(
-            oversampling_factor=0,
-            n_clusters=n_clusters,
-            max_iter=max_iter,
-            random_state=np.random.randint(0, 500),
-            init="k-means++",
-        )
-        model.fit(training_df)
-
-        score = model.inertia_
-
-        if best_model is None:
-            best_sse = score
-            best_model = model
-
-        elif abs(score) < abs(best_sse):
-            best_sse = score
-            best_model = model
-
-    return {
-        "cid_labels": best_model.labels_,
-        "wssse": best_model.inertia_,
-        "cluster_centers": best_model.cluster_centers_,
-        "nclusters": n_clusters,
-    }
-
-
-def get_query_number():
-    """This assumes a directory structure like:
-    - rapids-queries
-        - q01
-        - q02
-        ...
-    and that it is being executed in one of the sub-directories.
-    """
-    ### when running  tpcxbb_benchmark_sweep_run we dont call it from query structure
-    ### we write it to a loaction instead
-    if os.environ.get("tpcxbb_benchmark_sweep_run") == "True":
-        with open("current_query_num.txt", "r") as file:
-            QUERY_NUM = file.read()
-    else:
-        QUERY_NUM = os.getcwd().split("/")[-1][1:]
-    return QUERY_NUM
-
 
 
 #################################
@@ -975,6 +858,54 @@ def _get_benchmarked_method_time(
     return benchmark_time
 
 
+def generate_library_information():
+    KEY_LIBRARIES = [
+        "cudf",
+        "cuml",
+        "dask",
+        "distributed",
+        "ucx",
+        "ucx-py",
+        "dask-cuda",
+        "rmm",
+        "cupy",
+    ]
+
+    conda_list_command = (
+        os.environ.get("CONDA_PREFIX").partition("envs")[0] + "bin/conda list"
+    )
+    result = subprocess.run(
+        conda_list_command, stdout=subprocess.PIPE, shell=True
+    ).stdout.decode("utf-8")
+    df = pd.DataFrame(
+        [x.split() for x in result.split("\n")[3:]],
+        columns=["library", "version", "build", "channel"],
+    )
+    df = df[df.library.isin(KEY_LIBRARIES)]
+
+    lib_dict = dict(zip(df.library, df.version))
+    return lib_dict
+
+
+def push_payload_to_googlesheet(cli_args):
+    import gspread
+    from oauth2client.service_account import ServiceAccountCredentials
+
+    scope = [
+        "https://spreadsheets.google.com/feeds",
+        "https://www.googleapis.com/auth/drive",
+    ]
+    credentials_path = os.environ["GOOGLE_SHEETS_CREDENTIALS_PATH"]
+
+    credentials = ServiceAccountCredentials.from_json_keyfile_name(
+        credentials_path, scope
+    )
+    gc = gspread.authorize(credentials)
+    payload = build_benchmark_googlesheet_payload(cli_args)
+    s = gc.open(cli_args["sheet"])
+    tab = s.worksheet(cli_args["tab"])
+    tab.append_row(payload)
+
 #################################
 # Query Utilities
 #################################
@@ -1000,3 +931,42 @@ def convert_datestring_to_days(df):
         df["d_date"].astype("datetime64[s]", format="%Y-%m-%d").astype("int64") / 86400
     ).astype("int64")
     return df
+
+
+def train_clustering_model(training_df, n_clusters, max_iter, n_init):
+    """Trains a KMeans clustering model on the 
+    given dataframe and returns the resulting
+    labels and WSSSE"""
+
+    from cuml.cluster.kmeans import KMeans
+
+    best_sse = 0
+    best_model = None
+
+    # Optimizing by doing multiple seeding iterations.
+    for i in range(n_init):
+        model = KMeans(
+            oversampling_factor=0,
+            n_clusters=n_clusters,
+            max_iter=max_iter,
+            random_state=np.random.randint(0, 500),
+            init="k-means++",
+        )
+        model.fit(training_df)
+
+        score = model.inertia_
+
+        if best_model is None:
+            best_sse = score
+            best_model = model
+
+        elif abs(score) < abs(best_sse):
+            best_sse = score
+            best_model = model
+
+    return {
+        "cid_labels": best_model.labels_,
+        "wssse": best_model.inertia_,
+        "cluster_centers": best_model.cluster_centers_,
+        "nclusters": n_clusters,
+    }
