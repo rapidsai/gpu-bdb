@@ -42,7 +42,7 @@ def create_sentences_from_reviews(df, review_column='pr_review_content', end_of_
 def create_words_from_sentences(df, sentence_column='sentence', global_position_column='sentence_tokenized_global_pos', delimiter=' '):
     import cudf
 
-    cleaned_sentences = df[sentence_column].str.replace_multi(
+    cleaned_sentences = df[sentence_column].str.replace(
         [',', ';', '-', '"', '.'],
         ['', '', '', '', ' '],
         regex=False)
