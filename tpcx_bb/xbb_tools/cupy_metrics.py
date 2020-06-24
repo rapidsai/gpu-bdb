@@ -45,10 +45,10 @@ def cupy_conf_mat(y, y_pred):
 
 def cupy_precision_score(y, y_pred):
     """
-    Simple, precision score method for two class models.
+    Simple precision score method for two class models.
     It is assumed that the positive class has label 1.
 
-    Implementstion taken from rapidsai/cuml#1522
+    Implementation taken from rapidsai/cuml#1522
     """
     pos_pred_ix = cp.where(y_pred == 1)
     tp_sum = (y_pred[pos_pred_ix] == y[pos_pred_ix]).sum()
