@@ -14,26 +14,146 @@
 # limitations under the License.
 #
 
+import inspect
 import os
 import shutil
+import socket
+import re
 import argparse
 import time
-from collections.abc import Iterable, MutableMapping
+import subprocess
+from datetime import datetime
+from collections.abc import Iterable
+import glob
+import dask
 import traceback
+import requests
+import yaml
+import sys
+from collections import OrderedDict
+from collections.abc import MutableMapping
 
 import numpy as np
+
 import pandas as pd
 import dask.dataframe as dd
+from dask.utils import parse_bytes
+from dask_cuda import LocalCUDACluster
 from dask.distributed import Client, wait, performance_report, SSHCluster
+
+from tools.profiling import save_worker_profile_data, save_worker_incoming_transfer_logs
+import json
+
+
+from tools.gpu_memory_watcher import (
+    get_one_worker_per_node,
+    start_watching_across_workers,
+    finalize_watchers,
+)
+
+
+
+#################################
+# Query Runner Utilities
+#################################
+
+
+def run_dask_cudf_query(cli_args, cluster, client, query_func, write_func=write_result):
+    """
+    Common utility to perform all steps needed to execute a dask-cudf version
+    of the query. Includes attaching to cluster, running the query and writing results
+    """
+    try:
+        cli_args["start_time"] = time.time()
+        results = query_func(client=client)
+
+        write_func(
+            results,
+            output_directory=cli_args["output_dir"],
+            filetype=cli_args["output_filetype"],
+        )
+        cli_args["query_status"] = "Success"
+
+        result_verified = False
+
+        if cli_args["verify_results"]:
+            result_verified = verify_results(cli_args["verify_dir"])
+        cli_args["result_verified"] = result_verified
+
+        if os.environ.get("tpcxbb_benchmark_sweep_run") != "True":
+            client.close()
+            if cluster:
+                cluster.close()
+    except:
+        cli_args["query_status"] = "Failed"
+        print("Encountered Exception while running query")
+        print(traceback.format_exc())
+    # google sheet benchmarking automation
+    push_payload_to_googlesheet(cli_args)
+
+
+
+def add_empty_cli_args(args):
+    keys = [
+        "pool_size",
+        "rmm_allocator_mode",
+        "managed_memory",
+        "tab",
+        "device_memory_limit",
+        "terminate_worker",
+        "get_read_time",
+        "split_row_groups",
+        "dask_profile",
+        "spark_schema_dir",
+        "verify_results",
+    ]
+
+    for key in keys:
+        if key not in args:
+            args[key] = None
+
+    if "file_format" not in args:
+        args["file_format"] = "parquet"
+
+    if "output_filetype" not in args:
+        args["output_filetype"] = "parquet"
+
+    return args
 
 
 def tpcxbb_argparser():
+    if os.environ.get("tpcxbb_benchmark_sweep_run") == "True":
+        import benchmark_runner
+        import importlib.resources as pkg_resources
+
+        args = yaml.safe_load(
+            pkg_resources.read_text(benchmark_runner, "benchmark_config.yaml")
+        )
+        args = add_empty_cli_args(args)
+    else:
+        args = get_tpcxbb_argparser_commandline_args()
+
+    args["sheet"] = "TPCx-BB"
+    args["scale_factor"] = get_scale_factor(args["data_dir"])
+
+    if args["tab"] is None:
+        args["tab"] = f"SF{args['scale_factor']} Benchmarking Matrix"
+
+    return args
+
+
+def get_tpcxbb_argparser_commandline_args():
+
     parser = argparse.ArgumentParser(description="Run TPCx-BB query")
+    print("Using default arguments")
     parser.add_argument(
         "--data_dir",
         default="/datasets/tpcx-bb/sf1000/new_parquet/",
         type=str,
         help="Data Dir",
+    )
+    parser.add_argument(
+        "--file_format", default="parquet", type=str, help="File format"
     )
     parser.add_argument(
         "--output_dir",
@@ -42,6 +162,27 @@ def tpcxbb_argparser():
         help="Query Output Directry. Defaults to the directory of the query script.",
     )
     parser.add_argument("--dask_dir", default="./", type=str, help="Dask Dir")
+    parser.add_argument("--pool_mode", action="store_true", help="Use Pool Allocator")
+    parser.add_argument("--pool_size", default=None, type=str, help="Initial Pool size")
+    parser.add_argument(
+        "--managed_memory", action="store_true", help="Use Managed Memory Allocator"
+    )
+    parser.add_argument(
+        "--repartition_small_table",
+        action="store_true",
+        help="Repartition small tables",
+    )
+    parser.add_argument("--verify_results", action="store_true", help="Verify Results")
+    parser.add_argument(
+        "--verify_dir", default=None, type=str, help="Vefifed Results directory"
+    )
+    parser.add_argument("--get_read_time", action="store_true", help="Get Read times")
+    parser.add_argument("--tab", default=None, type=str, help="Uploading tab name")
+    parser.add_argument(
+        "--split_row_groups",
+        action="store_true",
+        help="split_row_groups (Read 1 row group per partition instead of 1 file per partition)",
+    )
     parser.add_argument(
         "--dask_profile", action="store_true", help="Include Dask Performance Report"
     )
@@ -57,13 +198,68 @@ def tpcxbb_argparser():
         type=int,
         help="Which port to use for the cluster scheduler. If you are trying to spin up a fresh SSHCluster, please ignore this and use --hosts instead.",
     )
+    parser.add_argument(
+        "--output_filetype",
+        default="parquet",
+        type=str,
+        help="The filetype of the query output file",
+    )
+    parser.add_argument(
+        "--capture_memory",
+        action="store_true",
+        help="Whether we should capture memory metrics locally during a query run",
+    )
+    parser.add_argument(
+        "--gpu_mem_watcher_path",
+        default="../../tools/gpu_memory_watcher.py",
+        help="Path to the gpu_memory_watcher module. Could be a relative path w.r.t where the workers were created.",
+    )
 
     args = parser.parse_args()
     args = vars(args)
     return args
 
 
-def benchmark(csv=True, dask_profile=False):
+def get_scale_factor(data_dir):
+    """
+        Returns scale factor from data_dir
+    """
+    reg_match = re.search("sf[0-9]+", data_dir).group(0)
+    return int(reg_match[2:])
+
+
+def assert_dataframes_pseudo_equal(df1, df2, significant=6):
+    """Verify the pseudo-equality of two dataframes, acknowledging that:
+        - Row ordering may not be consistent between files
+        - Column ordering may vary between files,
+        - Floating point math can be annoying, so we may need to assert
+            equality at a specified level of precision
+
+    and assuming that:
+        - Files do not contain their own index values
+        - Column presence does not vary between files
+        - Datetime columns are read into memory consistently as either Object or Datetime columns
+    """
+    from cudf.tests.utils import assert_eq
+
+    # check shape is the same
+    assert df1.shape == df2.shape
+
+    # check columns are the same
+    assert sorted(df1.columns.tolist()) == sorted(df2.columns.tolist())
+
+    # align column ordering across dataframes
+    df2 = df2[df1.columns]
+
+    # sort by every column, with the stable column ordering, then reset the index
+    df1 = df1.sort_values(by=df1.columns.tolist()).reset_index(drop=True)
+    df2 = df2.sort_values(by=df2.columns.tolist()).reset_index(drop=True)
+
+    # verify equality
+    assert_eq(df1, df2, check_less_precise=significant, check_dtype=False)
+
+
+def benchmark(csv=True, dask_profile=False, compute_result=False):
     def decorate(func):
         def profiled(*args, **kwargs):
             name = func.__name__
@@ -71,6 +267,18 @@ def benchmark(csv=True, dask_profile=False):
             if dask_profile:
                 with performance_report(filename=f"profiled-{name}.html"):
                     result = func(*args, **kwargs)
+
+                # hardcoding client as a keyword argument to main
+                client = kwargs.get("client")
+                if client:
+                    QUERY_NUM = get_query_number()
+                    save_worker_profile_data(
+                        client, filename=f"q{QUERY_NUM}-worker-profile-data-{name}.json"
+                    )
+                    save_worker_incoming_transfer_logs(
+                        client,
+                        filename=f"q{QUERY_NUM}-worker-incoming-transfer-logs-{name}.csv",
+                    )
             else:
                 result = func(*args, **kwargs)
             elapsed_time = time.time() - t0
@@ -78,6 +286,22 @@ def benchmark(csv=True, dask_profile=False):
             logging_info = {}
             logging_info["elapsed_time_seconds"] = elapsed_time
             logging_info["function_name"] = name
+
+            if compute_result:
+                if isinstance(result, Iterable):
+                    len_tasks = []
+                    for read_df in result:
+                        len_tasks += [
+                            dask.delayed(len)(df) for df in read_df.to_delayed()
+                        ]
+                else:
+                    len_tasks = [dask.delayed(len)(df) for df in result.to_delayed()]
+
+                compute_st = time.time()
+                results = dask.compute(*len_tasks)
+                compute_et = time.time()
+
+                logging_info["compute_time_seconds"] = compute_et - compute_st
 
             logdf = pd.DataFrame.from_dict(logging_info, orient="index").T
 
@@ -92,43 +316,195 @@ def benchmark(csv=True, dask_profile=False):
     return decorate
 
 
+## this util creates a dtype dict to be ingested by blazing sql from spark schema
+
+### todo: revisit this mapping later
+spark_to_blazing_dtype_dict = {
+    "bigint": "int64",
+    "int": "int32",
+    "string": "str",
+    "decimal(5,2)": "float32",
+    "decimal(7,2)": "float64",
+    "decimal(15,2)": "float64",
+}
+
+
+def get_dtype_dict(fname):
+    """
+        Given the schema file name return a the dtype dict
+    """
+    with open(fname, "r") as f:
+        raw_lines = f.readlines()
+        data_lines = [line.strip().strip(",").strip() for line in raw_lines]
+        data_lines = [line for line in data_lines if line]
+        data_lines = [line.split()[:2] for line in data_lines]
+        data_dict = [
+            (col_name, spark_to_blazing_dtype_dict[spark_type])
+            for col_name, spark_type in data_lines
+        ]
+
+    return OrderedDict(data_dict)
+
+
+def generate_library_information():
+    KEY_LIBRARIES = [
+        "cudf",
+        "cuml",
+        "dask",
+        "distributed",
+        "ucx",
+        "ucx-py",
+        "dask-cuda",
+        "rmm",
+        "cupy",
+    ]
+
+    conda_list_command = (
+        os.environ.get("CONDA_PREFIX").partition("envs")[0] + "bin/conda list"
+    )
+    result = subprocess.run(
+        conda_list_command, stdout=subprocess.PIPE, shell=True
+    ).stdout.decode("utf-8")
+    df = pd.DataFrame(
+        [x.split() for x in result.split("\n")[3:]],
+        columns=["library", "version", "build", "channel"],
+    )
+    df = df[df.library.isin(KEY_LIBRARIES)]
+
+    lib_dict = dict(zip(df.library, df.version))
+    return lib_dict
+
+
+def push_payload_to_googlesheet(cli_args):
+    import gspread
+    from oauth2client.service_account import ServiceAccountCredentials
+
+    scope = [
+        "https://spreadsheets.google.com/feeds",
+        "https://www.googleapis.com/auth/drive",
+    ]
+    credentials_path = os.environ["GOOGLE_SHEETS_CREDENTIALS_PATH"]
+
+    credentials = ServiceAccountCredentials.from_json_keyfile_name(
+        credentials_path, scope
+    )
+    gc = gspread.authorize(credentials)
+    payload = build_benchmark_googlesheet_payload(cli_args)
+    s = gc.open(cli_args["sheet"])
+    tab = s.worksheet(cli_args["tab"])
+    tab.append_row(payload)
+
+
 @benchmark()
-def write_result(payload, output_directory="./"):
+def write_result(payload, filetype="parquet", output_directory="./"):
     """
     """
     import cudf
 
     if isinstance(payload, MutableMapping):
-        write_clustering_result(result_dict=payload, output_directory=output_directory)
+        if payload.get("output_type", None) == "supervised":
+            write_supervised_learning_result(
+                result_dict=payload,
+                filetype=filetype,
+                output_directory=output_directory,
+            )
+        else:
+            write_clustering_result(
+                result_dict=payload,
+                filetype=filetype,
+                output_directory=output_directory,
+            )
     elif isinstance(payload, cudf.DataFrame) or isinstance(payload, dd.DataFrame):
-        write_etl_result(df=payload, output_directory=output_directory)
+        write_etl_result(
+            df=payload, filetype=filetype, output_directory=output_directory
+        )
     else:
         raise ValueError("payload must be a dict or a dataframe.")
 
 
-def write_etl_result(df, output_directory="./"):
+def write_etl_result(df, filetype="parquet", output_directory="./"):
+    assert filetype in ["csv", "parquet"]
+
     QUERY_NUM = get_query_number()
+    if filetype == "csv":
+        output_path = f"{output_directory}q{QUERY_NUM}-results.csv"
 
-    output_path = f"{output_directory}q{QUERY_NUM}-results.parquet"
-    if os.path.exists(output_path):
-        if os.path.isdir(output_path):
-            ## to remove existing  directory
+        if os.path.exists(output_path):
             shutil.rmtree(output_path)
-        else:
-            ## to remove existing single parquet file
-            os.remove(output_path)
 
-    if isinstance(df, dd.DataFrame):
-        df.to_parquet(output_path, write_index=False)
+        if not os.path.exists(output_path):
+            os.mkdir(output_path)
 
+        df.to_csv(output_path, header=True, index=False)
     else:
-        df.to_parquet(f"{output_directory}q{QUERY_NUM}-results.parquet", index=False)
+        output_path = f"{output_directory}q{QUERY_NUM}-results.parquet"
+        if os.path.exists(output_path):
+            if os.path.isdir(output_path):
+                ## to remove existing  directory
+                shutil.rmtree(output_path)
+            else:
+                ## to remove existing single parquet file
+                os.remove(output_path)
+
+        if isinstance(df, dd.DataFrame):
+            df.to_parquet(output_path, write_index=False)
+
+        else:
+            df.to_parquet(
+                f"{output_directory}q{QUERY_NUM}-results.parquet", index=False
+            )
 
 
-def write_clustering_result(result_dict, output_directory="./"):
+def write_result_q05(results_dict, output_directory="./", filetype=None):
+    """
+    Results are a text file due to the structure and tiny size
+    Filetype argument added for compatibility. Is not used.
+    """
+    with open(f"{output_directory}q05-metrics-results.txt", "w") as outfile:
+        outfile.write("Precision: %f\n" % results_dict["precision"])
+        outfile.write("AUC: %f\n" % results_dict["auc"])
+        outfile.write("Confusion Matrix:\n")
+        cm = results_dict["confusion_matrix"]
+        outfile.write(
+            "%8.1f  %8.1f\n%8.1f %8.1f\n" % (cm[0, 0], cm[0, 1], cm[1, 0], cm[1, 1])
+        )
+
+
+def write_supervised_learning_result(result_dict, output_directory, filetype="csv"):
+    assert filetype in ["csv", "parquet"]
+    QUERY_NUM = get_query_number()
+    if QUERY_NUM == "05":
+        write_result_q05(result_dict, output_directory)
+    else:
+        df = result_dict["df"]
+        acc = result_dict["acc"]
+        prec = result_dict["prec"]
+        cmat = result_dict["cmat"]
+
+        with open(f"{output_directory}q{QUERY_NUM}-metrics-results.txt", "w") as out:
+            out.write("Precision: %s\n" % prec)
+            out.write("Accuracy: %s\n" % acc)
+            out.write(
+                "Confusion Matrix: \n%s\n"
+                % (str(cmat).replace("[", " ").replace("]", " ").replace(".", ""))
+            )
+
+        if filetype == "csv":
+            df.to_csv(
+                f"{output_directory}q{QUERY_NUM}-results.csv", header=False, index=None
+            )
+        else:
+            df.to_parquet(
+                f"{output_directory}q{QUERY_NUM}-results.parquet", write_index=False
+            )
+
+
+def write_clustering_result(result_dict, output_directory="./", filetype="csv"):
     """Results are a text file AND a csv or parquet file.
     This works because we are down to a single partition dataframe.
     """
+    assert filetype in ["csv", "parquet"]
+
     QUERY_NUM = get_query_number()
     clustering_info_name = f"{QUERY_NUM}-results-cluster-info.txt"
 
@@ -145,8 +521,14 @@ def write_clustering_result(result_dict, output_directory="./"):
     # as the label column
     data = result_dict.get("cid_labels")
 
-    clustering_result_name = f"q{QUERY_NUM}-results.parquet"
-    data.to_parquet(f"{output_directory}{clustering_result_name}", index=False)
+    if filetype == "csv":
+        clustering_result_name = f"q{QUERY_NUM}-results.csv"
+        data.to_csv(
+            f"{output_directory}{clustering_result_name}", index=False, header=None
+        )
+    else:
+        clustering_result_name = f"q{QUERY_NUM}-results.parquet"
+        data.to_parquet(f"{output_directory}{clustering_result_name}", index=False)
 
     return 0
 
@@ -198,9 +580,434 @@ def get_query_number():
         ...
     and that it is being executed in one of the sub-directories.
     """
-    QUERY_NUM = os.getcwd().split("/")[-1][1:]
+    ### when running  tpcxbb_benchmark_sweep_run we dont call it from query structure
+    ### we write it to a loaction instead
+    if os.environ.get("tpcxbb_benchmark_sweep_run") == "True":
+        with open("current_query_num.txt", "r") as file:
+            QUERY_NUM = file.read()
+    else:
+        QUERY_NUM = os.getcwd().split("/")[-1][1:]
     return QUERY_NUM
 
+
+
+#################################
+# Correctness Verification
+#################################
+
+def calculate_label_overlap_percent(spark_labels, rapids_labels):
+
+    assert len(spark_labels) == len(rapids_labels)
+
+    spark_labels.columns = ["cid", "label"]
+    rapids_labels.columns = ["cid", "label"]
+
+    # assert that we clustered the same IDs
+    assert spark_labels.cid.equals(rapids_labels.cid)
+
+    rapids_counts_normalized = rapids_labels.label.value_counts(
+        normalize=True
+    ).reset_index()
+    spark_counts_normalized = spark_labels.label.value_counts(
+        normalize=True
+    ).reset_index()
+
+    nclusters = 8
+    label_mapping = {}
+
+    for i in range(nclusters):
+        row_spark = spark_counts_normalized.iloc[i]
+        row_rapids = rapids_counts_normalized.iloc[i]
+
+        percent = row_spark["label"]
+        label_id_spark = row_spark["index"]
+        label_id_rapids = row_rapids["index"]
+
+        label_mapping[label_id_rapids.astype("int")] = label_id_spark.astype("int")
+
+    rapids_labels["label"] = rapids_labels["label"].replace(label_mapping)
+    merged = spark_labels.merge(rapids_labels, how="inner", on=["cid"])
+    overlap_percent = (merged.label_x == merged.label_y).sum() / len(merged) * 100
+    return overlap_percent
+
+
+def compare_clustering_cost(spark_path, rapids_path):
+    with open(spark_path, "r") as fh:
+        spark_results = fh.readlines()
+
+    with open(rapids_path, "r") as fh:
+        rapids_results = fh.readlines()
+
+    spark_wssse = float(spark_results[3].split(": ")[1])
+    rapids_wssse = float(rapids_results[3].split(": ")[1])
+
+    delta_percent = abs(spark_wssse - rapids_wssse) / spark_wssse * 100
+
+    tolerance = 0.01  # allow for 1/100th of a percent cost difference
+    rapids_cost_similar = (rapids_wssse <= spark_wssse) or (delta_percent <= tolerance)
+
+    print(f"Cost delta percent: {delta_percent}")
+    print(f"RAPIDS cost lower/similar: {rapids_cost_similar}")
+    return rapids_cost_similar, delta_percent
+
+
+def verify_clustering_query_cost(spark_path, rapids_path):
+    rapids_cost_lower, delta_percent = compare_clustering_cost(spark_path, rapids_path,)
+    assert rapids_cost_lower
+
+
+def verify_clustering_query_labels(spark_data, rapids_data):
+    overlap_percent = calculate_label_overlap_percent(spark_data, rapids_data)
+    print(f"Label overlap percent: {overlap_percent}")
+    return 0
+
+
+def compare_supervised_metrics(validation, results):
+    val_precision = float(validation[0].split(": ")[1])
+    val_auc = float(validation[1].split(": ")[1])
+
+    results_precision = float(results[0].split(": ")[1])
+    results_auc = float(results[1].split(": ")[1])
+
+    tolerance = 0.01  # allow for 1/100th of a percent cost difference
+
+    precision_delta_percent = (
+        abs(val_precision - results_precision) / val_precision * 100
+    )
+    precision_similar = (results_precision >= val_precision) or (
+        precision_delta_percent <= tolerance
+    )
+
+    auc_delta_percent = abs(val_auc - results_auc) / val_precision * 100
+    auc_similar = (results_auc >= val_auc) or (auc_delta_percent <= tolerance)
+
+    print(f"Precisiom delta percent: {precision_delta_percent}")
+    print(f"AUC delta percent: {auc_delta_percent}")
+    print(f"Precision higher/similar: {precision_similar}")
+    print(f"AUC higher/similar: {auc_similar}")
+
+    return precision_similar, auc_similar, precision_delta_percent
+
+
+def verify_supervised_metrics(validation, results):
+    (
+        precision_similar,
+        auc_similar,
+        precision_delta_percent,
+    ) = compare_supervised_metrics(validation, results)
+    assert precision_similar and auc_similar
+
+
+def verify_sentiment_query(results, validation, query_number, threshold=90):
+    if query_number == "18":
+        group_cols = ["s_name", "r_date", "sentiment", "sentiment_word"]
+    else:
+        group_cols = ["item_sk", "sentiment", "sentiment_word"]
+
+    r_grouped = results.groupby(group_cols).size().reset_index()
+    s_grouped = validation.groupby(group_cols).size().reset_index()
+
+    t1 = r_grouped
+    t2 = s_grouped
+
+    rapids_nrows = t1.shape[0]
+    spark_nrows = t2.shape[0]
+    res_rows = t1.merge(t2, how="inner", on=list(t1.columns)).shape[0]
+
+    overlap_percent_rapids_denom = res_rows / rapids_nrows * 100
+    overlap_percent_spark_denom = res_rows / spark_nrows * 100
+
+    print(
+        f"{overlap_percent_rapids_denom}% overlap with {rapids_nrows} rows (RAPIDS denominator)"
+    )
+    print(
+        f"{overlap_percent_spark_denom}% overlap with {spark_nrows} rows (Spark denominator)"
+    )
+
+    assert overlap_percent_rapids_denom >= threshold
+    assert overlap_percent_spark_denom >= threshold
+
+    return 0
+
+
+def verify_results(verify_dir):
+    """
+    verify_dir: Directory which contains verification results
+    """
+    import cudf
+    import dask_cudf
+    import cupy as cp
+    import dask.dataframe as dd
+
+    QUERY_NUM = get_query_number()
+
+    # Query groupings
+    SENTIMENT_QUERIES = (
+        "10",
+        "18",
+        "19",
+    )
+    CLUSTERING_QUERIES = (
+        "20",
+        "25",
+        "26",
+    )
+    SUPERVISED_LEARNING_QUERIES = (
+        "05",
+        "28",
+    )
+
+    # Key Thresholds
+    SENTIMENT_THRESHOLD = 90
+
+    result_verified = False
+
+    # Short-circuit for the NER query
+    if QUERY_NUM in ("27"):
+        print("Did not run Correctness check for this query")
+        return result_verified
+
+    # Setup validation data
+    if QUERY_NUM in SUPERVISED_LEARNING_QUERIES:
+        verify_fname = os.path.join(
+            verify_dir, f"q{QUERY_NUM}-results/q{QUERY_NUM}-metrics-results.txt"
+        )
+        result_fname = f"q{QUERY_NUM}-metrics-results.txt"
+
+        with open(verify_fname, "r") as fh:
+            validation_data = fh.readlines()
+
+    else:
+        result_fname = f"q{QUERY_NUM}-results.parquet/"
+        verify_fname = glob.glob(verify_dir + f"q{QUERY_NUM}-results/*.csv")
+
+        validation_data = dd.read_csv(verify_fname, escapechar="\\").compute()
+
+    # Setup results data
+
+    # special case q12 due to the parquet output, which seems to be causing problems
+    # for the reader
+    # See https://github.com/rapidsai/tpcx-bb-internal/issues/568
+    if QUERY_NUM in ("12",):
+        results_data = dask_cudf.read_parquet(result_fname + "*.parquet").compute()
+        results_data = results_data.to_pandas()
+
+    elif QUERY_NUM in SUPERVISED_LEARNING_QUERIES:
+        with open(result_fname, "r") as fh:
+            results_data = fh.readlines()
+
+    else:
+        results_data = dask_cudf.read_parquet(result_fname).compute()
+        results_data = results_data.to_pandas()
+
+    # Verify correctness
+    if QUERY_NUM in SUPERVISED_LEARNING_QUERIES:
+        print("Supervised Learning Query")
+        try:
+            verify_supervised_metrics(validation_data, results_data)
+            result_verified = True
+            print("Correctness Assertion True")
+        except AssertionError as error:
+            print("Error", error)
+            print("Correctness Assertion False")
+
+    elif QUERY_NUM in CLUSTERING_QUERIES:
+        print("Clustering Query")
+        try:
+            cluster_info_validation_path = os.path.join(
+                verify_dir, f"q{QUERY_NUM}-results/clustering-results.txt"
+            )
+            cluster_info_rapids_path = f"q{QUERY_NUM}-results-cluster-info.txt"
+
+            # primary metric
+            verify_clustering_query_cost(
+                cluster_info_validation_path, cluster_info_rapids_path
+            )
+
+            # secondary metric (non-binding)
+            verify_clustering_query_labels(validation_data, results_data)
+
+            result_verified = True
+            print("Correctness Assertion True")
+        except AssertionError as error:
+            print("Error", error)
+            print("Correctness Assertion False")
+
+    elif QUERY_NUM in SENTIMENT_QUERIES:
+        print("Sentiment Analysis Query")
+        try:
+            verify_sentiment_query(
+                results_data, validation_data, QUERY_NUM, threshold=SENTIMENT_THRESHOLD
+            )
+            result_verified = True
+            print("Correctness Assertion True")
+        except AssertionError as error:
+            print("Error", error)
+            print("Correctness Assertion False")
+
+    # scalar results
+    elif QUERY_NUM in ("04", "23"):
+        print("Scalar Result Query")
+        try:
+            np.testing.assert_array_almost_equal(
+                validation_data.values, results_data.values, decimal=5
+            )
+            result_verified = True
+            print("Correctness Assertion True")
+        except AssertionError as error:
+            print("Error", error)
+            print("Correctness Assertion False")
+
+    else:
+        print("Standard ETL Query")
+        try:
+            assert_dataframes_pseudo_equal(results_data, validation_data)
+            result_verified = True
+            print("Correctness Assertion True")
+        except AssertionError as error:
+            print("Error", error)
+            print("Correctness Assertion False")
+
+    return result_verified
+
+
+
+#################################
+# Performance Tracking Automation
+#################################
+
+def build_benchmark_googlesheet_payload(cli_args):
+    """
+    cli_args : dict
+    """
+    # Don't mutate original dictionary
+    data = cli_args.copy()
+
+    # get the hostname of the machine running this workload
+    data["hostname"] = socket.gethostname()
+
+    QUERY_NUM = int(get_query_number())
+    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    query_time = _get_benchmarked_method_time(
+        filename="benchmarked_main.csv", query_start_time=cli_args.get("start_time")
+    )
+    writing_time = _get_benchmarked_method_time(
+        filename="benchmarked_write_result.csv",
+        query_start_time=cli_args.get("start_time"),
+    )
+    read_graph_creation_time = _get_benchmarked_method_time(
+        filename="benchmarked_read_tables.csv",
+        query_start_time=cli_args.get("start_time"),
+    )
+
+    if data["get_read_time"] and read_graph_creation_time and query_time:
+        ### below contains the computation time
+        compute_read_table_time = _get_benchmarked_method_time(
+            filename="benchmarked_read_tables.csv",
+            field="compute_time_seconds",
+            query_start_time=cli_args.get("start_time"),
+        )
+        # subtracting read calculation time
+        query_time = query_time - compute_read_table_time
+    else:
+        compute_read_table_time = None
+
+    # get library info
+    library_info = generate_library_information()
+    data.update(library_info)
+
+    payload = OrderedDict(
+        {
+            "Query Number": QUERY_NUM,
+            "Protocol": data.get("protocol"),
+            "NVLINK": data.get("nvlink", "NA"),
+            "Infiniband": data.get("infiniband", "NA"),
+            "Query Type": "blazing" if is_blazing_query() else "dask",
+            "File Format": data.get("file_format"),
+            "Time (seconds)": query_time + writing_time
+            if query_time and writing_time
+            else "NA",
+            "Query Time(seconds)": query_time if query_time else "NA",
+            "Writing Results Time": writing_time if writing_time else "NA",
+            # read time
+            "Compute Read + Repartition small table Time(seconds)": compute_read_table_time
+            if compute_read_table_time
+            else "NA",
+            "Graph Creation time(seconds)": read_graph_creation_time
+            if read_graph_creation_time
+            else "NA",
+            "Machine Setup": data.get("hostname"),
+            "Data Location": data.get("data_dir"),
+            "RMM Pool": data.get("pool_mode"),
+            "RMM Pool Size": data.get("pool_size_str"),
+            "RMM Allocator Mode": data.get("rmm_allocator_mode"),
+            "Repartition_small_table": data.get("repartition_small_table"),
+            "Result verified": data.get("result_verified"),
+            "Current Time": current_time,
+            "Split Row Groups": data.get("split_row_groups"),
+            "Work Stealing": data.get("work_stealing"),
+            "Device Memory Limit": data.get("device_memory_limit"),
+            "Host Memory Limit": data.get("memory_limit"),
+            "Host Memory Target Fraction": data.get("memory_target_fraction"),
+            "Host Memory Spill Fraction": data.get("memory_spill_fraction"),
+            "Host Memory Pause Fraction": data.get("memory_pause_fraction"),
+            "cuDF Version": data.get("cudf"),
+            "Dask Version": data.get("dask"),
+            "Distributed Version": data.get("distributed"),
+            "Dask-CUDA Version": data.get("dask-cuda"),
+            "UCX-py Version": data.get("ucx-py"),
+            "UCX Version": data.get("ucx"),
+            "RMM Version": data.get("rmm"),
+            "cuML Version": data.get("cuml"),
+            "CuPy Version": data.get("cupy"),
+            "Num 16GB workers": data.get("16GB_workers"),
+            "Num 32GB workers": data.get("32GB_workers"),
+            "Query Status": cli_args.get("query_status", "Unknown"),
+        }
+    )
+    payload = list(payload.values())
+    return payload
+
+
+def is_blazing_query():
+    """
+    Method that returns true if caller of the utility is a blazing query, returns false otherwise
+    Assumes that caller is 3 levels above the stack
+    query_of_interest -> utils.push_to_google_sheet -> utils.build_payload -> utils.is_blazing_query
+
+    Another potential solution is checking sys.modules.get("blazing") to check blazing is imported
+    """
+    query_filename = inspect.stack()[3].filename
+    return "sql" in os.path.basename(query_filename)
+
+
+def _get_benchmarked_method_time(
+    filename, field="elapsed_time_seconds", query_start_time=None
+):
+    """
+    Returns the `elapsed_time_seconds` field from files generated using the `benchmark` decorator.
+    """
+    import cudf
+
+    try:
+        if query_start_time:
+            benchmark_timestamp = os.path.getmtime(filename)
+            # Do not trust this data if file was created before the query started
+            if benchmark_timestamp < query_start_time:
+                return None
+
+        benchmark_results = cudf.read_csv(filename)
+        benchmark_time = benchmark_results[field].iloc[0]
+    except FileNotFoundError:
+        benchmark_time = None
+
+    return benchmark_time
+
+
+#################################
+# Query Utilities
+#################################
 
 def left_semi_join(df_1, df_2, left_on, right_on):
     """
@@ -216,20 +1023,10 @@ def left_semi_join(df_1, df_2, left_on, right_on):
     return df_1.map_partitions(left_merge, df_2.to_delayed()[0], meta=df_1._meta)
 
 
-def run_dask_cudf_query(cli_args, client, query_func, write_func=write_result):
-    """
-    Common utility to perform all steps needed to execute a dask-cudf version
-    of the query. Includes attaching to cluster, running the query and writing results
-    """
-    try:
-        results = query_func(client=client)
+def convert_datestring_to_days(df):
+    import cudf
 
-        write_func(
-            results, output_directory=cli_args["output_dir"],
-        )
-
-        client.close()
-
-    except:
-        print("Encountered Exception while running query")
-        print(traceback.format_exc())
+    df["d_date"] = (
+        df["d_date"].astype("datetime64[s]", format="%Y-%m-%d").astype("int64") / 86400
+    ).astype("int64")
+    return df
