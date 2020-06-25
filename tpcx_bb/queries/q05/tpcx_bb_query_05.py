@@ -36,7 +36,6 @@ from dask import delayed
 import dask
 import pandas as pd
 
-# import cuml
 from sklearn.metrics import roc_auc_score
 
 #
@@ -64,9 +63,17 @@ except:
     cli_args = {}
 
 
-@benchmark(dask_profile=cli_args.get("dask_profile"),)
+@benchmark(
+    compute_result=cli_args.get("get_read_time"),
+    dask_profile=cli_args.get("dask_profile"),
+)
 def read_tables():
-    table_reader = build_reader(basepath=cli_args["data_dir"])
+    table_reader = build_reader(
+        cli_args["file_format"],
+        basepath=cli_args["data_dir"],
+        repartition_small_table=cli_args["repartition_small_table"],
+        split_row_groups=cli_args["split_row_groups"],
+    )
 
     item_ddf = table_reader.read("item", relevant_cols=items_columns, index=False)
     customer_ddf = table_reader.read(
@@ -84,6 +91,8 @@ def build_and_predict_model(ml_input_df):
     Create a standardized feature matrix X and target array y.
     Returns the model and accuracy statistics
     """
+    import cuml
+
     feature_names = ["college_education", "male"] + [
         "clicks_in_%d" % i for i in range(1, 8)
     ]
@@ -111,30 +120,15 @@ def build_and_predict_model(ml_input_df):
     results_dict["auc"] = roc_auc_score(y.to_array(), y_pred.to_array())
     results_dict["precision"] = cupy_precision_score(cp.asarray(y), cp.asarray(y_pred))
     results_dict["confusion_matrix"] = cupy_conf_mat(cp.asarray(y), cp.asarray(y_pred))
-
+    results_dict["output_type"] = "supervised"
     return results_dict
-
-
-@benchmark()
-def write_result(results_dict, output_directory="./", filetype=None):
-    """
-    Results are a text file due to the structure and tiny size
-    Filetype argument added for compatibility. Is not used.
-    """
-    with open(f"{output_directory}q05-metrics-results.txt", "w") as outfile:
-        outfile.write("Precision: %f\n" % results_dict["precision"])
-        outfile.write("AUC: %f\n" % results_dict["auc"])
-        outfile.write("Confusion Matrix:\n")
-        cm = results_dict["confusion_matrix"]
-        outfile.write(
-            "%8.1f  %8.1f\n%8.1f %8.1f\n" % (cm[0, 0], cm[0, 1], cm[1, 0], cm[1, 1])
-        )
 
 
 def get_groupby_results(file_list, item_df):
     """
         Functionial approach for better scaling
     """
+    import cudf
 
     sum_by_cat_ddf = None
     for fn in file_list:
@@ -180,6 +174,9 @@ def get_groupby_results(file_list, item_df):
 
 @benchmark(dask_profile=cli_args.get("dask_profile"))
 def main(client):
+    import cudf
+    import dask_cudf
+
     item_ddf, customer_ddf, customer_dem_ddf = read_tables()
 
     # We want to find clicks in the parameterized category
@@ -288,5 +285,5 @@ if __name__ == "__main__":
     client = attach_to_cluster(cli_args)
 
     run_dask_cudf_query(
-        cli_args=cli_args, client=client, query_func=main, write_func=write_result,
+        cli_args=cli_args, client=client, query_func=main
     )
