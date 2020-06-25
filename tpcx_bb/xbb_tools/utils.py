@@ -114,12 +114,6 @@ def tpcxbb_argparser():
     else:
         args = get_tpcxbb_argparser_commandline_args()
 
-    args["sheet"] = "TPCx-BB"
-    args["scale_factor"] = get_scale_factor(args["data_dir"])
-
-    if args["tab"] is None:
-        args["tab"] = f"SF{args['scale_factor']} Benchmarking Matrix"
-
     return args
 
 
@@ -152,6 +146,7 @@ def get_tpcxbb_argparser_commandline_args():
         "--verify_dir", default=None, type=str, help="Vefifed Results directory"
     )
     parser.add_argument("--get_read_time", action="store_true", help="Get Read times")
+    parser.add_argument("--sheet", default="TPCx-BB", type=str, help="Uploading sheet name")
     parser.add_argument("--tab", default=None, type=str, help="Uploading tab name")
     parser.add_argument(
         "--split_row_groups",
@@ -891,6 +886,10 @@ def push_payload_to_googlesheet(cli_args):
     except ImportError:
         print("Please install gspread and oauth2client \
               to use Google Sheets automation")
+        return 1
+    
+    if not cli_args.get("tab"):
+        print("Must pass a tab name to use Google Sheets automation")
         return 1
 
     scope = [
