@@ -41,9 +41,17 @@ item_cols = ["i_item_sk", "i_category_id"]
 ss_cols = ["ss_item_sk", "ss_store_sk", "ss_ticket_number"]
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
+@benchmark(
+    compute_result=cli_args["get_read_time"], dask_profile=cli_args["dask_profile"]
+)
 def read_tables():
-    table_reader = build_reader(basepath=cli_args["data_dir"])
+    table_reader = build_reader(
+        cli_args["file_format"],
+        basepath=cli_args["data_dir"],
+        repartition_small_table=cli_args["repartition_small_table"],
+        split_row_groups=cli_args["split_row_groups"],
+    )
+    
     item_df = table_reader.read("item", relevant_cols=item_cols)
     ss_df = table_reader.read("store_sales", relevant_cols=ss_cols)
     return item_df, ss_df
@@ -162,5 +170,4 @@ if __name__ == "__main__":
     import dask_cudf
 
     client = attach_to_cluster(cli_args)
-
     run_dask_cudf_query(cli_args=cli_args, client=client, query_func=main)
