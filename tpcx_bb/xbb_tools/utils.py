@@ -27,7 +27,6 @@ from collections.abc import Iterable
 import glob
 import dask
 import traceback
-import requests
 import yaml
 import sys
 from collections import OrderedDict
@@ -81,7 +80,6 @@ def run_dask_cudf_query(cli_args, client, query_func, write_func=write_result):
     push_payload_to_googlesheet(cli_args)
 
 
-
 def add_empty_cli_args(args):
     keys = [
         "tab",
@@ -126,7 +124,6 @@ def tpcxbb_argparser():
 
 
 def get_tpcxbb_argparser_commandline_args():
-
     parser = argparse.ArgumentParser(description="Run TPCx-BB query")
     print("Using default arguments")
     parser.add_argument(
@@ -888,8 +885,13 @@ def generate_library_information():
 
 
 def push_payload_to_googlesheet(cli_args):
-    import gspread
-    from oauth2client.service_account import ServiceAccountCredentials
+    try:
+        import gspread
+        from oauth2client.service_account import ServiceAccountCredentials
+    except:
+        print("Please install gspread and oauth2client \
+              to use Google Sheets automation")
+        return
 
     scope = [
         "https://spreadsheets.google.com/feeds",
