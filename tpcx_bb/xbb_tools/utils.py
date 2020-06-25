@@ -888,10 +888,10 @@ def push_payload_to_googlesheet(cli_args):
     try:
         import gspread
         from oauth2client.service_account import ServiceAccountCredentials
-    except:
+    except ImportError:
         print("Please install gspread and oauth2client \
               to use Google Sheets automation")
-        return
+        return 1
 
     scope = [
         "https://spreadsheets.google.com/feeds",
