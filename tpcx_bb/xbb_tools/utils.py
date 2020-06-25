@@ -47,6 +47,7 @@ import json
 # Query Runner Utilities
 #################################
 
+
 def run_dask_cudf_query(cli_args, client, query_func, write_func=write_result):
     """
     Common utility to perform all steps needed to execute a dask-cudf version
@@ -75,14 +76,13 @@ def run_dask_cudf_query(cli_args, client, query_func, write_func=write_result):
         cli_args["query_status"] = "Failed"
         print("Encountered Exception while running query")
         print(traceback.format_exc())
-    
+
     # google sheet benchmarking automation
     push_payload_to_googlesheet(cli_args)
 
 
 def add_empty_cli_args(args):
     keys = [
-        "tab",
         "get_read_time",
         "split_row_groups",
         "dask_profile",
@@ -146,7 +146,9 @@ def get_tpcxbb_argparser_commandline_args():
         "--verify_dir", default=None, type=str, help="Vefifed Results directory"
     )
     parser.add_argument("--get_read_time", action="store_true", help="Get Read times")
-    parser.add_argument("--sheet", default="TPCx-BB", type=str, help="Uploading sheet name")
+    parser.add_argument(
+        "--sheet", default="TPCx-BB", type=str, help="Uploading sheet name"
+    )
     parser.add_argument("--tab", default=None, type=str, help="Uploading tab name")
     parser.add_argument(
         "--split_row_groups",
@@ -266,6 +268,7 @@ def get_query_number():
 #################################
 # Result Writing
 #################################
+
 
 @benchmark()
 def write_result(payload, filetype="parquet", output_directory="./"):
@@ -408,6 +411,7 @@ def write_clustering_result(result_dict, output_directory="./", filetype="csv"):
 #################################
 # Correctness Verification
 #################################
+
 
 def assert_dataframes_pseudo_equal(df1, df2, significant=6):
     """Verify the pseudo-equality of two dataframes, acknowledging that:
@@ -716,10 +720,10 @@ def verify_results(verify_dir):
     return result_verified
 
 
-
 #################################
 # Performance Tracking Automation
 #################################
+
 
 def build_benchmark_googlesheet_payload(cli_args):
     """
@@ -884,12 +888,14 @@ def push_payload_to_googlesheet(cli_args):
         import gspread
         from oauth2client.service_account import ServiceAccountCredentials
     except ImportError:
-        print("Please install gspread and oauth2client \
-              to use Google Sheets automation")
+        print(
+            "Please install gspread and oauth2client \
+              to use Google Sheets automation"
+        )
         return 1
-    
-    if not cli_args.get("tab"):
-        print("Must pass a tab name to use Google Sheets automation")
+
+    if not cli_args.get("tab") or not cli_args.get("sheet"):
+        print("Must pass a sheet and tab name to use Google Sheets automation")
         return 1
 
     scope = [
@@ -911,6 +917,7 @@ def push_payload_to_googlesheet(cli_args):
 #################################
 # Query Utilities
 #################################
+
 
 def left_semi_join(df_1, df_2, left_on, right_on):
     """
