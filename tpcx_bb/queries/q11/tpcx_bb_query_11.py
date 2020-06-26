@@ -21,6 +21,7 @@ from xbb_tools.utils import (
     benchmark,
     tpcxbb_argparser,
     run_dask_cudf_query,
+    convert_datestring_to_days,
 )
 from xbb_tools.readers import build_reader
 
@@ -33,9 +34,16 @@ q11_start_date = "2003-01-02"
 q11_end_date = "2003-02-02"
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
+@benchmark(
+    compute_result=cli_args["get_read_time"], dask_profile=cli_args["dask_profile"]
+)
 def read_tables():
-    table_reader = build_reader(basepath=cli_args["data_dir"])
+    table_reader = build_reader(
+        cli_args["file_format"],
+        basepath=cli_args["data_dir"],
+        repartition_small_table=cli_args["repartition_small_table"],
+        split_row_groups=cli_args["split_row_groups"],
+    )
 
     product_review_cols = [
         "pr_review_rating",
@@ -58,18 +66,10 @@ def read_tables():
     return pr_df, ws_df, date_df
 
 
-# Utility function for datestring -> days
-def convert_datestring_to_days(df, date_col="d_date", date_format="%Y-%m-%d"):
-    datetime_array = cuda.device_array(len(df), dtype=np.int64)
-    df[date_col].str.timestamp2int(
-        format=date_format, units="D", devptr=datetime_array.device_ctypes_pointer.value
-    )
-    df[date_col] = datetime_array
-    return df
-
-
 @benchmark(dask_profile=cli_args["dask_profile"])
 def main(client):
+    import cudf
+
     pr_df, ws_df, date_df = read_tables()
 
     date_df = date_df.map_partitions(convert_datestring_to_days)
