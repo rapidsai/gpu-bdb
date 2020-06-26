@@ -15,10 +15,7 @@
 #
 
 from dask.distributed import Client
-
-
 import sys
-
 
 from xbb_tools.utils import (
     benchmark,
@@ -30,10 +27,15 @@ from xbb_tools.readers import build_reader
 cli_args = tpcxbb_argparser()
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
+@benchmark(
+    compute_result=cli_args["get_read_time"], dask_profile=cli_args["dask_profile"]
+)
 def read_tables():
-
-    table_reader = build_reader(basepath=cli_args["data_dir"])
+    table_reader = build_reader(
+        cli_args["file_format"],
+        basepath=cli_args["data_dir"],
+        split_row_groups=cli_args["split_row_groups"],
+    )
 
     ss_columns = [
         "ss_quantity",
@@ -66,6 +68,7 @@ def read_tables():
 
 @benchmark(dask_profile=cli_args["dask_profile"])
 def main(client):
+    import cudf
 
     # Conf variables
 
