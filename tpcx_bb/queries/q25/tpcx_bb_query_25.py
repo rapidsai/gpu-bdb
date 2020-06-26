@@ -16,7 +16,6 @@
 
 import sys
 
-
 import numpy as np
 from numba import cuda
 
@@ -25,6 +24,7 @@ from xbb_tools.utils import (
     tpcxbb_argparser,
     train_clustering_model,
     run_dask_cudf_query,
+    convert_datestring_to_days,
 )
 from xbb_tools.readers import build_reader
 from dask import delayed
@@ -41,9 +41,14 @@ CLUSTER_ITERATIONS = 20
 N_ITER = 5
 
 
-@benchmark(dask_profile=cli_args.get("dask_profile"),)
+@benchmark(compute_result=cli_args.get("get_read_time"))
 def read_tables():
-    table_reader = build_reader(basepath=cli_args["data_dir"])
+    table_reader = build_reader(
+        cli_args["file_format"],
+        basepath=cli_args["data_dir"],
+        repartition_small_table=cli_args["repartition_small_table"],
+        split_row_groups=cli_args["split_row_groups"],
+    )
 
     ss_cols = ["ss_customer_sk", "ss_sold_date_sk", "ss_ticket_number", "ss_net_paid"]
     ws_cols = [
@@ -78,20 +83,9 @@ def agg_count_distinct(df, group_key, counted_key, client):
     return unique_df.groupby(group_key)[counted_key].count(split_every=2)
 
 
-def convert_datestring_to_days(df, date_col="d_date", date_format="%Y-%m-%d"):
-    """
-    Utility to convert datestring to int representing days
-    """
-    datetime_array = cuda.device_array(len(df), dtype=np.int64)
-    df[date_col].str.timestamp2int(
-        format=date_format, units="D", devptr=datetime_array.device_ctypes_pointer.value
-    )
-    df[date_col] = datetime_array
-    return df
-
-
-@benchmark(dask_profile=cli_args.get("dask_profile"))
 def get_clusters(client, ml_input_df):
+    import dask_cudf
+
     ml_tasks = [
         delayed(train_clustering_model)(df, N_CLUSTERS, CLUSTER_ITERATIONS, N_ITER)
         for df in ml_input_df.to_delayed()
@@ -112,6 +106,8 @@ def get_clusters(client, ml_input_df):
 
 @benchmark(dask_profile=cli_args.get("dask_profile"))
 def main(client):
+    import dask_cudf
+
     ss_ddf, ws_ddf, datedim_ddf = read_tables()
     datedim_ddf = datedim_ddf.map_partitions(convert_datestring_to_days)
     min_date = np.datetime64(Q25_DATE, "D").astype(int)
