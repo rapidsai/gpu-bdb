@@ -23,6 +23,7 @@ from xbb_tools.utils import (
     benchmark,
     tpcxbb_argparser,
     run_dask_cudf_query,
+    convert_datestring_to_days,
 )
 from xbb_tools.readers import build_reader
 from xbb_tools.merge_util import hash_merge
@@ -46,6 +47,7 @@ NA_FLAG = 0
 
 
 def etl_wcs(wcs_fn, filtered_date_df, web_page_df):
+    import cudf
 
     filtered_date_df = filtered_date_df
     web_page_df = web_page_df
@@ -89,6 +91,8 @@ def get_session_id_from_session_boundary(session_change_df, last_session_len):
     """
         This function returns session starts given a session change df
     """
+    import cudf
+
     user_session_ids = session_change_df.tstamp_inSec
 
     ### up shift the session length df
@@ -183,9 +187,17 @@ def prep_for_sessionization(df, review_cat_code):
     return df_filtered
 
 
-@benchmark(dask_profile=cli_args.get("dask_profile"),)
+@benchmark(
+    compute_result=cli_args.get("get_read_time"),
+    dask_profile=cli_args.get("dask_profile"),
+)
 def read_tables():
-    table_reader = build_reader(basepath=cli_args["data_dir"])
+    table_reader = build_reader(
+        cli_args["file_format"],
+        basepath=cli_args["data_dir"],
+        repartition_small_table=cli_args["repartition_small_table"],
+        split_row_groups=cli_args["split_row_groups"],
+    )
 
     date_dim_cols = ["d_date_sk", "d_date"]
     web_page_cols = ["wp_web_page_sk", "wp_type"]
@@ -196,16 +208,6 @@ def read_tables():
     web_sales_df = table_reader.read("web_sales", relevant_cols=web_sales_cols)
 
     return (date_dim_df, web_page_df, web_sales_df)
-
-
-### Util Function - converts date string to datetime
-def convert_datestring_to_datetime(df, date_col="d_date", date_format="%Y-%m-%d"):
-    datetime_array = cudf.core.column.column_empty(len(df), dtype=np.int64)
-    df[date_col].str.timestamp2int(
-        format=date_format, units="D", devptr=datetime_array.data_ptr
-    )
-    df[date_col] = datetime_array
-    return df
 
 
 def reduction_function(df, REVIEW_CAT_CODE):
@@ -222,9 +224,12 @@ def reduction_function(df, REVIEW_CAT_CODE):
 
 @benchmark(dask_profile=cli_args.get("dask_profile"))
 def main(client):
+    import cudf
+    import dask_cudf
+
     (date_dim_df, web_page_df, web_sales_df) = read_tables()
 
-    date_dim_cov_df = date_dim_df.map_partitions(convert_datestring_to_datetime)
+    date_dim_cov_df = date_dim_df.map_partitions(convert_datestring_to_days)
     q08_start_dt = np.datetime64(q08_STARTDATE, "D").astype(int)
     q08_end_dt = np.datetime64(q08_ENDDATE, "D").astype(int)
     filtered_date_df = date_dim_cov_df.query(
