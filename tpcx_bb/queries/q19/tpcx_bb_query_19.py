@@ -16,7 +16,6 @@
 
 import sys
 
-
 from xbb_tools.utils import (
     benchmark,
     tpcxbb_argparser,
@@ -35,9 +34,14 @@ q19_returns_dates = ["2004-03-08", "2004-08-02", "2004-11-15", "2004-12-20"]
 eol_char = "è"
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
+@benchmark(
+    compute_result=cli_args["get_read_time"], dask_profile=cli_args["dask_profile"]
+)
 def read_tables():
-    table_reader = build_reader(basepath=cli_args["data_dir"])
+    table_reader = build_reader(
+        cli_args["file_format"],
+        basepath=cli_args["data_dir"],
+    )
     date_dim_cols = ["d_week_seq", "d_date_sk", "d_date"]
     date_dim_df = table_reader.read("date_dim", relevant_cols=date_dim_cols)
     store_returns_cols = ["sr_returned_date_sk", "sr_item_sk", "sr_return_quantity"]
@@ -49,19 +53,22 @@ def read_tables():
 
     ### splitting by row groups for better parallelism
     pr_table_reader = build_reader(
-        basepath=cli_args["data_dir"], split_row_groups=True,
+        cli_args["file_format"],
+        basepath=cli_args["data_dir"],
+        split_row_groups=True,
     )
 
     product_reviews_cols = ["pr_item_sk", "pr_review_content", "pr_review_sk"]
-    product_reviews = pr_table_reader.read(
-        "product_reviews", relevant_cols=product_reviews_cols
-    )
+    product_reviews = pr_table_reader.read("product_reviews", relevant_cols=product_reviews_cols)
 
     return date_dim_df, store_returns_df, web_returns_df, product_reviews
 
 
 @benchmark(dask_profile=cli_args["dask_profile"])
 def main(client):
+    import cudf
+    import dask_cudf
+
     date_dim_df, store_returns_df, web_returns_df, product_reviews_df = read_tables()
 
     # filter date table
@@ -135,8 +142,8 @@ def main(client):
     merged_df = merged_df[merged_df["tolerance_flag"] == True].reset_index(drop=True)
     merged_df = merged_df[["pr_item_sk", "pr_review_content", "pr_review_sk"]]
     merged_df["pr_review_content"] = merged_df.pr_review_content.str.lower()
-    merged_df["pr_review_content"] = merged_df.pr_review_content.str.replace_multi(
-        [".", "?", "!"], eol_char, regex=False
+    merged_df["pr_review_content"] = merged_df.pr_review_content.str.replace(
+        [".", "?", "!"], [eol_char], regex=False
     )
 
     sentences = merged_df.map_partitions(create_sentences_from_reviews)

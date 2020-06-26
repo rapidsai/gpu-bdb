@@ -41,9 +41,14 @@ CLUSTER_ITERATIONS = 20
 N_ITER = 5
 
 
-@benchmark(dask_profile=cli_args.get("dask_profile"),)
+@benchmark(compute_result=cli_args.get("get_read_time"))
 def read_tables():
-    table_reader = build_reader(basepath=cli_args["data_dir"])
+    table_reader = build_reader(
+        cli_args["file_format"],
+        basepath=cli_args["data_dir"],
+        repartition_small_table=cli_args["repartition_small_table"],
+        split_row_groups=cli_args["split_row_groups"],
+    )
 
     store_sales_cols = [
         "ss_customer_sk",
@@ -71,6 +76,7 @@ def get_clusters(client, ml_input_df, feature_cols):
     Takes the dask client, kmeans_input_df and feature columns.
     Returns a dictionary matching the output required for q20
     """
+    import dask_cudf
     ml_tasks = [
         delayed(train_clustering_model)(df, N_CLUSTERS, CLUSTER_ITERATIONS, N_ITER)
         for df in ml_input_df[feature_cols].to_delayed()
