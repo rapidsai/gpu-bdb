@@ -16,7 +16,6 @@
 
 import sys
 
-
 from xbb_tools.utils import (
     benchmark,
     tpcxbb_argparser,
@@ -56,9 +55,16 @@ item_cols = ["i_item_id", "i_item_desc", "i_item_sk"]
 # todo: See if persisting the date table improves performence as its used all over
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
+@benchmark(
+    compute_result=cli_args["get_read_time"], dask_profile=cli_args["dask_profile"]
+)
 def read_tables():
-    table_reader = build_reader(basepath=cli_args["data_dir"])
+    table_reader = build_reader(
+        cli_args["file_format"],
+        basepath=cli_args["data_dir"],
+        repartition_small_table=cli_args["repartition_small_table"],
+        split_row_groups=cli_args["split_row_groups"],
+    )
 
     store_sales_df = table_reader.read("store_sales", relevant_cols=store_sales_cols)
     date_dim_df = table_reader.read("date_dim", relevant_cols=date_cols)
