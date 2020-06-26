@@ -46,9 +46,14 @@ imp_cols = [
 ss_cols = ["ss_item_sk", "ss_sold_date_sk", "ss_quantity"]
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
+@benchmark(compute_result=cli_args["get_read_time"])
 def read_tables():
-    table_reader = build_reader(basepath=cli_args["data_dir"])
+    table_reader = build_reader(
+        cli_args["file_format"],
+        basepath=cli_args["data_dir"],
+        repartition_small_table=cli_args["repartition_small_table"],
+        split_row_groups=cli_args["split_row_groups"],
+    )
     ### read tables
     ws_df = table_reader.read("web_sales", relevant_cols=ws_cols)
     item_df = table_reader.read("item", relevant_cols=item_cols)
@@ -58,7 +63,6 @@ def read_tables():
     return ws_df, item_df, imp_df, ss_df
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
 def get_helper_query_table(imp_df, item_df):
     f_imp_df = (
         imp_df.query(f"imp_item_sk == {q24_i_item_sk}", meta=imp_df._meta)
@@ -99,7 +103,6 @@ def get_helper_query_table(imp_df, item_df):
     return item_imp_join_df
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
 def get_prev_current_ws(df, websales_col="ws_sum"):
     """
         This function assigns the previous and current web-sales for the merged df
@@ -124,7 +127,6 @@ def get_prev_current_ws(df, websales_col="ws_sum"):
     return df
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
 def get_prev_current_ss(df, store_sales_col="ss_sum"):
     """
         This function assigns the previous and current store-sales for the merged df
@@ -148,7 +150,6 @@ def get_prev_current_ss(df, store_sales_col="ss_sum"):
     return df
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
 def get_ws(ws_df, item_imp_join_df):
     f_ws_df = ws_df.query(f"ws_item_sk == {q24_i_item_sk}", meta=ws_df._meta)
     ## we know that number of dates is limited and we only have 1 item
@@ -175,7 +176,6 @@ def get_ws(ws_df, item_imp_join_df):
     return r_ws
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
 def get_ss(ss_df, item_imp_join_df):
     f_ss_df = ss_df.query(
         f"ss_item_sk == {q24_i_item_sk}", meta=ss_df._meta
