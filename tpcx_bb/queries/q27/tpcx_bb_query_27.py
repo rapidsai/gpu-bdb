@@ -18,13 +18,10 @@ import sys
 import time
 import argparse
 
-
 import spacy
-import nvtext
 import rmm
 import cupy as cp
 import distributed
-
 
 from xbb_tools.utils import (
     benchmark,
@@ -38,16 +35,21 @@ from xbb_tools.readers import build_reader
 from dask_cuda import LocalCUDACluster
 from dask.distributed import Client, wait
 
+
 cli_args = tpcxbb_argparser()
 # -------- Q27 -----------
 q27_pr_item_sk = 10002
 EOL_CHAR = "."
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
+@benchmark(compute_result=cli_args["get_read_time"])
 def read_tables():
     ### splitting by row groups for better parallelism
-    table_reader = build_reader(basepath=cli_args["data_dir"], split_row_groups=True)
+    table_reader = build_reader(
+        cli_args["file_format"],
+        basepath=cli_args["data_dir"],
+        split_row_groups=True,
+    )
     product_reviews_cols = ["pr_item_sk", "pr_review_content", "pr_review_sk"]
     product_reviews_df = table_reader.read(
         "product_reviews", relevant_cols=product_reviews_cols
@@ -71,6 +73,7 @@ def ner_parser(df, col_string, batch_size=256):
 
 @benchmark(dask_profile=cli_args["dask_profile"])
 def main(client):
+    import dask_cudf
     product_reviews_df = read_tables()
     product_reviews_df = product_reviews_df[
         product_reviews_df.pr_item_sk == q27_pr_item_sk
