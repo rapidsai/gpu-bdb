@@ -16,7 +16,6 @@
 
 import sys
 
-
 from xbb_tools.utils import (
     benchmark,
     tpcxbb_argparser,
@@ -48,9 +47,12 @@ q29_limit = 100
 q29_session_timeout_inSec = 3600
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
+@benchmark(compute_result=cli_args.get("get_read_time"))
 def read_tables():
-    table_reader = build_reader(basepath=cli_args["data_dir"])
+    table_reader = build_reader(
+        cli_args["file_format"],
+        basepath=cli_args["data_dir"],
+    )
     item_cols = ["i_item_sk", "i_category_id"]
     item_df = table_reader.read("item", relevant_cols=item_cols)
 
