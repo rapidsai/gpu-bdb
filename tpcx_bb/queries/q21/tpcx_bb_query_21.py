@@ -60,7 +60,7 @@ item_cols = ["i_item_id", "i_item_desc", "i_item_sk"]
 )
 def read_tables():
     table_reader = build_reader(
-        cli_args["file_format"],
+        data_format=cli_args["file_format"],
         basepath=cli_args["data_dir"],
         repartition_small_table=cli_args["repartition_small_table"],
         split_row_groups=cli_args["split_row_groups"],

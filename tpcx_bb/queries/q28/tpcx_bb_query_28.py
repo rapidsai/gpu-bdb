@@ -107,7 +107,7 @@ def build_labels(reviews_df):
 def read_tables():
     ### splitting by row groups for better parallelism
     table_reader = build_reader(
-        cli_args["file_format"],
+        data_format=cli_args["file_format"],
         basepath=cli_args["data_dir"],
         repartition_small_table=cli_args["repartition_small_table"],
         split_row_groups=True,

@@ -69,7 +69,7 @@ def string_filter(df, col_name, col_values):
 )
 def read_tables():
     table_reader = build_reader(
-        cli_args["file_format"],
+        data_format=cli_args["file_format"],
         basepath=cli_args["data_dir"],
         schema_dir=cli_args["spark_schema_dir"],
         repartition_small_table=cli_args["repartition_small_table"],

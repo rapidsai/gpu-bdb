@@ -46,7 +46,7 @@ EOL_CHAR = "."
 def read_tables():
     ### splitting by row groups for better parallelism
     table_reader = build_reader(
-        cli_args["file_format"],
+        data_format=cli_args["file_format"],
         basepath=cli_args["data_dir"],
         split_row_groups=True,
     )

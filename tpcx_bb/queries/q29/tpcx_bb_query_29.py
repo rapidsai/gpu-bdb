@@ -50,7 +50,7 @@ q29_session_timeout_inSec = 3600
 @benchmark(compute_result=cli_args.get("get_read_time"))
 def read_tables():
     table_reader = build_reader(
-        cli_args["file_format"],
+        data_format=cli_args["file_format"],
         basepath=cli_args["data_dir"],
     )
     item_cols = ["i_item_sk", "i_category_id"]

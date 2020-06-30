@@ -39,7 +39,7 @@ q11_end_date = "2003-02-02"
 )
 def read_tables():
     table_reader = build_reader(
-        cli_args["file_format"],
+        data_format=cli_args["file_format"],
         basepath=cli_args["data_dir"],
         repartition_small_table=cli_args["repartition_small_table"],
         split_row_groups=cli_args["split_row_groups"],
