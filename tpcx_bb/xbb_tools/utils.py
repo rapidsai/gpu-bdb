@@ -44,6 +44,213 @@ import json
 
 
 #################################
+# Benchmark Timing
+#################################
+
+
+def benchmark(csv=True, dask_profile=False, compute_result=False):
+    def decorate(func):
+        def profiled(*args, **kwargs):
+            name = func.__name__
+            t0 = time.time()
+            if dask_profile:
+                with performance_report(filename=f"profiled-{name}.html"):
+                    result = func(*args, **kwargs)
+
+                # hardcoding client as a keyword argument to main
+                client = kwargs.get("client")
+                if client:
+                    QUERY_NUM = get_query_number()
+                    save_worker_profile_data(
+                        client, filename=f"q{QUERY_NUM}-worker-profile-data-{name}.json"
+                    )
+                    save_worker_incoming_transfer_logs(
+                        client,
+                        filename=f"q{QUERY_NUM}-worker-incoming-transfer-logs-{name}.csv",
+                    )
+            else:
+                result = func(*args, **kwargs)
+            elapsed_time = time.time() - t0
+
+            logging_info = {}
+            logging_info["elapsed_time_seconds"] = elapsed_time
+            logging_info["function_name"] = name
+
+            if compute_result:
+                if isinstance(result, Iterable):
+                    len_tasks = []
+                    for read_df in result:
+                        len_tasks += [
+                            dask.delayed(len)(df) for df in read_df.to_delayed()
+                        ]
+                else:
+                    len_tasks = [dask.delayed(len)(df) for df in result.to_delayed()]
+
+                compute_st = time.time()
+                results = dask.compute(*len_tasks)
+                compute_et = time.time()
+
+                logging_info["compute_time_seconds"] = compute_et - compute_st
+
+            logdf = pd.DataFrame.from_dict(logging_info, orient="index").T
+
+            if csv:
+                logdf.to_csv(f"benchmarked_{name}.csv", index=False)
+            else:
+                print(logdf)
+            return result
+
+        return profiled
+
+    return decorate
+
+
+
+#################################
+# Result Writing
+#################################
+
+
+@benchmark()
+def write_result(payload, filetype="parquet", output_directory="./"):
+    """
+    """
+    import cudf
+
+    if isinstance(payload, MutableMapping):
+        if payload.get("output_type", None) == "supervised":
+            write_supervised_learning_result(
+                result_dict=payload,
+                filetype=filetype,
+                output_directory=output_directory,
+            )
+        else:
+            write_clustering_result(
+                result_dict=payload,
+                filetype=filetype,
+                output_directory=output_directory,
+            )
+    elif isinstance(payload, cudf.DataFrame) or isinstance(payload, dd.DataFrame):
+        write_etl_result(
+            df=payload, filetype=filetype, output_directory=output_directory
+        )
+    else:
+        raise ValueError("payload must be a dict or a dataframe.")
+
+
+def write_etl_result(df, filetype="parquet", output_directory="./"):
+    assert filetype in ["csv", "parquet"]
+
+    QUERY_NUM = get_query_number()
+    if filetype == "csv":
+        output_path = f"{output_directory}q{QUERY_NUM}-results.csv"
+
+        if os.path.exists(output_path):
+            shutil.rmtree(output_path)
+
+        if not os.path.exists(output_path):
+            os.mkdir(output_path)
+
+        df.to_csv(output_path, header=True, index=False)
+    else:
+        output_path = f"{output_directory}q{QUERY_NUM}-results.parquet"
+        if os.path.exists(output_path):
+            if os.path.isdir(output_path):
+                ## to remove existing  directory
+                shutil.rmtree(output_path)
+            else:
+                ## to remove existing single parquet file
+                os.remove(output_path)
+
+        if isinstance(df, dd.DataFrame):
+            df.to_parquet(output_path, write_index=False)
+
+        else:
+            df.to_parquet(
+                f"{output_directory}q{QUERY_NUM}-results.parquet", index=False
+            )
+
+
+def write_result_q05(results_dict, output_directory="./", filetype=None):
+    """
+    Results are a text file due to the structure and tiny size
+    Filetype argument added for compatibility. Is not used.
+    """
+    with open(f"{output_directory}q05-metrics-results.txt", "w") as outfile:
+        outfile.write("Precision: %f\n" % results_dict["precision"])
+        outfile.write("AUC: %f\n" % results_dict["auc"])
+        outfile.write("Confusion Matrix:\n")
+        cm = results_dict["confusion_matrix"]
+        outfile.write(
+            "%8.1f  %8.1f\n%8.1f %8.1f\n" % (cm[0, 0], cm[0, 1], cm[1, 0], cm[1, 1])
+        )
+
+
+def write_supervised_learning_result(result_dict, output_directory, filetype="csv"):
+    assert filetype in ["csv", "parquet"]
+    QUERY_NUM = get_query_number()
+    if QUERY_NUM == "05":
+        write_result_q05(result_dict, output_directory)
+    else:
+        df = result_dict["df"]
+        acc = result_dict["acc"]
+        prec = result_dict["prec"]
+        cmat = result_dict["cmat"]
+
+        with open(f"{output_directory}q{QUERY_NUM}-metrics-results.txt", "w") as out:
+            out.write("Precision: %s\n" % prec)
+            out.write("Accuracy: %s\n" % acc)
+            out.write(
+                "Confusion Matrix: \n%s\n"
+                % (str(cmat).replace("[", " ").replace("]", " ").replace(".", ""))
+            )
+
+        if filetype == "csv":
+            df.to_csv(
+                f"{output_directory}q{QUERY_NUM}-results.csv", header=False, index=None
+            )
+        else:
+            df.to_parquet(
+                f"{output_directory}q{QUERY_NUM}-results.parquet", write_index=False
+            )
+
+
+def write_clustering_result(result_dict, output_directory="./", filetype="csv"):
+    """Results are a text file AND a csv or parquet file.
+    This works because we are down to a single partition dataframe.
+    """
+    assert filetype in ["csv", "parquet"]
+
+    QUERY_NUM = get_query_number()
+    clustering_info_name = f"{QUERY_NUM}-results-cluster-info.txt"
+
+    with open(f"{output_directory}q{clustering_info_name}", "w") as fh:
+        fh.write("Clusters:\n\n")
+        fh.write(f"Number of Clusters: {result_dict.get('nclusters')}\n")
+        fh.write(f"WSSSE: {result_dict.get('wssse')}\n")
+
+        centers = result_dict.get("cluster_centers")
+        for center in centers.values.tolist():
+            fh.write(f"{center}\n")
+
+    # this is a single partition dataframe, with cid_labels hard coded
+    # as the label column
+    data = result_dict.get("cid_labels")
+
+    if filetype == "csv":
+        clustering_result_name = f"q{QUERY_NUM}-results.csv"
+        data.to_csv(
+            f"{output_directory}{clustering_result_name}", index=False, header=None
+        )
+    else:
+        clustering_result_name = f"q{QUERY_NUM}-results.parquet"
+        data.to_parquet(f"{output_directory}{clustering_result_name}", index=False)
+
+    return 0
+
+
+
+#################################
 # Query Runner Utilities
 #################################
 
@@ -190,63 +397,6 @@ def get_scale_factor(data_dir):
     return int(reg_match[2:])
 
 
-def benchmark(csv=True, dask_profile=False, compute_result=False):
-    def decorate(func):
-        def profiled(*args, **kwargs):
-            name = func.__name__
-            t0 = time.time()
-            if dask_profile:
-                with performance_report(filename=f"profiled-{name}.html"):
-                    result = func(*args, **kwargs)
-
-                # hardcoding client as a keyword argument to main
-                client = kwargs.get("client")
-                if client:
-                    QUERY_NUM = get_query_number()
-                    save_worker_profile_data(
-                        client, filename=f"q{QUERY_NUM}-worker-profile-data-{name}.json"
-                    )
-                    save_worker_incoming_transfer_logs(
-                        client,
-                        filename=f"q{QUERY_NUM}-worker-incoming-transfer-logs-{name}.csv",
-                    )
-            else:
-                result = func(*args, **kwargs)
-            elapsed_time = time.time() - t0
-
-            logging_info = {}
-            logging_info["elapsed_time_seconds"] = elapsed_time
-            logging_info["function_name"] = name
-
-            if compute_result:
-                if isinstance(result, Iterable):
-                    len_tasks = []
-                    for read_df in result:
-                        len_tasks += [
-                            dask.delayed(len)(df) for df in read_df.to_delayed()
-                        ]
-                else:
-                    len_tasks = [dask.delayed(len)(df) for df in result.to_delayed()]
-
-                compute_st = time.time()
-                results = dask.compute(*len_tasks)
-                compute_et = time.time()
-
-                logging_info["compute_time_seconds"] = compute_et - compute_st
-
-            logdf = pd.DataFrame.from_dict(logging_info, orient="index").T
-
-            if csv:
-                logdf.to_csv(f"benchmarked_{name}.csv", index=False)
-            else:
-                print(logdf)
-            return result
-
-        return profiled
-
-    return decorate
-
-
 def get_query_number():
     """This assumes a directory structure like:
     - rapids-queries
@@ -264,148 +414,6 @@ def get_query_number():
         QUERY_NUM = os.getcwd().split("/")[-1][1:]
     return QUERY_NUM
 
-
-#################################
-# Result Writing
-#################################
-
-
-@benchmark()
-def write_result(payload, filetype="parquet", output_directory="./"):
-    """
-    """
-    import cudf
-
-    if isinstance(payload, MutableMapping):
-        if payload.get("output_type", None) == "supervised":
-            write_supervised_learning_result(
-                result_dict=payload,
-                filetype=filetype,
-                output_directory=output_directory,
-            )
-        else:
-            write_clustering_result(
-                result_dict=payload,
-                filetype=filetype,
-                output_directory=output_directory,
-            )
-    elif isinstance(payload, cudf.DataFrame) or isinstance(payload, dd.DataFrame):
-        write_etl_result(
-            df=payload, filetype=filetype, output_directory=output_directory
-        )
-    else:
-        raise ValueError("payload must be a dict or a dataframe.")
-
-
-def write_etl_result(df, filetype="parquet", output_directory="./"):
-    assert filetype in ["csv", "parquet"]
-
-    QUERY_NUM = get_query_number()
-    if filetype == "csv":
-        output_path = f"{output_directory}q{QUERY_NUM}-results.csv"
-
-        if os.path.exists(output_path):
-            shutil.rmtree(output_path)
-
-        if not os.path.exists(output_path):
-            os.mkdir(output_path)
-
-        df.to_csv(output_path, header=True, index=False)
-    else:
-        output_path = f"{output_directory}q{QUERY_NUM}-results.parquet"
-        if os.path.exists(output_path):
-            if os.path.isdir(output_path):
-                ## to remove existing  directory
-                shutil.rmtree(output_path)
-            else:
-                ## to remove existing single parquet file
-                os.remove(output_path)
-
-        if isinstance(df, dd.DataFrame):
-            df.to_parquet(output_path, write_index=False)
-
-        else:
-            df.to_parquet(
-                f"{output_directory}q{QUERY_NUM}-results.parquet", index=False
-            )
-
-
-def write_result_q05(results_dict, output_directory="./", filetype=None):
-    """
-    Results are a text file due to the structure and tiny size
-    Filetype argument added for compatibility. Is not used.
-    """
-    with open(f"{output_directory}q05-metrics-results.txt", "w") as outfile:
-        outfile.write("Precision: %f\n" % results_dict["precision"])
-        outfile.write("AUC: %f\n" % results_dict["auc"])
-        outfile.write("Confusion Matrix:\n")
-        cm = results_dict["confusion_matrix"]
-        outfile.write(
-            "%8.1f  %8.1f\n%8.1f %8.1f\n" % (cm[0, 0], cm[0, 1], cm[1, 0], cm[1, 1])
-        )
-
-
-def write_supervised_learning_result(result_dict, output_directory, filetype="csv"):
-    assert filetype in ["csv", "parquet"]
-    QUERY_NUM = get_query_number()
-    if QUERY_NUM == "05":
-        write_result_q05(result_dict, output_directory)
-    else:
-        df = result_dict["df"]
-        acc = result_dict["acc"]
-        prec = result_dict["prec"]
-        cmat = result_dict["cmat"]
-
-        with open(f"{output_directory}q{QUERY_NUM}-metrics-results.txt", "w") as out:
-            out.write("Precision: %s\n" % prec)
-            out.write("Accuracy: %s\n" % acc)
-            out.write(
-                "Confusion Matrix: \n%s\n"
-                % (str(cmat).replace("[", " ").replace("]", " ").replace(".", ""))
-            )
-
-        if filetype == "csv":
-            df.to_csv(
-                f"{output_directory}q{QUERY_NUM}-results.csv", header=False, index=None
-            )
-        else:
-            df.to_parquet(
-                f"{output_directory}q{QUERY_NUM}-results.parquet", write_index=False
-            )
-
-
-def write_clustering_result(result_dict, output_directory="./", filetype="csv"):
-    """Results are a text file AND a csv or parquet file.
-    This works because we are down to a single partition dataframe.
-    """
-    assert filetype in ["csv", "parquet"]
-
-    QUERY_NUM = get_query_number()
-    clustering_info_name = f"{QUERY_NUM}-results-cluster-info.txt"
-
-    with open(f"{output_directory}q{clustering_info_name}", "w") as fh:
-        fh.write("Clusters:\n\n")
-        fh.write(f"Number of Clusters: {result_dict.get('nclusters')}\n")
-        fh.write(f"WSSSE: {result_dict.get('wssse')}\n")
-
-        centers = result_dict.get("cluster_centers")
-        for center in centers.values.tolist():
-            fh.write(f"{center}\n")
-
-    # this is a single partition dataframe, with cid_labels hard coded
-    # as the label column
-    data = result_dict.get("cid_labels")
-
-    if filetype == "csv":
-        clustering_result_name = f"q{QUERY_NUM}-results.csv"
-        data.to_csv(
-            f"{output_directory}{clustering_result_name}", index=False, header=None
-        )
-    else:
-        clustering_result_name = f"q{QUERY_NUM}-results.parquet"
-        data.to_parquet(f"{output_directory}{clustering_result_name}", index=False)
-
-    return 0
 
 
 #################################
