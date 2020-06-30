@@ -78,7 +78,6 @@ def read_tables():
     table_reader = build_reader(
         data_format=cli_args["file_format"],
         basepath=cli_args["data_dir"],
-        repartition_small_table=cli_args["repartition_small_table"],
         split_row_groups=cli_args["split_row_groups"],
     )
     wcs_cols = ["wcs_user_sk", "wcs_item_sk", "wcs_click_date_sk", "wcs_click_time_sk"]

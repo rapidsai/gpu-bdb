@@ -72,7 +72,6 @@ def read_tables():
         data_format=cli_args["file_format"],
         basepath=cli_args["data_dir"],
         schema_dir=cli_args["spark_schema_dir"],
-        repartition_small_table=cli_args["repartition_small_table"],
         split_row_groups=cli_args["split_row_groups"],
     )
 
