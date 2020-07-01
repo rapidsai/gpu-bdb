@@ -81,7 +81,6 @@ def read_tables():
 
 
 def filter_wcs_table(web_clickstreams_fn, filtered_item_df):
-
     """
         Filter web clickstreams table
         
@@ -95,6 +94,8 @@ def filter_wcs_table(web_clickstreams_fn, filtered_item_df):
         ##    AND wcs_user_sk IS NOT NULL
         ###   AND wcs_sales_sk IS NULL --only views, not purchases
     """
+    import cudf
+
     web_clickstreams_cols = [
         "wcs_user_sk",
         "wcs_click_date_sk",
