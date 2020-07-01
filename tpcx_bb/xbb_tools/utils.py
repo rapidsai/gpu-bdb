@@ -945,8 +945,12 @@ def convert_datestring_to_days(df):
     import cudf
 
     df["d_date"] = (
-        df["d_date"].astype("datetime64[s]", format="%Y-%m-%d").astype("int64") / 86400
-    ).astype("int64")
+        cudf.to_datetime(df["d_date"], format="%Y-%m-%d")
+        .astype("datetime64[s]")
+        .astype("int64")
+        / 86400
+    )
+    df["d_date"] = df["d_date"].astype("int64")
     return df
 
 
