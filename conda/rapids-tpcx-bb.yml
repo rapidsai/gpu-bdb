@@ -20,6 +20,7 @@ dependencies:
   - oauth2client
   - asyncssh
   - psutil
+  - jupyterlab
   - ipykernel
   - pip
   - pip:
