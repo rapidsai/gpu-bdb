@@ -288,6 +288,41 @@ def run_dask_cudf_query(cli_args, client, query_func, write_func=write_result):
     push_payload_to_googlesheet(cli_args)
 
 
+def run_bsql_query(cli_args, client, query_func, write_func=write_result):
+    """
+    Common utility to perform all steps needed to execute a dask-cudf version
+    of the query. Includes attaching to cluster, running the query and writing results
+    """
+    # TODO: Unify this with dask-cudf version
+    try:
+        cli_args["start_time"] = time.time()
+        data_dir = cli_args["data_dir"]
+        results = query_func(data_dir=data_dir, client=client)
+
+        write_func(
+            results,
+            output_directory=cli_args["output_dir"],
+            filetype=cli_args["output_filetype"],
+        )
+        cli_args["query_status"] = "Success"
+
+        result_verified = False
+
+        if cli_args["verify_results"]:
+            result_verified = verify_results(cli_args["verify_dir"])
+        cli_args["result_verified"] = result_verified
+
+        if os.environ.get("tpcxbb_benchmark_sweep_run") != "True":
+            client.close()
+    except:
+        cli_args["query_status"] = "Failed"
+        print("Encountered Exception while running query")
+        print(traceback.format_exc())
+
+    # google sheet benchmarking automation
+    push_payload_to_googlesheet(cli_args)
+
+
 def add_empty_cli_args(args):
     keys = [
         "get_read_time",
