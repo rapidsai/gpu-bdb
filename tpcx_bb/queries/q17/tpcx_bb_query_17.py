@@ -186,7 +186,7 @@ def main(client):
     grouped_df = grouped_df.compute()
 
     gr_df = grouped_df.reset_index()
-    gr_df = gr_df.rename({"ss_ext_sales_price": "total"})
+    gr_df = gr_df.rename(columns={"ss_ext_sales_price": "total"})
     prom_flag = (
         (gr_df["p_channel_dmail"] == "Y")
         | (gr_df["p_channel_email"] == "Y")

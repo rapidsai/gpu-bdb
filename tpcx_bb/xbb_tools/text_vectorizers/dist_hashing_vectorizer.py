@@ -146,7 +146,7 @@ def get_count_df(tokenized_df, delimiter=None):
         .size()
         .reset_index()
     )
-    count_df = count_df.rename({0: "value"})
+    count_df = count_df.rename(columns={0: "value"})
 
     return count_df
 
@@ -164,7 +164,7 @@ def create_csr_matrix_from_count_df(count_df, zero_token_docs_ids, n_features):
 
     count_df_val_counts = count_df["doc_id"].value_counts().reset_index()
     count_df_val_counts = count_df_val_counts.rename(
-        {"doc_id": "token_counts", "index": "doc_id"}
+        columns={"doc_id": "token_counts", "index": "doc_id"}
     ).sort_values(by="doc_id")
     indptr = count_df_val_counts["token_counts"].cumsum().values
     indptr = np.pad(indptr, (1, 0), "constant")
