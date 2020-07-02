@@ -34,6 +34,8 @@ from sklearn.metrics import roc_auc_score
 import cupy as cp
 
 
+cli_args = tpcxbb_argparser()
+
 # Logistic Regression params
 # solver = "LBFGS" Used by passing `penalty=None` or "l2"
 # step_size = 1 Not used
@@ -42,7 +44,6 @@ iterations = 100
 C = 10_000  # reg_lambda = 0 hence C for model is a large value
 convergence_tol = 1e-9
 
-cli_args = tpcxbb_argparser()
 
 @benchmark(
     compute_result=cli_args["get_read_time"], dask_profile=cli_args["dask_profile"]
