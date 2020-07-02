@@ -1,7 +1,8 @@
 import os
+import gc
+import time
 
 os.environ["tpcxbb_benchmark_sweep_run"] = "True"
-import time
 
 qnums = [str(i).zfill(2) for i in range(1, 31)]
 n_repeats = 3
@@ -38,7 +39,7 @@ if __name__ == "__main__":
 
         for r in range(n_repeats):
             run_dask_cudf_query(cli_args=cli_args, client=client, query_func=q_func)
-            print(client.run(gc.collect))
-            print(client.run_on_scheduler(gc.collect))
-            print(gc.collect())
+            client.run(gc.collect)
+            client.run_on_scheduler(gc.collect)
+            gc.collect()
             time.sleep(3)
