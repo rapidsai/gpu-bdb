@@ -16,7 +16,6 @@
 
 import sys
 
-
 from xbb_tools.utils import (
     benchmark,
     tpcxbb_argparser,
@@ -48,9 +47,15 @@ def get_sales_ratio(df):
     return df
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
+@benchmark(
+    compute_result=cli_args["get_read_time"], dask_profile=cli_args["dask_profile"]
+)
 def read_tables():
-    table_reader = build_reader(basepath=cli_args["data_dir"])
+    table_reader = build_reader(
+        data_format=cli_args["file_format"],
+        basepath=cli_args["data_dir"],
+        split_row_groups=cli_args["split_row_groups"],
+    )
 
     date_cols = ["d_date_sk", "d_year"]
     date_dim_df = table_reader.read("date_dim", relevant_cols=date_cols)
@@ -69,7 +74,6 @@ def read_tables():
 
 @benchmark(dask_profile=cli_args["dask_profile"])
 def main(client):
-
     date_dim_df, customer_df, s_sales_df, web_sales_df = read_tables()
 
     # Query 0: time filtration

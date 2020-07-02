@@ -30,9 +30,15 @@ from xbb_tools.readers import build_reader
 cli_args = tpcxbb_argparser()
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
+@benchmark(
+    compute_result=cli_args["get_read_time"], dask_profile=cli_args["dask_profile"]
+)
 def read_tables():
-    table_reader = build_reader(basepath=cli_args["data_dir"])
+    table_reader = build_reader(
+        data_format=cli_args["file_format"],
+        basepath=cli_args["data_dir"],
+        split_row_groups=cli_args["split_row_groups"],
+    )
 
     ws_columns = ["ws_ship_hdemo_sk", "ws_web_page_sk", "ws_sold_time_sk"]
     web_sales = table_reader.read("web_sales", relevant_cols=ws_columns)
@@ -53,6 +59,7 @@ def read_tables():
 
 @benchmark(dask_profile=cli_args["dask_profile"])
 def main(client):
+    import cudf
 
     q14_dependents = 5
     q14_morning_startHour = 7

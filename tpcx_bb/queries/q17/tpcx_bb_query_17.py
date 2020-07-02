@@ -17,7 +17,6 @@
 import sys
 from collections import OrderedDict
 
-
 from xbb_tools.utils import (
     benchmark,
     tpcxbb_argparser,
@@ -53,9 +52,15 @@ customer_address_cols = ["ca_address_sk", "ca_gmt_offset"]
 promotion_cols = ["p_channel_email", "p_channel_dmail", "p_channel_tv", "p_promo_sk"]
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
+@benchmark(
+    compute_result=cli_args["get_read_time"], dask_profile=cli_args["dask_profile"]
+)
 def read_tables():
-    table_reader = build_reader(basepath=cli_args["data_dir"])
+    table_reader = build_reader(
+        data_format=cli_args["file_format"],
+        basepath=cli_args["data_dir"],
+        split_row_groups=cli_args["split_row_groups"],
+    )
 
     store_sales_df = table_reader.read("store_sales", relevant_cols=store_sales_cols)
     item_df = table_reader.read("item", relevant_cols=item_cols)
@@ -80,6 +85,8 @@ def read_tables():
 
 @benchmark(dask_profile=cli_args["dask_profile"])
 def main(client):
+    import cudf
+
     (
         store_sales_df,
         item_df,
@@ -179,7 +186,7 @@ def main(client):
     grouped_df = grouped_df.compute()
 
     gr_df = grouped_df.reset_index()
-    gr_df = gr_df.rename({"ss_ext_sales_price": "total"})
+    gr_df = gr_df.rename(columns={"ss_ext_sales_price": "total"})
     prom_flag = (
         (gr_df["p_channel_dmail"] == "Y")
         | (gr_df["p_channel_email"] == "Y")

@@ -38,7 +38,9 @@ q23_coefficient = 1.3
 
 @benchmark()
 def read_tables():
-    table_reader = build_reader(basepath=cli_args["data_dir"])
+    table_reader = build_reader(
+        data_format=cli_args["file_format"], basepath=cli_args["data_dir"],
+    )
 
     date_cols = ["d_date_sk", "d_year", "d_moy"]
     date_df = table_reader.read("date_dim", relevant_cols=date_cols)

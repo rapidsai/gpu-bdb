@@ -21,6 +21,7 @@ from xbb_tools.utils import (
     benchmark,
     tpcxbb_argparser,
     run_dask_cudf_query,
+    convert_datestring_to_days,
 )
 from xbb_tools.merge_util import hash_merge
 from xbb_tools.readers import build_reader
@@ -44,15 +45,6 @@ web_returns_cols = ["wr_order_number", "wr_item_sk", "wr_refunded_cash"]
 date_cols = ["d_date", "d_date_sk"]
 item_cols = ["i_item_sk", "i_item_id"]
 warehouse_cols = ["w_warehouse_sk", "w_state"]
-
-### util function
-def convert_datestring_to_datetime(df, date_col="d_date", date_format="%Y-%m-%d"):
-    datetime_array = cudf.core.column.column_empty(len(df), dtype=np.int64)
-    df[date_col].str.timestamp2int(
-        format=date_format, units="D", devptr=datetime_array.data_ptr
-    )
-    df[date_col] = datetime_array
-    return df
 
 
 # INSERT INTO TABLE ${hiveconf:RESULT_TABLE}
@@ -81,9 +73,15 @@ def get_before_after_sales(df, q16_timestamp):
     return df
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
+@benchmark(
+    compute_result=cli_args["get_read_time"], dask_profile=cli_args["dask_profile"]
+)
 def read_tables():
-    table_reader = build_reader(basepath=cli_args["data_dir"])
+    table_reader = build_reader(
+        data_format=cli_args["file_format"],
+        basepath=cli_args["data_dir"],
+        split_row_groups=cli_args["split_row_groups"],
+    )
 
     web_sales_df = table_reader.read("web_sales", relevant_cols=websale_cols)
     web_returns_df = table_reader.read("web_returns", relevant_cols=web_returns_cols)
@@ -95,6 +93,7 @@ def read_tables():
 
 @benchmark(dask_profile=cli_args["dask_profile"])
 def main(client):
+    import cudf
 
     web_sales_df, web_returns_df, date_dim_df, item_df, warehouse_df = read_tables()
 
@@ -135,7 +134,7 @@ def main(client):
     # AND unix_timestamp(d.d_date, 'yyyy-MM-dd') <= unix_timestamp('${hiveconf:q16_date}', 'yyyy-MM-dd') + 30*24*60*60 --add 30 days in seconds
 
     ##todo: remove below
-    date_dim_cov_df = date_dim_df.map_partitions(convert_datestring_to_datetime)
+    date_dim_cov_df = date_dim_df.map_partitions(convert_datestring_to_days)
     q16_timestamp = np.datetime64(q16_date, "D").astype(int)
     filtered_date_df = date_dim_cov_df.query(
         f"d_date >={q16_timestamp- 30} and d_date <= {q16_timestamp+30}",

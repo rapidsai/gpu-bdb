@@ -31,9 +31,7 @@ def get_session_id_from_session_boundry(session_change_df, last_session_len):
     ## see previously commited code
     ## https://github.com/rapidsai/tpcx-bb/blob/8394f2b8d62540b4077c606c8b687dee96b4f5d3/tpcx-bb1.3.1/tools/sessionization.py
 
-    user_session_ids = cp.arange(
-        len(session_change_df), dtype=np.int32
-    )
+    user_session_ids = cp.arange(len(session_change_df), dtype=np.int32)
 
     ### up shift the session length df
     session_len = session_change_df["t_index"].diff().reset_index(drop=True)
@@ -110,6 +108,8 @@ def get_pairs(
     """
     pair_df = df.merge(df, on=merge_col, suffixes=["_t1", "_t2"], how="inner")
     pair_df = pair_df[[f"{pair_col}_t1", f"{pair_col}_t2"]]
-    pair_df = pair_df[pair_df[f"{pair_col}_t1"] < pair_df[f"{pair_col}_t2"]].reset_index(drop=True)
+    pair_df = pair_df[
+        pair_df[f"{pair_col}_t1"] < pair_df[f"{pair_col}_t2"]
+    ].reset_index(drop=True)
     pair_df.columns = [output_col_1, output_col_2]
     return pair_df

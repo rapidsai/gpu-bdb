@@ -17,7 +17,6 @@
 import sys
 from collections import OrderedDict
 
-
 from xbb_tools.utils import (
     benchmark,
     tpcxbb_argparser,
@@ -46,9 +45,13 @@ TEMP_TABLE1 = "TEMP_TABLE1"
 EOL_CHAR = "è"
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
+@benchmark(
+    compute_result=cli_args["get_read_time"], dask_profile=cli_args["dask_profile"]
+)
 def read_tables():
-    table_reader = build_reader(basepath=cli_args["data_dir"])
+    table_reader = build_reader(
+        data_format=cli_args["file_format"], basepath=cli_args["data_dir"],
+    )
 
     store_sales_cols = [
         "ss_store_sk",
@@ -64,7 +67,9 @@ def read_tables():
 
     ### splitting by row groups for better parallelism
     pr_table_reader = build_reader(
-        basepath=cli_args["data_dir"], split_row_groups=True,
+        data_format=cli_args["file_format"],
+        basepath=cli_args["data_dir"],
+        split_row_groups=True,
     )
 
     product_reviews_cols = ["pr_review_date", "pr_review_content", "pr_review_sk"]
@@ -83,6 +88,7 @@ def create_found_reshaped_with_global_pos(found, targets):
     
     Having these as two separate functions makes managing dask metadata easier.
     """
+    import cudf
 
     target_df = cudf.DataFrame({"word": targets}).reset_index(drop=False)
     target_df.columns = ["word_mapping", "word"]
@@ -110,6 +116,7 @@ def find_targets_in_reviews_helper(ddf, targets_host, str_col_name="pr_review_co
     At the end, any row with non-zero values is returned.
     
     """
+    import cudf
     from cudf._lib.strings import find_multiple
 
     lowered = ddf[str_col_name].str.lower()
@@ -134,6 +141,8 @@ def find_relevant_reviews(df, targets_host, str_col_name="pr_review_content"):
      This function finds the  reviews containg target stores and returns the 
      relevant reviews
     """
+    import cudf
+
     targets = cudf.Series(targets_host)
     targets_lower_cpu = targets.str.lower().tolist()
     reviews_found = find_targets_in_reviews_helper(df, targets_lower_cpu)[
@@ -149,6 +158,9 @@ def find_relevant_reviews(df, targets_host, str_col_name="pr_review_content"):
 
 @benchmark(dask_profile=cli_args["dask_profile"])
 def main(client):
+    import cudf
+    import dask_cudf
+
     store_sales, date_dim, store, product_reviews = read_tables()
     ### adding a wait call slows this down by 3-4 seconds, removing it for now
     ### Make TEMP_TABLE1
@@ -258,8 +270,8 @@ def main(client):
     temp_table2 = temp_table2.persist()
 
     ### REAL QUERY (PART THREE)
-    no_nulls["pr_review_content"] = no_nulls.pr_review_content.str.replace_multi(
-        [". ", "? ", "! "], EOL_CHAR, regex=False
+    no_nulls["pr_review_content"] = no_nulls.pr_review_content.str.replace(
+        [". ", "? ", "! "], [EOL_CHAR], regex=False
     )
     sentences = no_nulls.map_partitions(create_sentences_from_reviews)
 

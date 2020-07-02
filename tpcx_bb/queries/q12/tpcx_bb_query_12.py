@@ -16,7 +16,6 @@
 
 import sys
 
-
 from xbb_tools.utils import (
     benchmark,
     tpcxbb_argparser,
@@ -26,8 +25,10 @@ from xbb_tools.readers import build_reader
 
 from distributed import wait
 import numpy as np
+import glob
+from dask import delayed
 
-### Current Implimenation Assumption
+### Current Implementation Assumption
 # The filtered item table will fit in GPU memory :
 # At scale `100` ->non filtered-rows `178,200` -> filtered rows `60,059`
 # Extrapolation to scale `1_000_000` ->non filtered-rows `17,820,000` -> filtered rows `6,005,900` (So should scale up)
@@ -46,13 +47,6 @@ q12_store_sale_sk_start_date = 37134
 
 item_cols = ["i_item_sk", "i_category"]
 store_sales_cols = ["ss_item_sk", "ss_sold_date_sk", "ss_customer_sk"]
-web_clickstreams_cols = [
-    "wcs_user_sk",
-    "wcs_click_date_sk",
-    "wcs_item_sk",
-    "wcs_sales_sk",
-]
-
 
 ### Util Functions
 def string_filter(df, col_name, col_values):
@@ -70,21 +64,23 @@ def string_filter(df, col_name, col_values):
     return df[bool_flag].reset_index(drop=True)
 
 
-@benchmark(dask_profile=cli_args["dask_profile"],)
+@benchmark(
+    dask_profile=cli_args["dask_profile"], compute_result=cli_args["get_read_time"]
+)
 def read_tables():
-    table_reader = build_reader(basepath=cli_args["data_dir"])
+    table_reader = build_reader(
+        data_format=cli_args["file_format"],
+        basepath=cli_args["data_dir"],
+        split_row_groups=cli_args["split_row_groups"],
+    )
 
     item_df = table_reader.read("item", relevant_cols=item_cols)
     store_sales_df = table_reader.read("store_sales", relevant_cols=store_sales_cols)
-    web_clickstreams_df = table_reader.read(
-        "web_clickstreams", relevant_cols=web_clickstreams_cols
-    )
 
-    return item_df, store_sales_df, web_clickstreams_df
+    return item_df, store_sales_df
 
 
-def filter_wcs_table(web_clickstreams_df, filtered_item_df):
-
+def filter_wcs_table(web_clickstreams_fn, filtered_item_df):
     """
         Filter web clickstreams table
         
@@ -98,6 +94,18 @@ def filter_wcs_table(web_clickstreams_df, filtered_item_df):
         ##    AND wcs_user_sk IS NOT NULL
         ###   AND wcs_sales_sk IS NULL --only views, not purchases
     """
+    import cudf
+
+    web_clickstreams_cols = [
+        "wcs_user_sk",
+        "wcs_click_date_sk",
+        "wcs_item_sk",
+        "wcs_sales_sk",
+    ]
+    web_clickstreams_df = cudf.read_parquet(
+        web_clickstreams_fn, columns=web_clickstreams_cols
+    )
+
     filter_wcs_df = web_clickstreams_df[
         web_clickstreams_df["wcs_user_sk"].notnull()
         & web_clickstreams_df["wcs_sales_sk"].isnull()
@@ -147,14 +155,16 @@ def filter_ss_table(store_sales_df, filtered_item_df):
 
 @benchmark(dask_profile=cli_args["dask_profile"])
 def main(client):
-    item_df, store_sales_df, web_clickstreams_df = read_tables()
+    import cudf, dask_cudf
+
+    item_df, store_sales_df = read_tables()
 
     ### Query 0. Filtering item table
     filtered_item_df = string_filter(item_df, "i_category", q12_i_category_IN)
-    filtered_item_df = filtered_item_df.persist()
-
     ### filtered_item_df is a single partition to allow a nx1 merge using map partitions
     filtered_item_df = filtered_item_df.repartition(npartitions=1)
+    filtered_item_df = filtered_item_df.persist()
+    wait(filtered_item_df)
     ###  Query 1
 
     # The main idea is that we don't fuse a filtration task with reading task yet
@@ -165,15 +175,18 @@ def main(client):
     ### https://github.com/rapidsai/tpcx-bb-internal/pull/496#issue-399946141
 
     meta_d = {
-        "wcs_user_sk": np.ones(1, dtype=web_clickstreams_df["wcs_user_sk"].dtype),
+        "wcs_user_sk": np.ones(1, dtype=np.int64),
         "wcs_click_date_sk": np.ones(1, dtype=np.int64),
     }
     meta_df = cudf.DataFrame(meta_d)
-
-    filter_wcs_df = web_clickstreams_df.map_partitions(
-        filter_wcs_table, filtered_item_df.to_delayed()[0], meta=meta_df
+    web_clickstream_flist = glob.glob(
+        cli_args["data_dir"] + "web_clickstreams/*.parquet"
     )
-
+    task_ls = [
+        delayed(filter_wcs_table)(fn, filtered_item_df.to_delayed()[0])
+        for fn in web_clickstream_flist
+    ]
+    filter_wcs_df = dask_cudf.from_delayed(task_ls, meta=meta_df)
     ###  Query 2
 
     # The main idea is that we don't fuse a filtration task with reading task yet
@@ -204,7 +217,12 @@ def main(client):
 
     ### Note: Below brings it down to a single partition
     filter_wcs_df_d = filter_wcs_df.drop_duplicates()
+    filter_wcs_df_d = filter_wcs_df_d.persist()
+    wait(filter_wcs_df_d)
+
     filtered_ss_df_d = filtered_ss_df.drop_duplicates()
+    filtered_ss_df_d = filtered_ss_df_d.persist()
+    wait(filtered_ss_df_d)
 
     ss_wcs_join = filter_wcs_df_d.merge(
         filtered_ss_df_d, left_on="wcs_user_sk", right_on="ss_customer_sk", how="inner"
@@ -225,6 +243,7 @@ def main(client):
 
     # todo:check if repartition helps for writing efficiency
     # context: 0.1 seconds on sf-1k
+    ss_wcs_join = ss_wcs_join.persist()
     wait(ss_wcs_join)
     return ss_wcs_join.to_frame()
 

@@ -32,7 +32,7 @@ from xbb_tools.text_vectorizers.dist_hashing_vectorizer import cudf_hashing_vect
 from xbb_tools.utils import (
     benchmark,
     tpcxbb_argparser,
-    get_query_number,
+    push_payload_to_googlesheet,
 )
 from xbb_tools.readers import build_reader
 
@@ -49,20 +49,6 @@ lowercase = True
 preprocessor = None
 norm = None
 alternate_sign = False
-
-
-@benchmark()
-def write_result(df, acc, prec, cmat, output_directory):
-
-    with open(f"{output_directory}q{QUERY_NUM}-metrics-results.txt", "w") as out:
-        out.write("Precision: %s\n" % prec)
-        out.write("Accuracy: %s\n" % acc)
-        out.write(
-            "Confusion Matrix: \n%s\n"
-            % (str(cmat).replace("[", " ").replace("]", " ").replace(".", ""))
-        )
-
-    df.to_parquet(f"{output_directory}q{QUERY_NUM}-results.parquet", write_index=False)
 
 
 def gpu_hashing_vectorizer(x):
@@ -113,10 +99,14 @@ def build_labels(reviews_df):
     return y
 
 
-@benchmark(dask_profile=cli_args.get("dask_profile"),)
+@benchmark(compute_result=cli_args.get("get_read_time"))
 def read_tables():
     ### splitting by row groups for better parallelism
-    table_reader = build_reader(basepath=cli_args["data_dir"], split_row_groups=True)
+    table_reader = build_reader(
+        data_format=cli_args["file_format"],
+        basepath=cli_args["data_dir"],
+        split_row_groups=True,
+    )
 
     columns = [
         "pr_review_content",
@@ -128,9 +118,7 @@ def read_tables():
 
 
 def categoricalize(num_sr):
-    return num_sr.astype("str").str.replace_multi(
-        ["0", "1", "2"], ["NEG", "NEUT", "POS"]
-    )
+    return num_sr.astype("str").str.replace(["0", "1", "2"], ["NEG", "NEUT", "POS"])
 
 
 def sum_tp_fp(y_y_pred, nclasses):
@@ -154,6 +142,7 @@ def sum_tp_fp(y_y_pred, nclasses):
 
 
 def precision_score(client, y, y_pred, average="binary"):
+    from cuml.dask.common.input_utils import DistributedDataHandler
 
     nclasses = len(cp.unique(y.map_blocks(lambda x: cp.unique(x)).compute()))
 
@@ -225,6 +214,7 @@ def local_cm(y_y_pred, unique_labels, sample_weight):
 
 
 def confusion_matrix(client, y_true, y_pred, normalize=None, sample_weight=None):
+    from cuml.dask.common.input_utils import DistributedDataHandler
 
     unique_classes = cp.unique(y_true.map_blocks(lambda x: cp.unique(x)).compute())
     nclasses = len(unique_classes)
@@ -258,8 +248,8 @@ def confusion_matrix(client, y_true, y_pred, normalize=None, sample_weight=None)
 
 
 def accuracy_score(client, y, y_hat):
-
     from uuid import uuid1
+    from cuml.dask.common.input_utils import DistributedDataHandler
 
     ddh = DistributedDataHandler.create([y_hat, y])
 
@@ -288,6 +278,11 @@ def accuracy_score(client, y, y_hat):
 
 
 def post_etl_processing(client, train_data, test_data):
+    import cudf
+    from cuml.dask.naive_bayes import MultinomialNB as DistMNB
+    from cuml.dask.common import to_dask_cudf
+    from cuml.dask.common.input_utils import DistributedDataHandler
+
     # Feature engineering
     X_train = build_features(train_data)
     X_test = build_features(test_data)
@@ -330,7 +325,6 @@ def post_etl_processing(client, train_data, test_data):
 
     final_data = final_data.sort_values("pr_review_sk").reset_index(drop=True)
     wait(final_data)
-
     return final_data, acc, prec, cmat
 
 
@@ -352,7 +346,14 @@ def main(client):
     final_data, acc, prec, cmat = post_etl_processing(
         client=client, train_data=train_data, test_data=test_data
     )
-    return final_data, acc, prec, cmat
+    payload = {
+        "df": final_data,
+        "acc": acc,
+        "prec": prec,
+        "cmat": cmat,
+        "output_type": "supervised",
+    }
+    return payload
 
 
 def register_serialization():
@@ -370,28 +371,6 @@ if __name__ == "__main__":
     from cuml.dask.common.input_utils import DistributedDataHandler
     from cuml.dask.common import to_dask_cudf
 
-    try:
-        cli_args["start_time"] = time.time()
-        client = attach_to_cluster(cli_args)
+    client = attach_to_cluster(cli_args)
 
-        register_serialization()
-        client.run(register_serialization)
-
-        main_st = time.time()
-        result_df, acc, prec, cmat = main(client)
-        main_et = time.time()
-        print(f"main overall time = {main_et-main_st}")
-
-        w_st = time.time()
-        write_result(
-            result_df, acc, prec, cmat, cli_args["output_dir"],
-        )
-        w_et = time.time()
-        print("writing time = {}s".format(w_et - w_st))
-
-        client.close()
-
-    except:
-
-        print("Encountered Exception while running query")
-        print(traceback.format_exc())
+    run_dask_cudf_query(cli_args=cli_args, client=client, query_func=main)

@@ -17,7 +17,6 @@
 # Original code /tpcx-bb/tpcx-bb1.3.1/rapids-queries/q02/tpcx-bb-query-02.py
 import sys
 
-
 from xbb_tools.utils import (
     benchmark,
     tpcxbb_argparser,
@@ -48,9 +47,13 @@ q30_session_timeout_inSec = 3600
 q30_limit = 40
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
+@benchmark(compute_result=cli_args["get_read_time"])
 def read_tables():
-    table_reader = build_reader(basepath=cli_args["data_dir"])
+    table_reader = build_reader(
+        data_format=cli_args["file_format"],
+        basepath=cli_args["data_dir"],
+        split_row_groups=cli_args["split_row_groups"],
+    )
 
     item_cols = ["i_category_id", "i_item_sk"]
     item_df = table_reader.read("item", relevant_cols=item_cols)
@@ -61,6 +64,8 @@ def pre_repartition_task(wcs_fn, f_item_df):
     """
         Runs the pre-repartition task
     """
+    import cudf
+
     wcs_cols = ["wcs_user_sk", "wcs_item_sk", "wcs_click_date_sk", "wcs_click_time_sk"]
     wcs_df = cudf.read_parquet(wcs_fn, columns=wcs_cols)
 
@@ -82,6 +87,8 @@ def pre_repartition_task(wcs_fn, f_item_df):
 
 @benchmark(dask_profile=cli_args["dask_profile"])
 def main(client):
+    import dask_cudf
+    import cudf
 
     item_df = read_tables()
 

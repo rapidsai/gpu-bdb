@@ -16,7 +16,6 @@
 
 import sys
 
-
 import numpy as np
 from numba import cuda
 
@@ -42,9 +41,13 @@ CLUSTER_ITERATIONS = 20
 N_ITER = 5
 
 
-@benchmark(dask_profile=cli_args.get("dask_profile"),)
+@benchmark(compute_result=cli_args.get("get_read_time"))
 def read_tables():
-    table_reader = build_reader(basepath=cli_args["data_dir"])
+    table_reader = build_reader(
+        data_format=cli_args["file_format"],
+        basepath=cli_args["data_dir"],
+        split_row_groups=cli_args["split_row_groups"],
+    )
 
     ss_cols = ["ss_customer_sk", "ss_item_sk"]
     items_cols = ["i_item_sk", "i_category", "i_class_id"]
@@ -67,20 +70,9 @@ def agg_count_distinct(df, group_key, counted_key):
     )
 
 
-def convert_datestring_to_days(df, date_col="d_date", date_format="%Y-%m-%d"):
-    """
-    Utility to convert datestring to int representing days
-    """
-    datetime_array = cuda.device_array(len(df), dtype=np.int64)
-    df[date_col].str.timestamp2int(
-        format=date_format, units="D", devptr=datetime_array.device_ctypes_pointer.value
-    )
-    df[date_col] = datetime_array
-    return df
-
-
-@benchmark(dask_profile=cli_args.get("dask_profile"))
 def get_clusters(client, kmeans_input_df):
+    import dask_cudf
+
     ml_tasks = [
         delayed(train_clustering_model)(df, N_CLUSTERS, CLUSTER_ITERATIONS, N_ITER)
         for df in kmeans_input_df.to_delayed()
@@ -101,6 +93,8 @@ def get_clusters(client, kmeans_input_df):
 
 @benchmark(dask_profile=cli_args.get("dask_profile"))
 def main(client):
+    import cudf
+
     ss_ddf, items_ddf = read_tables()
 
     items_filtered = items_ddf[items_ddf.i_category == Q26_CATEGORY].reset_index(

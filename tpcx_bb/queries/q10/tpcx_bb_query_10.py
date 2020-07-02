@@ -37,11 +37,17 @@ cli_args = tpcxbb_argparser()
 eol_char = "è"
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
+@benchmark(
+    compute_result=cli_args["get_read_time"], dask_profile=cli_args["dask_profile"]
+)
 def read_tables():
 
     ### splitting by row groups for better parallelism
-    table_reader = build_reader(basepath=cli_args["data_dir"], split_row_groups=True)
+    table_reader = build_reader(
+        data_format=cli_args["file_format"],
+        basepath=cli_args["data_dir"],
+        split_row_groups=True,
+    )
     product_reviews_cols = ["pr_item_sk", "pr_review_content", "pr_review_sk"]
 
     product_reviews_df = table_reader.read(
@@ -51,6 +57,8 @@ def read_tables():
 
 
 def load_sentiment_words(filename, sentiment):
+    import cudf
+
     with open(filename) as fh:
         sentiment_words = list(map(str.strip, fh.readlines()))
         # dedupe for one extra record in the source file
@@ -63,6 +71,9 @@ def load_sentiment_words(filename, sentiment):
 
 @benchmark(dask_profile=cli_args["dask_profile"])
 def main(client):
+    import cudf
+    import dask_cudf
+
     product_reviews_df = read_tables()
 
     product_reviews_df = product_reviews_df[
@@ -74,8 +85,8 @@ def main(client):
     ] = product_reviews_df.pr_review_content.str.lower()
     product_reviews_df[
         "pr_review_content"
-    ] = product_reviews_df.pr_review_content.str.replace_multi(
-        [".", "?", "!"], eol_char, regex=False
+    ] = product_reviews_df.pr_review_content.str.replace(
+        [".", "?", "!"], [eol_char], regex=False
     )
 
     sentences = product_reviews_df.map_partitions(create_sentences_from_reviews)

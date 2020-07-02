@@ -20,9 +20,7 @@ from xbb_tools.utils import (
     run_dask_cudf_query,
 )
 from xbb_tools.readers import build_reader
-from distributed import wait
 from xbb_tools.sessionization import get_distinct_sessions
-
 
 ### Implementation Notes:
 
@@ -72,9 +70,16 @@ def reduction_function(df, q02_session_timeout_inSec):
     return grouped_df
 
 
-@benchmark(dask_profile=cli_args.get("dask_profile"),)
+@benchmark(
+    compute_result=cli_args.get("get_read_time"),
+    dask_profile=cli_args.get("dask_profile"),
+)
 def read_tables():
-    table_reader = build_reader(basepath=cli_args["data_dir"])
+    table_reader = build_reader(
+        data_format=cli_args["file_format"],
+        basepath=cli_args["data_dir"],
+        split_row_groups=cli_args["split_row_groups"],
+    )
     wcs_cols = ["wcs_user_sk", "wcs_item_sk", "wcs_click_date_sk", "wcs_click_time_sk"]
     wcs_df = table_reader.read("web_clickstreams", relevant_cols=wcs_cols)
     return wcs_df

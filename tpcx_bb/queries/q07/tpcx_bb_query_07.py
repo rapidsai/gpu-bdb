@@ -53,9 +53,15 @@ def create_high_price_items_df(item_df):
     return high_price_items_df
 
 
-@benchmark(dask_profile=cli_args["dask_profile"],)
+@benchmark(
+    dask_profile=cli_args["dask_profile"], compute_result=cli_args["get_read_time"]
+)
 def read_tables():
-    table_reader = build_reader(basepath=cli_args["data_dir"])
+    table_reader = build_reader(
+        data_format=cli_args["file_format"],
+        basepath=cli_args["data_dir"],
+        split_row_groups=cli_args["split_row_groups"],
+    )
 
     item_cols = ["i_item_sk", "i_current_price", "i_category"]
     store_sales_cols = ["ss_item_sk", "ss_customer_sk", "ss_sold_date_sk"]

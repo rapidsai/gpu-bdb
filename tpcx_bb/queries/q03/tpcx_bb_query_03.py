@@ -44,6 +44,8 @@ q03_limit = 100
 
 
 def get_wcs_minima(cli_args):
+    import dask_cudf
+
     wcs_df = dask_cudf.read_parquet(
         cli_args["data_dir"] + "web_clickstreams/*.parquet",
         columns=["wcs_click_date_sk", "wcs_click_time_sk"],
@@ -56,6 +58,8 @@ def get_wcs_minima(cli_args):
 
 
 def pre_repartition_task(wcs_fn, item_df, wcs_tstamp_min):
+    import cudf
+
     wcs_cols = [
         "wcs_user_sk",
         "wcs_sales_sk",
@@ -107,9 +111,16 @@ def reduction_function(df, item_df_filtered):
     return grouped_df
 
 
-@benchmark(dask_profile=cli_args.get("dask_profile"),)
+@benchmark(
+    compute_result=cli_args.get("get_read_time"),
+    dask_profile=cli_args.get("dask_profile"),
+)
 def read_tables():
-    table_reader = build_reader(basepath=cli_args["data_dir"])
+    table_reader = build_reader(
+        data_format=cli_args["file_format"],
+        basepath=cli_args["data_dir"],
+        split_row_groups=cli_args["split_row_groups"],
+    )
 
     item_cols = ["i_category_id", "i_item_sk"]
     item_df = table_reader.read("item", relevant_cols=item_cols)
@@ -155,6 +166,8 @@ def find_items_viewed_before_purchase_kernel(
 
 
 def apply_find_items_viewed(df, item_mappings):
+    import cudf
+
     # need to sort descending to ensure that the
     # next N rows are the previous N clicks
     df = df.sort_values(
@@ -204,6 +217,7 @@ def apply_find_items_viewed(df, item_mappings):
 @benchmark(dask_profile=cli_args.get("dask_profile"))
 def main(client):
     import dask_cudf
+    import cudf
 
     item_df = read_tables()
 

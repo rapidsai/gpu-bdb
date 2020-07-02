@@ -31,9 +31,15 @@ cli_args = tpcxbb_argparser()
 q04_session_timeout_inSec = 3600
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
+@benchmark(
+    compute_result=cli_args["get_read_time"], dask_profile=cli_args["dask_profile"]
+)
 def read_tables():
-    table_reader = build_reader(basepath=cli_args["data_dir"])
+    table_reader = build_reader(
+        data_format=cli_args["file_format"],
+        basepath=cli_args["data_dir"],
+        split_row_groups=cli_args["split_row_groups"],
+    )
 
     wp_cols = ["wp_type", "wp_web_page_sk"]
     wp_df = table_reader.read("web_page", relevant_cols=wp_cols)
@@ -51,11 +57,18 @@ def read_tables():
 
 
 def abandonedShoppingCarts(df, DYNAMIC_CAT_CODE, ORDER_CAT_CODE):
+    import cudf
+
+    # TODO: test without reset index
+    df.reset_index(drop=True, inplace=True)
+
     # Select groups where last dynamic row comes after last order row
     filtered_df = df[
         (df["wp_type_codes"] == ORDER_CAT_CODE)
         | (df["wp_type_codes"] == DYNAMIC_CAT_CODE)
     ]
+    # TODO: test without reset index
+    filtered_df.reset_index(drop=True, inplace=True)
     # Create a new column that is the concatenation of timestamp and wp_type_codes
     # (eg:123456:3, 234567:5)
     filtered_df["wp_type_codes"] = (
@@ -99,6 +112,8 @@ def reduction_function(df, keep_cols, DYNAMIC_CAT_CODE, ORDER_CAT_CODE):
 
 @benchmark(dask_profile=cli_args["dask_profile"])
 def main(client):
+    import cudf
+
     wp, wcs_df = read_tables()
 
     ### downcasting the column inline with q03

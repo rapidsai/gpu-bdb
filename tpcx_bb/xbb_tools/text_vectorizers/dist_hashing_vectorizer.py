@@ -133,16 +133,7 @@ def str_token_to_string_id_hash(token_sr, n_features):
     """
         Returns a hashed series of the provided strings
     """
-    import cudf
-    str_hash_array = cuda.device_array(len(token_sr), dtype=np.uint32)
-    token_sr.str.hash(devptr=str_hash_array.device_ctypes_pointer.value)
-    # upcasting because we dont support unsigned ints currently
-    # see github issue:https://github.com/rapidsai/cudf/issues/2819
-    str_hash_array = cp.asarray(cudf.Series(str_hash_array)).astype(np.int64)
-    str_hash_array = str_hash_array % n_features
-    str_id_sr = cudf.Series(str_hash_array)
-
-    return str_hash_array
+    return token_sr.hash_values() % n_features
 
 
 def get_count_df(tokenized_df, delimiter=None):
@@ -155,7 +146,7 @@ def get_count_df(tokenized_df, delimiter=None):
         .size()
         .reset_index()
     )
-    count_df = count_df.rename({0: "value"})
+    count_df = count_df.rename(columns={0: "value"})
 
     return count_df
 
@@ -173,7 +164,7 @@ def create_csr_matrix_from_count_df(count_df, zero_token_docs_ids, n_features):
 
     count_df_val_counts = count_df["doc_id"].value_counts().reset_index()
     count_df_val_counts = count_df_val_counts.rename(
-        {"doc_id": "token_counts", "index": "doc_id"}
+        columns={"doc_id": "token_counts", "index": "doc_id"}
     ).sort_values(by="doc_id")
     indptr = count_df_val_counts["token_counts"].cumsum().values
     indptr = np.pad(indptr, (1, 0), "constant")
