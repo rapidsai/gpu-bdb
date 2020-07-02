@@ -59,7 +59,7 @@ def read_tables():
 def abandonedShoppingCarts(df, DYNAMIC_CAT_CODE, ORDER_CAT_CODE):
     import cudf
 
-    # work around for https://github.com/rapidsai/cudf/issues/5470
+    # TODO: test without reset index
     df.reset_index(drop=True, inplace=True)
 
     # Select groups where last dynamic row comes after last order row
@@ -67,7 +67,7 @@ def abandonedShoppingCarts(df, DYNAMIC_CAT_CODE, ORDER_CAT_CODE):
         (df["wp_type_codes"] == ORDER_CAT_CODE)
         | (df["wp_type_codes"] == DYNAMIC_CAT_CODE)
     ]
-    # work around for https://github.com/rapidsai/cudf/issues/5470
+    # TODO: test without reset index
     filtered_df.reset_index(drop=True, inplace=True)
     # Create a new column that is the concatenation of timestamp and wp_type_codes
     # (eg:123456:3, 234567:5)
@@ -113,6 +113,7 @@ def reduction_function(df, keep_cols, DYNAMIC_CAT_CODE, ORDER_CAT_CODE):
 @benchmark(dask_profile=cli_args["dask_profile"])
 def main(client):
     import cudf
+
     wp, wcs_df = read_tables()
 
     ### downcasting the column inline with q03

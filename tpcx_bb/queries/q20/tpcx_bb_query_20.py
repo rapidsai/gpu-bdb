@@ -76,6 +76,7 @@ def get_clusters(client, ml_input_df, feature_cols):
     Returns a dictionary matching the output required for q20
     """
     import dask_cudf
+
     ml_tasks = [
         delayed(train_clustering_model)(df, N_CLUSTERS, CLUSTER_ITERATIONS, N_ITER)
         for df in ml_input_df[feature_cols].to_delayed()

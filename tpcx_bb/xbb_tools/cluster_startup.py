@@ -23,6 +23,7 @@ import dask
 from dask.distributed import Client
 from dask.utils import parse_bytes
 
+
 def attach_to_cluster(cli_args):
     """Attaches to an existing cluster if available.
     By default, tries to attach to a cluster running on localhost:8786 (dask's default).
@@ -56,7 +57,7 @@ def attach_to_cluster(cli_args):
             os.mkdir(worker_dir)
 
     client.run(maybe_create_worker_directories)
-    
+
     # Get ucx config variables
     ucx_config = client.submit(_get_ucx_config).result()
     cli_args.update(ucx_config)
@@ -65,7 +66,7 @@ def attach_to_cluster(cli_args):
     worker_counts = worker_count_info(client, gpu_sizes=["16GB", "32GB"])
     cli_args["16GB_workers"] = worker_counts["16GB"]
     cli_args["32GB_workers"] = worker_counts["32GB"]
-    
+
     return client
 
 

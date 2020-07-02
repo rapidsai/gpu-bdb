@@ -1,6 +1,0 @@
-# benchmark config yaml
-### Please fill these accordingly
-data_dir: 
-repartition_small_table: True
-cluster_host:
-output_dir: 

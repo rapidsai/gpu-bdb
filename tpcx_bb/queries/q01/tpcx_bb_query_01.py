@@ -50,7 +50,7 @@ def read_tables():
         basepath=cli_args["data_dir"],
         split_row_groups=cli_args["split_row_groups"],
     )
-    
+
     item_df = table_reader.read("item", relevant_cols=item_cols)
     ss_df = table_reader.read("store_sales", relevant_cols=ss_cols)
     return item_df, ss_df

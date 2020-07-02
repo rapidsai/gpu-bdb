@@ -74,6 +74,7 @@ def ner_parser(df, col_string, batch_size=256):
 @benchmark(dask_profile=cli_args["dask_profile"])
 def main(client):
     import dask_cudf
+
     product_reviews_df = read_tables()
     product_reviews_df = product_reviews_df[
         product_reviews_df.pr_item_sk == q27_pr_item_sk

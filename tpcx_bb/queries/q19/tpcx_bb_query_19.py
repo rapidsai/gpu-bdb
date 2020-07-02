@@ -39,8 +39,7 @@ eol_char = "è"
 )
 def read_tables():
     table_reader = build_reader(
-        data_format=cli_args["file_format"],
-        basepath=cli_args["data_dir"],
+        data_format=cli_args["file_format"], basepath=cli_args["data_dir"],
     )
     date_dim_cols = ["d_week_seq", "d_date_sk", "d_date"]
     date_dim_df = table_reader.read("date_dim", relevant_cols=date_dim_cols)
@@ -59,7 +58,9 @@ def read_tables():
     )
 
     product_reviews_cols = ["pr_item_sk", "pr_review_content", "pr_review_sk"]
-    product_reviews = pr_table_reader.read("product_reviews", relevant_cols=product_reviews_cols)
+    product_reviews = pr_table_reader.read(
+        "product_reviews", relevant_cols=product_reviews_cols
+    )
 
     return date_dim_df, store_returns_df, web_returns_df, product_reviews
 
