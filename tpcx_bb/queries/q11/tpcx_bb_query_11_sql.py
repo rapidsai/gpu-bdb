@@ -28,13 +28,15 @@ import cudf
 from xbb_tools.utils import (
     benchmark,
     tpcxbb_argparser,
-    write_result,
+    run_bsql_query,
 )
 
 cli_args = tpcxbb_argparser()
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
+@benchmark(
+    compute_result=cli_args["get_read_time"], dask_profile=cli_args["dask_profile"]
+)
 def read_tables(data_dir):
     bc.create_table("web_sales", data_dir + "/web_sales/*.parquet")
     bc.create_table("product_reviews", data_dir + "/product_reviews/*.parquet")
@@ -42,7 +44,7 @@ def read_tables(data_dir):
 
 
 @benchmark(dask_profile=cli_args["dask_profile"])
-def main(data_dir):
+def main(data_dir, client):
     read_tables(data_dir)
 
     query = """
@@ -60,18 +62,10 @@ def main(data_dir):
             SELECT
                 ws_item_sk
             FROM web_sales ws
-            WHERE EXISTS 
-            (
-                SELECT d_date_sk FROM 
-                (
-                    SELECT d_date_sk 
-                    FROM date_dim d 
-                    WHERE CAST(d.d_date AS DATE) >= DATE '2003-01-02'
-                    AND  CAST(d.d_date AS DATE) <= DATE '2003-02-02'
-                ) dd 
-                WHERE ws.ws_sold_date_sk = dd.d_date_sk
-            )
-            AND ws_item_sk IS NOT null
+            INNER JOIN date_dim d ON ws.ws_sold_date_sk = d.d_date_sk
+            WHERE ws_item_sk IS NOT null
+            AND CAST(d.d_date AS DATE) >= DATE '2003-01-02'
+            AND CAST(d.d_date AS DATE) <= DATE '2003-02-02'
             GROUP BY ws_item_sk
         )
         SELECT p.r_count    AS x,
@@ -81,11 +75,9 @@ def main(data_dir):
 
     result = bc.sql(query)
     sales_corr = result["x"].corr(result["y"]).compute()
-    result = cudf.DataFrame(
-        [sales_corr], columns=["corr(CAST(reviews_count AS DOUBLE), avg_rating)"]
-    )
-
-    return result
+    result_df = cudf.DataFrame([sales_corr])
+    result_df.columns = ["corr(CAST(reviews_count AS DOUBLE), avg_rating)"]
+    return result_df
 
 
 if __name__ == "__main__":
@@ -96,8 +88,7 @@ if __name__ == "__main__":
         pool=True,
         network_interface=os.environ.get("INTERFACE", "eth0"),
     )
-
-    result_df = main(cli_args["data_dir"])
-    write_result(
-        result_df, output_directory=cli_args["output_dir"],
+    
+    run_bsql_query(
+        cli_args=cli_args, client=client, query_func=main
     )
