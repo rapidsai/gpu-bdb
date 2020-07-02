@@ -6,3 +6,4 @@ tpcx_bb/queries/query-tracebacks
 tpcx_bb/queries/*/*.log
 *.qdrep
 *.qdstrm
+
