@@ -86,7 +86,7 @@ def read_tables():
 @benchmark(dask_profile=cli_args["dask_profile"])
 def main(client):
     import cudf
-    
+
     (
         store_sales_df,
         item_df,

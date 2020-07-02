@@ -113,6 +113,7 @@ def reduction_function(df, keep_cols, DYNAMIC_CAT_CODE, ORDER_CAT_CODE):
 @benchmark(dask_profile=cli_args["dask_profile"])
 def main(client):
     import cudf
+
     wp, wcs_df = read_tables()
 
     ### downcasting the column inline with q03

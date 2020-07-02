@@ -73,7 +73,7 @@ def load_sentiment_words(filename, sentiment):
 def main(client):
     import cudf
     import dask_cudf
-    
+
     product_reviews_df = read_tables()
 
     product_reviews_df = product_reviews_df[

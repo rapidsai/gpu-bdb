@@ -56,18 +56,6 @@ def benchmark(csv=True, dask_profile=False, compute_result=False):
             if dask_profile:
                 with performance_report(filename=f"profiled-{name}.html"):
                     result = func(*args, **kwargs)
-
-                # hardcoding client as a keyword argument to main
-                client = kwargs.get("client")
-                if client:
-                    QUERY_NUM = get_query_number()
-                    save_worker_profile_data(
-                        client, filename=f"q{QUERY_NUM}-worker-profile-data-{name}.json"
-                    )
-                    save_worker_incoming_transfer_logs(
-                        client,
-                        filename=f"q{QUERY_NUM}-worker-incoming-transfer-logs-{name}.csv",
-                    )
             else:
                 result = func(*args, **kwargs)
             elapsed_time = time.time() - t0
@@ -103,7 +91,6 @@ def benchmark(csv=True, dask_profile=False, compute_result=False):
         return profiled
 
     return decorate
-
 
 
 #################################
@@ -247,7 +234,6 @@ def write_clustering_result(result_dict, output_directory="./", filetype="csv"):
         data.to_parquet(f"{output_directory}{clustering_result_name}", index=False)
 
     return 0
-
 
 
 #################################
@@ -448,7 +434,6 @@ def get_query_number():
     else:
         QUERY_NUM = os.getcwd().split("/")[-1][1:]
     return QUERY_NUM
-
 
 
 #################################
@@ -831,19 +816,10 @@ def build_benchmark_googlesheet_payload(cli_args):
             else "NA",
             "Machine Setup": data.get("hostname"),
             "Data Location": data.get("data_dir"),
-            "RMM Pool": data.get("pool_mode"),
-            "RMM Pool Size": data.get("pool_size_str"),
-            "RMM Allocator Mode": data.get("rmm_allocator_mode"),
             "Repartition_small_table": data.get("repartition_small_table"),
             "Result verified": data.get("result_verified"),
             "Current Time": current_time,
-            "Split Row Groups": data.get("split_row_groups"),
-            "Work Stealing": data.get("work_stealing"),
             "Device Memory Limit": data.get("device_memory_limit"),
-            "Host Memory Limit": data.get("memory_limit"),
-            "Host Memory Target Fraction": data.get("memory_target_fraction"),
-            "Host Memory Spill Fraction": data.get("memory_spill_fraction"),
-            "Host Memory Pause Fraction": data.get("memory_pause_fraction"),
             "cuDF Version": data.get("cudf"),
             "Dask Version": data.get("dask"),
             "Distributed Version": data.get("distributed"),
@@ -855,7 +831,7 @@ def build_benchmark_googlesheet_payload(cli_args):
             "CuPy Version": data.get("cupy"),
             "Num 16GB workers": data.get("16GB_workers"),
             "Num 32GB workers": data.get("32GB_workers"),
-            "Query Status": cli_args.get("query_status", "Unknown"),
+            "Query Status": data.get("query_status", "Unknown"),
         }
     )
     payload = list(payload.values())

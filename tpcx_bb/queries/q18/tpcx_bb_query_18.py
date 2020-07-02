@@ -50,8 +50,7 @@ EOL_CHAR = "è"
 )
 def read_tables():
     table_reader = build_reader(
-        data_format=cli_args["file_format"],
-        basepath=cli_args["data_dir"],
+        data_format=cli_args["file_format"], basepath=cli_args["data_dir"],
     )
 
     store_sales_cols = [
@@ -161,7 +160,7 @@ def find_relevant_reviews(df, targets_host, str_col_name="pr_review_content"):
 def main(client):
     import cudf
     import dask_cudf
-    
+
     store_sales, date_dim, store, product_reviews = read_tables()
     ### adding a wait call slows this down by 3-4 seconds, removing it for now
     ### Make TEMP_TABLE1

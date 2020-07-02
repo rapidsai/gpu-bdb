@@ -283,6 +283,4 @@ if __name__ == "__main__":
 
     client = attach_to_cluster(cli_args)
 
-    run_dask_cudf_query(
-        cli_args=cli_args, client=client, query_func=main
-    )
+    run_dask_cudf_query(cli_args=cli_args, client=client, query_func=main)

@@ -33,8 +33,6 @@ from xbb_tools.utils import (
     benchmark,
     tpcxbb_argparser,
     push_payload_to_googlesheet,
-    verify_results,
-    get_query_number,
 )
 from xbb_tools.readers import build_reader
 
@@ -101,9 +99,7 @@ def build_labels(reviews_df):
     return y
 
 
-@benchmark(
-    compute_result=cli_args.get("get_read_time")
-)
+@benchmark(compute_result=cli_args.get("get_read_time"))
 def read_tables():
     ### splitting by row groups for better parallelism
     table_reader = build_reader(
@@ -122,9 +118,7 @@ def read_tables():
 
 
 def categoricalize(num_sr):
-    return num_sr.astype("str").str.replace(
-        ["0", "1", "2"], ["NEG", "NEUT", "POS"]
-    )
+    return num_sr.astype("str").str.replace(["0", "1", "2"], ["NEG", "NEUT", "POS"])
 
 
 def sum_tp_fp(y_y_pred, nclasses):

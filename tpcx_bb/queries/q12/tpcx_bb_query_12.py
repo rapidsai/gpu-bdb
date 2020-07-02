@@ -155,7 +155,7 @@ def filter_ss_table(store_sales_df, filtered_item_df):
 
 @benchmark(dask_profile=cli_args["dask_profile"])
 def main(client):
-    import cudf,dask_cudf
+    import cudf, dask_cudf
 
     item_df, store_sales_df = read_tables()
 

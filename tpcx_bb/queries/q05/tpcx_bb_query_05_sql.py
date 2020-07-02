@@ -35,7 +35,6 @@ import cupy as cp
 from sklearn.metrics import roc_auc_score
 
 
-
 cli_args = tpcxbb_argparser()
 
 # Logistic Regression params

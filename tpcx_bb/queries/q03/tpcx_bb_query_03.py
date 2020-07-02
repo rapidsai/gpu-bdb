@@ -59,6 +59,7 @@ def get_wcs_minima(cli_args):
 
 def pre_repartition_task(wcs_fn, item_df, wcs_tstamp_min):
     import cudf
+
     wcs_cols = [
         "wcs_user_sk",
         "wcs_sales_sk",
@@ -166,6 +167,7 @@ def find_items_viewed_before_purchase_kernel(
 
 def apply_find_items_viewed(df, item_mappings):
     import cudf
+
     # need to sort descending to ensure that the
     # next N rows are the previous N clicks
     df = df.sort_values(
