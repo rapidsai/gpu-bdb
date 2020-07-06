@@ -47,7 +47,7 @@ Note that this Conda environment needs to be replicated or installed manually on
 
 We use the `dask-scheduler` and `dask-cuda-worker` command line interfaces to start a Dask cluster. We provide a `cluster_configuration` directory with a bash script to help you set up an NVLink-enabled cluster using UCX.
 
-Before running the script, you'll need to make a few small changes specific to your machines.
+Before running the script, you'll make changes specific to your environment.
 
 In `cluster_configuration/cluster-startup.sh`, please do the following:
 
@@ -107,9 +107,9 @@ python tpcx_bb_query_07.py --data_dir=$DATA_DIR --cluster_host=$SCHEDULER_IP --o
 
 ### Running all of the Queries
 
-As a convenience, you can sequentially run all the queries with the provided `benchmark_runner.py` script. Instead of passing the command line arguments directly, you will need to fill in the same information in `benchmark_config.yaml`, which can be found in the `benchmark_runner/` directory.
+The included `benchmark_runner.py` script will run all queries sequentially. Configuration for this type of end-to-end run is specified in `benchmark_runner/benchmark_config.yaml`.
 
-To execute this, run the following from `tpcx_bb/`:
+To run all queries, cd to `tpcx_bb/` and:
 
 ```python
 python benchmark_runner.py
