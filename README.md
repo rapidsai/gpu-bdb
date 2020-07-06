@@ -47,7 +47,7 @@ Note that this Conda environment needs to be replicated or installed manually on
 
 We use the `dask-scheduler` and `dask-cuda-worker` command line interfaces to start a Dask cluster. We provide a `cluster_configuration` directory with a bash script to help you set up an NVLink-enabled cluster using UCX.
 
-Before running the script, you'll need to make a few small changes specific to your machines.
+Before running the script, you'll make changes specific to your environment.
 
 In `cluster_configuration/cluster-startup.sh`, please do the following:
 
