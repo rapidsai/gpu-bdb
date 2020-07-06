@@ -30,5 +30,6 @@ dependencies:
   - pip
   - pip:
     - jupyter-server-proxy
+    - gspread
     - git+https://github.com/dask/dask.git
     - git+https://github.com/dask/distributed.git
