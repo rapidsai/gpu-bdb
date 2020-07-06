@@ -110,6 +110,14 @@ python tpcx_bb_query_07.py --data_dir=$DATA_DIR --cluster_host=$SCHEDULER_IP --o
 
 As a convenience, you can sequentially run all the queries with the provided `benchmark_runner.py` script. Instead of passing the command line arguments directly, you will need to fill in the same information in `benchmark_config.yaml`, which can be found in the `benchmark_runner/` directory.
 
+To execute this, run the following from `tpcx_bb/`:
+
+```python
+python benchmark_runner.py
+```
+
+By default, this will run each query three times. You can control the number of repeats by changing the `n_repeats` variable in the script.
+
 
 ## BlazingSQL
 
