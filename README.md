@@ -43,8 +43,8 @@ xbb-tools                 0.2                      pypi_0    pypi
 Note that this Conda environment needs to be replicated or installed manually on all nodes, which will allow starting one dask-cuda-worker per node.
 
 
-
 ## Cluster Setup
+
 We use the `dask-scheduler` and `dask-cuda-worker` command line interfaces to start a Dask cluster. We provide a `cluster_configuration` directory with a bash script to help you set up an NVLink-enabled cluster using UCX.
 
 Before running the script, you'll need to make a few small changes specific to your machines.
@@ -56,13 +56,13 @@ In `cluster_configuration/cluster-startup.sh`, please do the following:
     - Update `CONDA_ENV_NAME=...` to refer to the name of the conda environment you created, perhaps using the `yml` files provided in this repository.
     - Update `SCHEDULER=...` to refer to the host name of the node you intend to use as the scheduler.
 
-In `cluster_configuration/cluster-scheduler.json`, please update the scheduler address to be the address for the network interface you chose for `INTERFACE=...` just above.
+In `cluster_configuration/cluster-scheduler.json`, please update the scheduler address to be the address for the network interface you chose for `INTERFACE=...` just above. Note that if you are not using UCX, you'll need to adjust the address to be `tcp://...` rather than `ucx://...`.
 
 
 To start up the cluster, please run the following on every node.
 
 ```bash
-bash cluster-startup.sh NVLink
+bash cluster-startup.sh NVLINK
 ```
 
 

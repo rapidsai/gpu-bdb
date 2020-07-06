@@ -41,15 +41,21 @@ export DASK_DISTRIBUTED__SCHEDULER__WORK_STEALING="True"
 
 # Setup scheduler
 if [ "$HOSTNAME" = $SCHEDULER ]; then
-  # add rapids conda env to jupyterlab
-  python -m ipykernel install --user
-
   if [ "$CLUSTER_MODE" = "NVLINK" ]; then
      CUDA_VISIBLE_DEVICES='0' DASK_UCX__CUDA_COPY=True DASK_UCX__TCP=True DASK_UCX__NVLINK=True DASK_UCX__INFINIBAND=False DASK_UCX__RDMACM=False nohup dask-scheduler --dashboard-address 8787 --interface $INTERFACE --protocol ucx > $LOGDIR/scheduler.log 2>&1 &
   fi
+  
+  if [ "$CLUSTER_MODE" = "TCP" ]; then
+     CUDA_VISIBLE_DEVICES='0' nohup dask-scheduler --dashboard-address 8787 --interface $INTERFACE --protocol tcp > $LOGDIR/scheduler.log 2>&1 &
+  fi
 fi
+
 
 # Setup workers
 if [ "$CLUSTER_MODE" = "NVLINK" ]; then
         tpcxbb_benchmark_sweep_run='True' dask-cuda-worker --device-memory-limit $DEVICE_MEMORY_LIMIT --local-directory $WORKER_DIR  --rmm-pool-size=$POOL_SIZE --memory-limit=$MAX_SYSTEM_MEMORY --enable-tcp-over-ucx --enable-nvlink  --disable-infiniband --scheduler-file cluster-scheduler.json >> $LOGDIR/worker.log 2>&1 &
+fi
+
+if [ "$CLUSTER_MODE" = "TCP" ]; then
+    tpcxbb_benchmark_sweep_run='True' dask-cuda-worker --device-memory-limit $DEVICE_MEMORY_LIMIT --local-directory $WORKER_DIR  --rmm-pool-size=$POOL_SIZE --memory-limit=$MAX_SYSTEM_MEMORY --scheduler-file cluster-scheduler.json >> $LOGDIR/worker.log 2>&1 &
 fi
