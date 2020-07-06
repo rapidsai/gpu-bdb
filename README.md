@@ -109,7 +109,7 @@ python tpcx_bb_query_07.py --data_dir=$DATA_DIR --cluster_host=$SCHEDULER_IP --o
 
 The included `benchmark_runner.py` script will run all queries sequentially. Configuration for this type of end-to-end run is specified in `benchmark_runner/benchmark_config.yaml`.
 
-To execute this, run the following from `tpcx_bb/`:
+To run all queries, cd to `tpcx_bb/` and:
 
 ```python
 python benchmark_runner.py
