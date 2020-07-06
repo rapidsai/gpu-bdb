@@ -56,8 +56,7 @@ In `cluster_configuration/cluster-startup.sh`, please do the following:
     - Update `CONDA_ENV_NAME=...` to refer to the name of the conda environment you created, perhaps using the `yml` files provided in this repository.
     - Update `SCHEDULER=...` to refer to the host name of the node you intend to use as the scheduler.
 
-In `cluster_configuration/cluster-scheduler.json`, please update the scheduler address to be the address for the network interface you chose for `INTERFACE=...` just above. Note that if you are not using UCX, you'll need to adjust the address to be `tcp://...` rather than `ucx://...`.
-
+In `cluster_configuration/example-cluster-scheduler.json`, please update the scheduler address to be the address for the network interface you chose for `INTERFACE=...` just above. If you are not using UCX, you'll need to adjust the address to be `tcp://...` rather than `ucx://...`. Also please note that this is an example cluster scheduler file. You can create your own with a superset of this information.
 
 To start up the cluster, please run the following on every node.
 
