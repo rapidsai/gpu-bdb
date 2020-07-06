@@ -58,7 +58,7 @@ In `cluster_configuration/cluster-startup.sh`, please do the following:
 
 In `cluster_configuration/example-cluster-scheduler.json`, please update the scheduler address to be the address for the network interface you chose for `INTERFACE=...` just above. If you are not using UCX, you'll need to adjust the address to be `tcp://...` rather than `ucx://...`. Also please note that this is an example cluster scheduler file. You can create your own with a superset of this information.
 
-To start up the cluster, please run the following on every node.
+To start up the cluster, please run the following on every node from `tpcx_bb/cluster_configuration/`.
 
 ```bash
 bash cluster-startup.sh NVLINK
