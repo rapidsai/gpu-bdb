@@ -95,7 +95,7 @@ python tpcx_bb_query_07.py --data_dir=$DATA_DIR --cluster_host=$SCHEDULER_IP --o
 
 ## Performance Tracking
 
-This repository contains support for performance-tracking automation using Google Sheets. If you install `gspread` and `oauth2client` in your conda environment, you will be able to pass `--sheet` and `--tab` arguments the query CLI to push performance metrics to Google Sheets. If you do not have these libraries installed, you will see `Please install gspread and oauth2client to use Google Sheets automation` after running a query. It's fine to ignore this output.
+This repository contains support for performance-tracking automation using Google Sheets. If you install `gspread` and `oauth2client` in your conda environment, you will be able to pass `--sheet` and `--tab` arguments the query CLI to push performance metrics to Google Sheets. You must provide a path to a Google Sheets API credentials file as an environment variable called `GOOGLE_SHEETS_CREDENTIALS_PATH` on the node running the client. If you do not have these libraries installed, you will see `Please install gspread and oauth2client to use Google Sheets automation` after running a query. It's fine to ignore this output.
 
 Expanding on the example above, you could do the following:
 
