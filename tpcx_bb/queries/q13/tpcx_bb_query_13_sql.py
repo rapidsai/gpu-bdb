@@ -45,9 +45,9 @@ def read_tables(data_dir):
 
 @benchmark(dask_profile=cli_args["dask_profile"])
 def main(data_dir, client):
-	read_tables(data_dir)
+    read_tables(data_dir)
 
-	query_1 = """
+    query_1 = """
 		SELECT
 			ss.ss_customer_sk AS customer_sk,
 			sum( case when (d_year = 2001) THEN ss_net_paid ELSE 0.0 END) first_year_total,
@@ -62,10 +62,10 @@ def main(data_dir, client):
 		GROUP BY ss.ss_customer_sk 
 		HAVING sum( case when (d_year = 2001) THEN ss_net_paid ELSE 0.0 END) > 0.0
 	"""
-	temp_table1 = bc.sql(query_1)
+    temp_table1 = bc.sql(query_1)
 
-	bc.create_table('temp_table1', temp_table1)
-	query_2 = """
+    bc.create_table("temp_table1", temp_table1)
+    query_2 = """
 		SELECT
 			ws.ws_bill_customer_sk AS customer_sk,
 			sum( case when (d_year = 2001) THEN ws_net_paid ELSE 0.0 END) first_year_total,
@@ -80,10 +80,10 @@ def main(data_dir, client):
 		GROUP BY ws.ws_bill_customer_sk 
 		HAVING sum( case when (d_year = 2001) THEN ws_net_paid ELSE 0.0 END) > 0.0
 	"""
-	temp_table2 = bc.sql(query_2)
+    temp_table2 = bc.sql(query_2)
 
-	bc.create_table('temp_table2', temp_table2)
-	query = """
+    bc.create_table("temp_table2", temp_table2)
+    query = """
 		SELECT
 			CAST(c_customer_sk AS BIGINT) as c_customer_sk,
 			c_first_name,
@@ -103,8 +103,8 @@ def main(data_dir, client):
 		LIMIT 100
     """
 
-	result = bc.sql(query)
-	return result
+    result = bc.sql(query)
+    return result
 
 
 if __name__ == "__main__":
@@ -115,7 +115,5 @@ if __name__ == "__main__":
         pool=True,
         network_interface=os.environ.get("INTERFACE", "eth0"),
     )
-    
-    run_bsql_query(
-        cli_args=cli_args, client=client, query_func=main
-    )
+
+    run_bsql_query(cli_args=cli_args, client=client, query_func=main)
