@@ -37,84 +37,40 @@ This will install a package named `xbb-tools` into your Conda environment. It sh
 
 ```bash
 conda list | grep xbb
-xbb-tools                 0.1                      pypi_0    pypi
+xbb-tools                 0.2                      pypi_0    pypi
 ```
 
 Note that this Conda environment needs to be replicated or installed manually on all nodes, which will allow starting one dask-cuda-worker per node.
 
 
+## Cluster Setup
 
-## Cluster Configuration
-We use the `dask-scheduler` and `dask-cuda-worker` command line interfaces to start a Dask cluster. Before spinning up the scheduler, set the following environment variables:
+We use the `dask-scheduler` and `dask-cuda-worker` command line interfaces to start a Dask cluster. We provide a `cluster_configuration` directory with a bash script to help you set up an NVLink-enabled cluster using UCX.
 
-```bash
-export DASK_DISTRIBUTED__COMM__TIMEOUTS__CONNECT="100s"
-export DASK_DISTRIBUTED__COMM__TIMEOUTS__TCP="600s"
-export DASK_DISTRIBUTED__COMM__RETRY__DELAY__MIN="1s"
-export DASK_DISTRIBUTED__COMM__RETRY__DELAY__MAX="60s"
-export DASK_DISTRIBUTED__SCHEDULER__WORK_STEALING=True
-```
+Before running the script, you'll make changes specific to your environment.
 
-Next, run the `dask-scheduler` and `dask-cuda-worker` commands with several additional environment variables, depending on your desired networking and communication pattern.
+In `cluster_configuration/cluster-startup.sh`, please do the following:
 
+    - Update `INTERFACE=...` to refer to the relevant network interface present on your cluster.
+    - Update `CONDA_ENV_PATH=...` to refer to your conda environment path.
+    - Update `CONDA_ENV_NAME=...` to refer to the name of the conda environment you created, perhaps using the `yml` files provided in this repository.
+    - Update `SCHEDULER=...` to refer to the host name of the node you intend to use as the scheduler.
 
-### Configuration for UCX + NVLink
+In `cluster_configuration/example-cluster-scheduler.json`, please update the scheduler address to be the address for the network interface you chose for `INTERFACE=...` just above. If you are not using UCX, you'll need to adjust the address to be `tcp://...` rather than `ucx://...`. Also please note that this is an example cluster scheduler file. You can create your own with a superset of this information.
 
-For the `dask-scheduler`, use the following:
+To start up the cluster, please run the following on every node from `tpcx_bb/cluster_configuration/`.
 
 ```bash
-LOGDIR="/raid/logs"
-
-DASK_UCX__CUDA_COPY=True DASK_UCX__TCP=True DASK_UCX__NVLINK=True DASK_UCX__INFINIBAND=False DASK_UCX__RDMACM=False nohup dask-scheduler --dashboard-address 8787 --interface ib0 --protocol ucx > $LOGDIR/scheduler.log 2>&1 &
+bash cluster-startup.sh NVLINK
 ```
 
-We use `--interface ib0`. You'll need to change this to the name of a network interface present on your cluster. 
-
-For the `dask-cuda-workers`, use the following:
-
-```bash
-DEVICE_MEMORY_LIMIT="25GB"
-POOL_SIZE="30GB"
-LOGDIR="/raid/logs"
-WORKER_DIR="/raid/dask"
-MAX_SYSTEM_MEMORY=$(free -m | awk '/^Mem:/{print $2}')M
-
-
-dask-cuda-worker --device-memory-limit $DEVICE_MEMORY_LIMIT --local-directory $WORKER_DIR --rmm-pool-size=$POOL_SIZE --memory-limit=$MAX_SYSTEM_MEMORY --enable-tcp-over-ucx --enable-nvlink  --disable-infiniband --scheduler-file lab-sched.json >> $LOGDIR/worker.log 2>&1 &
-```
-
-Note that we also pass a scheduler file to `--scheduler-file`, indicating where the scheduler is running. You can read more about all of these configuration variables in the [Dask documentation](https://docs.dask.org/en/latest/setup/cli.html).
-
-
-### Configuration for TCP over UCX
-
-To use UCX without NVLink, start the scheduler with the following:
-
-```bash
-LOGDIR="/raid/logs"
-
-DASK_UCX__CUDA_COPY=True DASK_UCX__TCP=True nohup dask-scheduler --interface ib0 --protocol ucx  > $LOGDIR/scheduler.log 2>&1 &
-```
-
-Start the workers with the following:
-
-```bash
-DEVICE_MEMORY_LIMIT="25GB"
-POOL_SIZE="30GB"
-LOGDIR="/raid/logs"
-WORKER_DIR="/raid/dask"
-MAX_SYSTEM_MEMORY=$(free -m | awk '/^Mem:/{print $2}')M
-
-
-dask-cuda-worker --rmm-pool-size=$POOL_SIZE --device-memory-limit $DEVICE_MEMORY_LIMIT --local-directory $WORKER_DIR  --rmm-pool-size=$POOL_SIZE --memory-limit=$MAX_SYSTEM_MEMORY --enable-tcp-over-ucx --scheduler-file lab-sched.json  >> $LOGDIR/worker.log 2>&1 &
-```
 
 ## Running the Queries
 
-To run the query, starting from the repository root, go to the `queries` directory:
+To run a query, starting from the repository root, go to the `queries` directory:
 
 ```bash
-cd tpcx_bb/rapids-queries/
+cd tpcx_bb/queries/
 ```
 
 Choose a query to run, and `cd` to that directory. We'll pick query 07.
@@ -123,25 +79,43 @@ Choose a query to run, and `cd` to that directory. We'll pick query 07.
 cd q07
 ```
 
-Activate the conda environment with `conda activate rapids-tpcx-bb`.
+Activate the conda environment you've created.
 
 The queries assume that they can attach to a running Dask cluster. Command line arguments are used to determine the cluster and dataset on which to run the queries. The following is an example of running query 07.
 
 ```bash
-SCHEDULER_IP=$YOUR_SCHEDULER_NODE_IP
-
 python tpcx_bb_query_07.py --data_dir=$DATA_DIR --cluster_host=$SCHEDULER_IP --output_dir=$OUTPUT_DIR
 ```
 
 - `data_dir` points to the location of the data
-- `cluster_host` corresponds to the address of the running Dask cluster
-    - In this case, this query would attempt to connect to a cluster running at `$SCHEDULER_IP`, which would have been configured beforehand
-- `output_dir` points to where the queries should write output files
+- `cluster_host` corresponds to the schedyler address of the running Dask cluster
+    - In this case, this query would attempt to connect to a cluster running at `$SCHEDULER_IP`, which we configured during cluster startup
+- `output_dir` points to where the queries should write output files. If not specified, queries will write output into their respective directories
+
+
+## Performance Tracking
+
+This repository contains support for performance-tracking automation using Google Sheets. If you install `gspread` and `oauth2client` in the provided environment spec, passing `--sheet` and `--tab` arguments during query execution will log query runtime in a Google Sheet. You must provide a path to a Google Sheets API credentials file as an environment variable called `GOOGLE_SHEETS_CREDENTIALS_PATH` on the node running the client. If you do not have these libraries installed, you will see `Please install gspread and oauth2client to use Google Sheets automation` after running a query. It's fine to ignore this output.
+
+Expanding on the example above, you could do the following:
+
+```bash
+python tpcx_bb_query_07.py --data_dir=$DATA_DIR --cluster_host=$SCHEDULER_IP --output_dir=$OUTPUT_DIR --sheet=TPCx-BB --tab="SF1000 Benchmarking Matrix"
+```
+
 
 
 ### Running all of the Queries
 
-You can run all the queries with the provided `benchmark_runner.sh` bash script. It is parameterized, and expects the first argument to be either `dask` or `blazing`. The following arguments correspond to the same ones listed above. 
+The included `benchmark_runner.py` script will run all queries sequentially. Configuration for this type of end-to-end run is specified in `benchmark_runner/benchmark_config.yaml`.
+
+To run all queries, cd to `tpcx_bb/` and:
+
+```python
+python benchmark_runner.py
+```
+
+By default, this will run each query three times. You can control the number of repeats by changing the `n_repeats` variable in the script.
 
 
 ## BlazingSQL
@@ -155,39 +129,17 @@ CONDA_ENV="rapids-bsql-tpcx-bb"
 conda env create --name $CONDA_ENV -f tpcx-bb/conda/rapids-bsql-tpcx-bb.yml
 conda activate rapids-bsql-tpcx-bb
 ```
-The environment will also require installation of the `xbb_tools` module. More steps on installing this [here](#installing-rapids-tpcxbb-tools).
+
+The environment will also require installation of the `xbb_tools` module. Directions are provided [above](#installing-rapids-tpcxbb-tools).
 
 
 ### Cluster Configuration for TCP
 
-Before spinning up the scheduler setup the following environment variables on all nodes
+BlazingSQL currently supports clusters using TCP. Please follow the instructions above, making sure to use the InfiniBand interface as the `INTERFACE` variable. Then, start the cluster with:
+
 ```bash
-export INTERFACE="ib0"
+bash cluster-startup.sh TCP
 ```
-
-**Note**: `ib0` must be replaced by a network interface available on your cluster
-
-Start the `dask-scheduler`:
-```bash
-nohup dask-scheduler --interface ib0 > $LOGDIR/dask-scheduler.log 2>&1 &
-```
-
-Start the `dask-cuda-workers`:
-```bash
-nohup dask-cuda-worker --local-directory $WORKER_DIR  --interface ib0 --scheduler-file lab-sched.json >> $LOGDIR/dask-worker.log 2>&1 &
-```
-More information on cluster setup and configurations [here](#cluster-configuration).
-
-### Running Queries
-
-The BlazingSQL + Dask query implementations can be run the same way as described for Dask only implementations. However, you must set the `INTERFACE` environment variable on the client node:
-```bash
-$ export INTERFACE="ib0"
-$ export SCHEDULER_IP=$YOUR_SCHEDULER_NODE_IP
-
-$ python tpcx_bb_query_07_sql.py --data_dir=$DATA_DIR --cluster_host=$SCHEDULER_IP --output_dir=$OUTPUT_DIR
-```
-
 
 ## Data Generation
 
