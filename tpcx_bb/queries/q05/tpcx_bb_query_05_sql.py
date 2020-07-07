@@ -17,7 +17,6 @@
 
 import sys
 
-
 from blazingsql import BlazingContext
 from xbb_tools.cluster_startup import attach_to_cluster
 from dask_cuda import LocalCUDACluster
@@ -28,11 +27,11 @@ import os
 from xbb_tools.utils import (
     benchmark,
     tpcxbb_argparser,
+    run_bsql_query,
 )
-
 from xbb_tools.cupy_metrics import cupy_conf_mat, cupy_precision_score
-import cupy as cp
 from sklearn.metrics import roc_auc_score
+import cupy as cp
 
 
 cli_args = tpcxbb_argparser()
@@ -46,7 +45,9 @@ C = 10_000  # reg_lambda = 0 hence C for model is a large value
 convergence_tol = 1e-9
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
+@benchmark(
+    compute_result=cli_args["get_read_time"], dask_profile=cli_args["dask_profile"]
+)
 def read_tables(data_dir):
     bc.create_table("web_clickstreams", data_dir + "web_clickstreams/*.parquet")
     bc.create_table("customer", data_dir + "customer/*.parquet")
@@ -61,6 +62,8 @@ def build_and_predict_model(ml_input_df):
     Create a standardized feature matrix X and target array y.
     Returns the model and accuracy statistics
     """
+    import cuml
+
     feature_names = ["college_education", "male"] + [
         "clicks_in_%d" % i for i in range(1, 8)
     ]
@@ -88,28 +91,12 @@ def build_and_predict_model(ml_input_df):
     results_dict["auc"] = roc_auc_score(y.to_array(), y_pred.to_array())
     results_dict["precision"] = cupy_precision_score(cp.asarray(y), cp.asarray(y_pred))
     results_dict["confusion_matrix"] = cupy_conf_mat(cp.asarray(y), cp.asarray(y_pred))
-
+    results_dict["output_type"] = "supervised"
     return results_dict
 
 
-@benchmark()
-def write_result(results_dict, output_directory="./", filetype=None):
-    """
-    Results are a text file due to the structure and tiny size
-    Filetype argument added for compatibility. Is not used.
-    """
-    with open(f"{output_directory}q05-metrics-results.txt", "w") as outfile:
-        outfile.write("Precision: %f\n" % results_dict["precision"])
-        outfile.write("AUC: %f\n" % results_dict["auc"])
-        outfile.write("Confusion Matrix:\n")
-        cm = results_dict["confusion_matrix"]
-        outfile.write(
-            "%8.1f  %8.1f\n%8.1f %8.1f\n" % (cm[0, 0], cm[0, 1], cm[1, 0], cm[1, 1])
-        )
-
-
 @benchmark(dask_profile=cli_args["dask_profile"])
-def main(data_dir):
+def main(data_dir, client):
     read_tables(data_dir)
 
     query = """
@@ -173,8 +160,6 @@ def main(data_dir):
 
 
 if __name__ == "__main__":
-    import cuml
-
     client = attach_to_cluster(cli_args)
 
     bc = BlazingContext(
@@ -182,9 +167,7 @@ if __name__ == "__main__":
         pool=True,
         network_interface=os.environ.get("INTERFACE", "eth0"),
     )
-
-    results_dict = main(cli_args["data_dir"])
-
-    write_result(
-        results_dict, output_directory=cli_args["output_dir"],
+    
+    run_bsql_query(
+        cli_args=cli_args, client=client, query_func=main
     )

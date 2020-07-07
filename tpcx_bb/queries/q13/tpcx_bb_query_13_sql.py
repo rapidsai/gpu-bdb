@@ -27,13 +27,15 @@ import os
 from xbb_tools.utils import (
     benchmark,
     tpcxbb_argparser,
-    write_result,
+    run_bsql_query,
 )
 
 cli_args = tpcxbb_argparser()
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
+@benchmark(
+    compute_result=cli_args["get_read_time"], dask_profile=cli_args["dask_profile"]
+)
 def read_tables(data_dir):
     bc.create_table("date_dim", data_dir + "/date_dim/*.parquet")
     bc.create_table("customer", data_dir + "/customer/*.parquet")
@@ -42,44 +44,48 @@ def read_tables(data_dir):
 
 
 @benchmark(dask_profile=cli_args["dask_profile"])
-def main(data_dir):
+def main(data_dir, client):
     read_tables(data_dir)
 
-    query = """
-		WITH temp_table1 AS 
-		(
-			SELECT
-				ss.ss_customer_sk AS customer_sk,
-				sum(case when (d_year = 2001) THEN ss_net_paid ELSE 0.0 END) first_year_total,
-				sum(case when (d_year = 2002) THEN ss_net_paid ELSE 0.0 END) second_year_total
-			FROM store_sales ss
-			JOIN 
-			(
-				SELECT d_date_sk, d_year
-				FROM date_dim d
-				WHERE d.d_year in (2001, 2002)
-			) dd ON (ss.ss_sold_date_sk = dd.d_date_sk)
-			GROUP BY ss.ss_customer_sk 
-			HAVING sum(case when (d_year = 2001) THEN ss_net_paid ELSE 0.0 END) > 0.0
-		),
-		temp_table2 AS 
-		(
-			SELECT
-				ws.ws_bill_customer_sk AS customer_sk,
-				sum(case when (d_year = 2001) THEN ws_net_paid ELSE 0.0 END) first_year_total,
-				sum(case when (d_year = 2002) THEN ws_net_paid ELSE 0.0 END) second_year_total
-			FROM web_sales ws
-			JOIN 
-			(
-				SELECT d_date_sk, d_year
-				FROM date_dim d
-				WHERE d.d_year in (2001, 2002)
-			) dd ON (ws.ws_sold_date_sk = dd.d_date_sk)
-			GROUP BY ws.ws_bill_customer_sk 
-			HAVING sum(case when (d_year = 2001) THEN ws_net_paid ELSE 0.0 END) > 0.0
-		)
+    query_1 = """
 		SELECT
-			c_customer_sk,
+			ss.ss_customer_sk AS customer_sk,
+			sum( case when (d_year = 2001) THEN ss_net_paid ELSE 0.0 END) first_year_total,
+			sum( case when (d_year = 2002) THEN ss_net_paid ELSE 0.0 END) second_year_total
+		FROM store_sales ss
+		JOIN 
+		(
+			SELECT d_date_sk, d_year
+			FROM date_dim d
+			WHERE d.d_year in (2001, 2002)
+		) dd on ( ss.ss_sold_date_sk = dd.d_date_sk )
+		GROUP BY ss.ss_customer_sk 
+		HAVING sum( case when (d_year = 2001) THEN ss_net_paid ELSE 0.0 END) > 0.0
+	"""
+    temp_table1 = bc.sql(query_1)
+
+    bc.create_table("temp_table1", temp_table1)
+    query_2 = """
+		SELECT
+			ws.ws_bill_customer_sk AS customer_sk,
+			sum( case when (d_year = 2001) THEN ws_net_paid ELSE 0.0 END) first_year_total,
+			sum( case when (d_year = 2002) THEN ws_net_paid ELSE 0.0 END) second_year_total
+		FROM web_sales ws
+		JOIN 
+		(
+			SELECT d_date_sk, d_year
+			FROM date_dim d
+			WHERE d.d_year in (2001, 2002)
+		) dd ON ( ws.ws_sold_date_sk = dd.d_date_sk )
+		GROUP BY ws.ws_bill_customer_sk 
+		HAVING sum( case when (d_year = 2001) THEN ws_net_paid ELSE 0.0 END) > 0.0
+	"""
+    temp_table2 = bc.sql(query_2)
+
+    bc.create_table("temp_table2", temp_table2)
+    query = """
+		SELECT
+			CAST(c_customer_sk AS BIGINT) as c_customer_sk,
 			c_first_name,
 			c_last_name,
 			(store.second_year_total / store.first_year_total) AS storeSalesIncreaseRatio,
@@ -110,7 +116,4 @@ if __name__ == "__main__":
         network_interface=os.environ.get("INTERFACE", "eth0"),
     )
 
-    result_df = main(cli_args["data_dir"])
-    write_result(
-        result_df, output_directory=cli_args["output_dir"],
-    )
+    run_bsql_query(cli_args=cli_args, client=client, query_func=main)

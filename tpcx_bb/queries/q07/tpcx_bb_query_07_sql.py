@@ -27,13 +27,15 @@ import os
 from xbb_tools.utils import (
     benchmark,
     tpcxbb_argparser,
-    write_result,
+    run_bsql_query,
 )
 
 cli_args = tpcxbb_argparser()
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
+@benchmark(
+    compute_result=cli_args["get_read_time"], dask_profile=cli_args["dask_profile"]
+)
 def read_tables(data_dir):
     bc.create_table("item", data_dir + "/item/*.parquet")
     bc.create_table("customer", data_dir + "/customer/*.parquet")
@@ -43,7 +45,7 @@ def read_tables(data_dir):
 
 
 @benchmark(dask_profile=cli_args["dask_profile"])
-def main(data_dir):
+def main(data_dir, client):
     read_tables(data_dir)
 
     query = """
@@ -95,8 +97,7 @@ if __name__ == "__main__":
         pool=True,
         network_interface=os.environ.get("INTERFACE", "eth0"),
     )
-
-    result_df = main(cli_args["data_dir"])
-    write_result(
-        result_df, output_directory=cli_args["output_dir"],
+    
+    run_bsql_query(
+        cli_args=cli_args, client=client, query_func=main
     )
