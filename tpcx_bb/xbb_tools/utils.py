@@ -406,6 +406,11 @@ def get_tpcxbb_argparser_commandline_args():
     )
 
     args = parser.parse_args()
+
+    # ensure data_dir argument includes a trailing slash
+    if args.data_dir[-1] != '/':
+        args.data_dir = args.data_dir + '/'
+
     args = vars(args)
     return args
 
