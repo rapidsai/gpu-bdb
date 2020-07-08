@@ -1,20 +1,22 @@
 #IB, NVLINK, or TCP
 CLUSTER_MODE=$1
+USERNAME=$(whoami)
 
 MAX_SYSTEM_MEMORY=$(free -m | awk '/^Mem:/{print $2}')M
 DEVICE_MEMORY_LIMIT="25GB"
 POOL_SIZE="30GB"
 
 # Fill in your environment name and conda path on each node
-CONDA_ENV_NAME="rapids-tpcxbb-20200706"
-CONDA_ENV_PATH="/raid/nicholasb/miniconda3/etc/profile.d/conda.sh"
+TPCX_BB_HOME="/home/$USERNAME/tpcx-bb"
+CONDA_ENV_NAME="rapids-tpcx-bb"
+CONDA_ENV_PATH="/home/$USERNAME/conda/etc/profile.d/conda.sh"
 
 # TODO: Unify interface/IP setting/getting for cluster startup
 # and scheduler file
 INTERFACE="ib0"
 
 # TODO: Remove hard-coding of scheduler
-SCHEDULER="exp01"
+SCHEDULER=$(hostname)
 LOGDIR="/tmp/tpcx-bb-dask-logs/"
 WORKER_DIR="/tmp/tpcx-bb-dask-workers/"
 
@@ -52,9 +54,9 @@ fi
 
 # Setup workers
 if [ "$CLUSTER_MODE" = "NVLINK" ]; then
-        tpcxbb_benchmark_sweep_run='True' dask-cuda-worker --device-memory-limit $DEVICE_MEMORY_LIMIT --local-directory $WORKER_DIR  --rmm-pool-size=$POOL_SIZE --memory-limit=$MAX_SYSTEM_MEMORY --enable-tcp-over-ucx --enable-nvlink  --disable-infiniband --scheduler-file example-cluster-scheduler.json >> $LOGDIR/worker.log 2>&1 &
+        tpcxbb_benchmark_sweep_run='True' dask-cuda-worker --device-memory-limit $DEVICE_MEMORY_LIMIT --local-directory $WORKER_DIR  --rmm-pool-size=$POOL_SIZE --memory-limit=$MAX_SYSTEM_MEMORY --enable-tcp-over-ucx --enable-nvlink  --disable-infiniband --scheduler-file $TPCX_BB_HOME/tpcx_bb/cluster_configuration/example-cluster-scheduler.json >> $LOGDIR/worker.log 2>&1 &
 fi
 
 if [ "$CLUSTER_MODE" = "TCP" ]; then
-    tpcxbb_benchmark_sweep_run='True' dask-cuda-worker --device-memory-limit $DEVICE_MEMORY_LIMIT --local-directory $WORKER_DIR  --rmm-pool-size=$POOL_SIZE --memory-limit=$MAX_SYSTEM_MEMORY --scheduler-file example-cluster-scheduler.json >> $LOGDIR/worker.log 2>&1 &
+    tpcxbb_benchmark_sweep_run='True' dask-cuda-worker --device-memory-limit $DEVICE_MEMORY_LIMIT --local-directory $WORKER_DIR  --rmm-pool-size=$POOL_SIZE --memory-limit=$MAX_SYSTEM_MEMORY --scheduler-file $TPCX_BB_HOME/tpcx_bb/cluster_configuration/example-cluster-scheduler.json >> $LOGDIR/worker.log 2>&1 &
 fi
