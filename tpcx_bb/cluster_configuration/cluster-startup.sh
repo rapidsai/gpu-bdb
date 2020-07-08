@@ -7,7 +7,7 @@ DEVICE_MEMORY_LIMIT="25GB"
 POOL_SIZE="30GB"
 
 # Fill in your environment name and conda path on each node
-TPCX_BB_HOME="/home/$USERNAME/tpcx-bb"
+TPCX_BB_HOME="/home/$USERNAME/shared/tpcx-bb"
 CONDA_ENV_NAME="rapids-tpcx-bb"
 CONDA_ENV_PATH="/home/$USERNAME/conda/etc/profile.d/conda.sh"
 
@@ -17,6 +17,7 @@ INTERFACE="ib0"
 
 # TODO: Remove hard-coding of scheduler
 SCHEDULER=$(hostname)
+SCHEDULER_FILE=$TPCX_BB_HOME/tpcx_bb/cluster_configuration/example-cluster-scheduler.json
 LOGDIR="/tmp/tpcx-bb-dask-logs/"
 WORKER_DIR="/tmp/tpcx-bb-dask-workers/"
 
@@ -54,9 +55,9 @@ fi
 
 # Setup workers
 if [ "$CLUSTER_MODE" = "NVLINK" ]; then
-        tpcxbb_benchmark_sweep_run='True' dask-cuda-worker --device-memory-limit $DEVICE_MEMORY_LIMIT --local-directory $WORKER_DIR  --rmm-pool-size=$POOL_SIZE --memory-limit=$MAX_SYSTEM_MEMORY --enable-tcp-over-ucx --enable-nvlink  --disable-infiniband --scheduler-file $TPCX_BB_HOME/tpcx_bb/cluster_configuration/example-cluster-scheduler.json >> $LOGDIR/worker.log 2>&1 &
+        tpcxbb_benchmark_sweep_run='True' dask-cuda-worker --device-memory-limit $DEVICE_MEMORY_LIMIT --local-directory $WORKER_DIR  --rmm-pool-size=$POOL_SIZE --memory-limit=$MAX_SYSTEM_MEMORY --enable-tcp-over-ucx --enable-nvlink  --disable-infiniband --scheduler-file $SCHEDULER_FILE >> $LOGDIR/worker.log 2>&1 &
 fi
 
 if [ "$CLUSTER_MODE" = "TCP" ]; then
-    tpcxbb_benchmark_sweep_run='True' dask-cuda-worker --device-memory-limit $DEVICE_MEMORY_LIMIT --local-directory $WORKER_DIR  --rmm-pool-size=$POOL_SIZE --memory-limit=$MAX_SYSTEM_MEMORY --scheduler-file $TPCX_BB_HOME/tpcx_bb/cluster_configuration/example-cluster-scheduler.json >> $LOGDIR/worker.log 2>&1 &
+    tpcxbb_benchmark_sweep_run='True' dask-cuda-worker --device-memory-limit $DEVICE_MEMORY_LIMIT --local-directory $WORKER_DIR  --rmm-pool-size=$POOL_SIZE --memory-limit=$MAX_SYSTEM_MEMORY --scheduler-file $SCHEDULER_FILE >> $LOGDIR/worker.log 2>&1 &
 fi
