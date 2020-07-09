@@ -236,8 +236,8 @@ def write_clustering_result(result_dict, output_directory="./", filetype="csv"):
 
 def remove_benchmark_files():
     """
-    Removes benchmark result files from cwdqq
-    to ensure that we don't upload stale resuts
+    Removes benchmark result files from cwd
+    to ensure that we don't upload stale results
     """
     fname_ls = ["benchmarked_write_result.csv","benchmarked_read_tables.csv","benchmarked_main.csv"]
     for fname in fname_ls:
