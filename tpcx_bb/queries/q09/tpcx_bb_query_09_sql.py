@@ -108,6 +108,7 @@ def main(data_dir, client):
     """
 
     result = bc.sql(query)
+    result = result.rename(columns={"EXPR$0": "sum(ss_quantity)"})
     return result
 
 
