@@ -63,21 +63,20 @@ def benchmark(csv=True, dask_profile=False, compute_result=False):
             logging_info = {}
             logging_info["elapsed_time_seconds"] = elapsed_time
             logging_info["function_name"] = name
-
             if compute_result:
-                if isinstance(result, Iterable):
+                import dask_cudf
+                if isinstance(result,dask_cudf.DataFrame):
+                    len_tasks = [dask.delayed(len)(df) for df in result.to_delayed()]
+                else:
                     len_tasks = []
                     for read_df in result:
                         len_tasks += [
                             dask.delayed(len)(df) for df in read_df.to_delayed()
                         ]
-                else:
-                    len_tasks = [dask.delayed(len)(df) for df in result.to_delayed()]
 
                 compute_st = time.time()
                 results = dask.compute(*len_tasks)
                 compute_et = time.time()
-
                 logging_info["compute_time_seconds"] = compute_et - compute_st
 
             logdf = pd.DataFrame.from_dict(logging_info, orient="index").T
@@ -235,6 +234,15 @@ def write_clustering_result(result_dict, output_directory="./", filetype="csv"):
 
     return 0
 
+def remove_benchmark_files():
+    """
+    Removes benchmark result files from cwd
+    to ensure that we don't upload stale results
+    """
+    fname_ls = ["benchmarked_write_result.csv","benchmarked_read_tables.csv","benchmarked_main.csv"]
+    for fname in fname_ls:
+        if os.path.exists(fname):
+            os.remove(fname)
 
 #################################
 # Query Runner Utilities
@@ -247,6 +255,7 @@ def run_dask_cudf_query(cli_args, client, query_func, write_func=write_result):
     of the query. Includes attaching to cluster, running the query and writing results
     """
     try:
+        remove_benchmark_files()
         cli_args["start_time"] = time.time()
         results = query_func(client=client)
 
@@ -281,6 +290,7 @@ def run_bsql_query(cli_args, client, query_func, write_func=write_result):
     """
     # TODO: Unify this with dask-cudf version
     try:
+        remove_benchmark_files()
         cli_args["start_time"] = time.time()
         data_dir = cli_args["data_dir"]
         results = query_func(data_dir=data_dir, client=client)
@@ -864,12 +874,6 @@ def _get_benchmarked_method_time(
     import cudf
 
     try:
-        if query_start_time:
-            benchmark_timestamp = os.path.getmtime(filename)
-            # Do not trust this data if file was created before the query started
-            if benchmark_timestamp < query_start_time:
-                return None
-
         benchmark_results = cudf.read_csv(filename)
         benchmark_time = benchmark_results[field].iloc[0]
     except FileNotFoundError:
