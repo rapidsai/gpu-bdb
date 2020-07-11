@@ -73,17 +73,18 @@ def main(data_dir, client):
 
     query = (
         """
-        SELECT CAST(sum(promotional) AS DOUBLE) as promotional, sum(total) as total,
-        CASE WHEN sum(total) > 0 THEN CAST (100 * sum(promotional) AS DOUBLE) /
-            CAST(sum(total) AS DOUBLE) ELSE 0.0 END as promo_percent
+        SELECT sum(promotional) as promotional,
+            sum(total) as total,
+            CASE WHEN sum(total) > 0 THEN CAST (100.0 * sum(promotional) AS DOUBLE) /
+                CAST(sum(total) AS DOUBLE) ELSE 0.0 END as promo_percent
         FROM
         (
             SELECT p_channel_email,
                 p_channel_dmail,
                 p_channel_tv,
+                SUM(ss_ext_sales_price) total,
                 CASE WHEN (p_channel_dmail = 'Y' OR p_channel_email = 'Y' OR p_channel_tv = 'Y')
-                    THEN SUM(ss_ext_sales_price) ELSE 0 END as promotional,
-                SUM(ss_ext_sales_price) total
+                    THEN CAST( SUM(ss_ext_sales_price) AS DOUBLE) ELSE 0.0 END as promotional
             FROM store_sales ss
             INNER JOIN promotion p ON ss.ss_promo_sk = p.p_promo_sk
             inner join item i on ss.ss_item_sk = i.i_item_sk
@@ -98,7 +99,6 @@ def main(data_dir, client):
         + """ and ss.ss_sold_date_sk <= """
         + str(date_end_sk)
         + """
-            
             GROUP BY p_channel_email, p_channel_dmail, p_channel_tv
         ) sum_promotional
         -- we don't need a 'ON' join condition. result is just two numbers.
