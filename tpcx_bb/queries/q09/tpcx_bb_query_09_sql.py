@@ -17,11 +17,8 @@
 
 import sys
 
-
 from blazingsql import BlazingContext
 from xbb_tools.cluster_startup import attach_to_cluster
-from dask_cuda import LocalCUDACluster
-from dask.distributed import Client
 import os
 
 from xbb_tools.utils import (
@@ -38,7 +35,9 @@ cli_args = tpcxbb_argparser()
 )
 def read_tables(data_dir):
     bc.create_table("store_sales", data_dir + "/store_sales/*.parquet")
-    bc.create_table("customer_address", data_dir + "/customer_address/*.parquet")
+    bc.create_table(
+        "customer_address", data_dir + "/customer_address/*.parquet"
+    )
     bc.create_table(
         "customer_demographics", data_dir + "/customer_demographics/*.parquet"
     )
@@ -52,52 +51,55 @@ def main(data_dir, client):
 
     query = """
         SELECT SUM(ss1.ss_quantity)
-        FROM store_sales ss1, date_dim dd,customer_address ca1 , store s ,customer_demographics cd
+        FROM store_sales ss1,
+            date_dim dd,customer_address ca1,
+            store s,
+            customer_demographics cd
         -- select date range
-        WHERE ss1.ss_sold_date_sk = dd.d_date_sk 
+        WHERE ss1.ss_sold_date_sk = dd.d_date_sk
         AND dd.d_year = 2001
         AND ss1.ss_addr_sk = ca1.ca_address_sk
         AND s.s_store_sk = ss1.ss_store_sk
         AND cd.cd_demo_sk = ss1.ss_cdemo_sk
-        AND 
+        AND
         (
             (
                 cd.cd_marital_status = 'M'
                 AND cd.cd_education_status = '4 yr Degree'
                 AND 100 <= ss1.ss_sales_price
                 AND ss1.ss_sales_price <= 150
-            ) 
-            OR 
+            )
+            OR
             (
                 cd.cd_marital_status = 'M'
                 AND cd.cd_education_status = '4 yr Degree'
                 AND 50 <= ss1.ss_sales_price
                 AND ss1.ss_sales_price <= 200
-            ) 
-            OR 
+            )
+            OR
             (
                 cd.cd_marital_status = 'M'
                 AND cd.cd_education_status = '4 yr Degree'
                 AND 150 <= ss1.ss_sales_price
                 AND ss1.ss_sales_price <= 200
             )
-        ) 
-        AND 
+        )
+        AND
         (
             (
                 ca1.ca_country = 'United States'
                 AND ca1.ca_state IN ('KY', 'GA', 'NM')
                 AND 0 <= ss1.ss_net_profit
                 AND ss1.ss_net_profit <= 2000
-            ) 
-            OR 
+            )
+            OR
             (
                 ca1.ca_country = 'United States'
                 AND ca1.ca_state IN ('MT', 'OR', 'IN')
                 AND 150 <= ss1.ss_net_profit
                 AND ss1.ss_net_profit <= 3000
-            ) 
-            OR 
+            )
+            OR
             (
                 ca1.ca_country = 'United States'
                 AND ca1.ca_state IN ('WI', 'MO', 'WV')
@@ -106,9 +108,8 @@ def main(data_dir, client):
             )
         )
     """
-
     result = bc.sql(query)
-    result = result.rename(columns={"EXPR$0": "sum(ss_quantity)"})
+    result.columns = ["sum(ss_quantity)"]
     return result
 
 
@@ -120,7 +121,7 @@ if __name__ == "__main__":
         pool=True,
         network_interface=os.environ.get("INTERFACE", "eth0"),
     )
-    
+
     run_bsql_query(
         cli_args=cli_args, client=client, query_func=main
     )
