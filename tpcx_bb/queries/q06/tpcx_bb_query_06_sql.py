@@ -50,36 +50,36 @@ def read_tables(data_dir):
 def main(data_dir, client):
     read_tables(data_dir)
 
-    query = """
+    query = f"""
         WITH temp_table_1 as
         (
             SELECT ss_customer_sk AS customer_sk,
-                sum( case when (d_year = 2001) THEN (((ss_ext_list_price-ss_ext_wholesale_cost-ss_ext_discount_amt)+ss_ext_sales_price)/2) ELSE 0 END)
+                sum( case when (d_year = {q06_YEAR}) THEN (((ss_ext_list_price-ss_ext_wholesale_cost-ss_ext_discount_amt)+ss_ext_sales_price)/2.0) ELSE 0.0 END)
                     AS first_year_total,
-                sum( case when (d_year = 2002) THEN (((ss_ext_list_price-ss_ext_wholesale_cost-ss_ext_discount_amt)+ss_ext_sales_price)/2) ELSE 0 END)
+                sum( case when (d_year = {q06_YEAR + 1}) THEN (((ss_ext_list_price-ss_ext_wholesale_cost-ss_ext_discount_amt)+ss_ext_sales_price)/2.0) ELSE 0.0 END)
                     AS second_year_total
             FROM store_sales,
                 date_dim
             WHERE ss_sold_date_sk = d_date_sk
-            AND   d_year BETWEEN 2001 AND 2002
+            AND   d_year BETWEEN {q06_YEAR} AND {q06_YEAR + 1}
             GROUP BY ss_customer_sk
             -- first_year_total is an aggregation, rewrite all sum () statement
-            HAVING sum( case when (d_year = 2001) THEN (((ss_ext_list_price-ss_ext_wholesale_cost-ss_ext_discount_amt)+ss_ext_sales_price)/2) ELSE 0 END) > 0
+            HAVING sum( case when (d_year = {q06_YEAR}) THEN (((ss_ext_list_price-ss_ext_wholesale_cost-ss_ext_discount_amt)+ss_ext_sales_price)/2.0) ELSE 0.0 END) > 0.0
         ),
         temp_table_2 AS
         (
             SELECT ws_bill_customer_sk AS customer_sk ,
-                sum( case when (d_year = 2001) THEN (((ws_ext_list_price-ws_ext_wholesale_cost-ws_ext_discount_amt)+ws_ext_sales_price)/2) ELSE 0 END)
+                sum( case when (d_year = {q06_YEAR}) THEN (((ws_ext_list_price-ws_ext_wholesale_cost-ws_ext_discount_amt)+ws_ext_sales_price)/2.0) ELSE 0.0 END)
                     AS first_year_total,
-                sum( case when (d_year = 2002) THEN (((ws_ext_list_price-ws_ext_wholesale_cost-ws_ext_discount_amt)+ws_ext_sales_price)/2) ELSE 0 END)
+                sum( case when (d_year = {q06_YEAR + 1}) THEN (((ws_ext_list_price-ws_ext_wholesale_cost-ws_ext_discount_amt)+ws_ext_sales_price)/2.0) ELSE 0.0 END)
                     AS second_year_total
             FROM web_sales,
                  date_dim
             WHERE ws_sold_date_sk = d_date_sk
-            AND   d_year BETWEEN 2001 AND 2002
+            AND   d_year BETWEEN {q06_YEAR} AND {q06_YEAR + 1}
             GROUP BY ws_bill_customer_sk
             -- required to avoid division by 0, because later we will divide by this value
-            HAVING sum( case when (d_year = 2001) THEN (((ws_ext_list_price-ws_ext_wholesale_cost-ws_ext_discount_amt)+ws_ext_sales_price)/2.0)ELSE 0.0 END) > 0.0
+            HAVING sum( case when (d_year = {q06_YEAR}) THEN (((ws_ext_list_price-ws_ext_wholesale_cost-ws_ext_discount_amt)+ws_ext_sales_price)/2.0)ELSE 0.0 END) > 0.0
         )
         -- MAIN QUERY
         SELECT
@@ -109,7 +109,7 @@ def main(data_dir, client):
             c_preferred_cust_flag,
             c_birth_country,
             c_login
-        LIMIT 100
+        LIMIT {q06_LIMIT}
     """
     result = bc.sql(query)
     return result
