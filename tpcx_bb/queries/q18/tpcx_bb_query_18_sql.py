@@ -135,7 +135,7 @@ def read_tables(data_dir):
 def main(data_dir, client):
     read_tables(data_dir)
 
-    query_1 = """
+    query_1 = f"""
         WITH temp_table1 AS
         (
             SELECT CAST(s.s_store_sk AS INTEGER) AS s_store_sk,
@@ -162,8 +162,8 @@ def main(data_dir, client):
                         SELECT * -- d_date_sk
                         FROM date_dim d
                         WHERE s.ss_sold_date_sk = d.d_date_sk
-                        AND CAST(d.d_date AS DATE) >= DATE '2001-05-02'
-                        AND CAST(d.d_date AS DATE) <= DATE '2001-09-02'
+                        AND CAST(d.d_date AS DATE) >= DATE '{q18_startDate}'
+                        AND CAST(d.d_date AS DATE) <= DATE '{q18_endDate}'
                     )
                         GROUP BY s.ss_store_sk, s.ss_sold_date_sk
                 ) temp
