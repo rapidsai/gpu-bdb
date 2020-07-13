@@ -17,11 +17,8 @@
 
 import sys
 
-
 from blazingsql import BlazingContext
 from xbb_tools.cluster_startup import attach_to_cluster
-from dask_cuda import LocalCUDACluster
-from dask.distributed import Client
 import os
 
 from xbb_tools.utils import (
@@ -60,20 +57,19 @@ def main(data_dir, client):
         SELECT item_sk_1, item_sk_2, COUNT(*) AS cnt
         FROM
         (
-            SELECT CAST(t1.ss_item_sk as BIGINT) AS item_sk_1, 
+            SELECT CAST(t1.ss_item_sk as BIGINT) AS item_sk_1,
                 CAST(t2.ss_item_sk AS BIGINT) AS item_sk_2
-            FROM distinct_table t1 
+            FROM distinct_table t1
             INNER JOIN distinct_table t2
             ON t1.ss_ticket_number = t2.ss_ticket_number
-            WHERE t1.ss_item_sk < t2.ss_item_sk 
+            WHERE t1.ss_item_sk < t2.ss_item_sk
         )
         GROUP BY item_sk_1, item_sk_2
         HAVING  COUNT(*) > 50
         ORDER BY cnt DESC, CAST(item_sk_1 AS VARCHAR),
-                 CAST(item_sk_2 AS VARCHAR) 
+                 CAST(item_sk_2 AS VARCHAR)
         LIMIT 100
     """
-    
     result = bc.sql(query)
     return result
 
@@ -86,7 +82,7 @@ if __name__ == "__main__":
         pool=True,
         network_interface=os.environ.get("INTERFACE", "eth0"),
     )
-    
+
     run_bsql_query(
         cli_args=cli_args, client=client, query_func=main
     )
