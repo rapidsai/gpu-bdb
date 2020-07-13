@@ -29,6 +29,13 @@ from xbb_tools.utils import (
 
 cli_args = tpcxbb_argparser()
 
+# -------- Q1 -----------
+q01_i_category_id_IN = "1,2,3"
+# -- sf1 -> 11 stores, 90k sales in 820k lines
+q01_ss_store_sk_IN = "0, 20, 33, 40, 50"
+q01_viewed_together_count = 50
+q01_limit = 100
+
 
 @benchmark(
     compute_result=cli_args["get_read_time"], dask_profile=cli_args["dask_profile"]
@@ -42,18 +49,18 @@ def read_tables(data_dir):
 def main(data_dir, client):
     read_tables(data_dir)
 
-    query_distinct = """
+    query_distinct = f"""
         SELECT DISTINCT ss_item_sk, ss_ticket_number
         FROM store_sales s, item i
         WHERE s.ss_item_sk = i.i_item_sk
-        AND i.i_category_id IN (1, 2 ,3)
-        AND s.ss_store_sk IN (10, 20, 33, 40, 50)
+        AND i.i_category_id IN ({q01_i_category_id_IN})
+        AND s.ss_store_sk IN ({q01_ss_store_sk_IN})
     """
     result_distinct = bc.sql(query_distinct)
 
     bc.create_table("distinct_table", result_distinct)
 
-    query = """
+    query = f"""
         SELECT item_sk_1, item_sk_2, COUNT(*) AS cnt
         FROM
         (
@@ -65,10 +72,10 @@ def main(data_dir, client):
             WHERE t1.ss_item_sk < t2.ss_item_sk
         )
         GROUP BY item_sk_1, item_sk_2
-        HAVING  COUNT(*) > 50
+        HAVING  COUNT(*) > {q01_viewed_together_count}
         ORDER BY cnt DESC, CAST(item_sk_1 AS VARCHAR),
                  CAST(item_sk_2 AS VARCHAR)
-        LIMIT 100
+        LIMIT {q01_limit}
     """
     result = bc.sql(query)
     return result
