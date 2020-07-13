@@ -246,6 +246,9 @@ def main(data_dir, client):
         global_position_column="sentence_tokenized_global_pos",
     )
 
+    # This txt file comes from the official TPCx-BB kit
+    # We extracted it from bigbenchqueriesmr.jar
+    # Need to pass the absolute path for this txt file
     bc.create_table('sent_df', os.getcwd() + "/negativeSentiment.txt",
                     names=['sentiment_word'],
                     dtype=['str'])
