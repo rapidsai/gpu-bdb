@@ -17,11 +17,8 @@
 
 import sys
 
-
 from blazingsql import BlazingContext
 from xbb_tools.cluster_startup import attach_to_cluster
-from dask_cuda import LocalCUDACluster
-from dask.distributed import Client
 import os
 
 from xbb_tools.utils import (
@@ -31,6 +28,14 @@ from xbb_tools.utils import (
 )
 
 cli_args = tpcxbb_argparser()
+
+
+# -------- Q15 -----------
+# --store_sales date range
+q15_startDate = "2001-09-02"
+# --+1year
+q15_endDate = "2002-09-02"
+q15_store_sk = 10
 
 
 @benchmark(
@@ -46,18 +51,18 @@ def read_tables(data_dir):
 def main(data_dir, client):
     read_tables(data_dir)
 
-    query = """
+    query = f"""
         SELECT *
-        FROM 
+        FROM
         (
             SELECT
                 cat,
                 ( (count(x) * SUM(xy) - SUM(x) * SUM(y)) / (count(x) * SUM(xx) - SUM(x) * SUM(x)) )  AS slope,
                 (SUM(y) - ((count(x) * SUM(xy) - SUM(x) * SUM(y)) / (count(x) * SUM(xx) - SUM(x)*SUM(x)) ) * SUM(x)) / count(x) AS intercept
-            FROM 
+            FROM
             (
                 SELECT
-                    i.i_category_id AS cat, 
+                    i.i_category_id AS cat,
                     s.ss_sold_date_sk AS x,
                     CAST(SUM(s.ss_net_paid) AS DOUBLE) AS y,
                     CAST(s.ss_sold_date_sk * SUM(s.ss_net_paid) AS DOUBLE) AS xy,
@@ -65,10 +70,10 @@ def main(data_dir, client):
                 FROM store_sales s
                 INNER JOIN item i ON s.ss_item_sk = i.i_item_sk
                 INNER JOIN date_dim d ON s.ss_sold_date_sk = d.d_date_sk
-                WHERE s.ss_store_sk = 10
+                WHERE s.ss_store_sk = {q15_store_sk}
                 AND i.i_category_id IS NOT NULL
-                AND CAST(d.d_date AS DATE) >= DATE '2001-09-02'
-                AND   CAST(d.d_date AS DATE) <= DATE '2002-09-02'
+                AND CAST(d.d_date AS DATE) >= DATE '{q15_startDate}'
+                AND   CAST(d.d_date AS DATE) <= DATE '{q15_endDate}'
                 GROUP BY i.i_category_id, s.ss_sold_date_sk
             ) temp
             GROUP BY cat
@@ -76,7 +81,6 @@ def main(data_dir, client):
         WHERE slope <= 0.0
         ORDER BY cat
     """
-    
     result = bc.sql(query)
     return result
 
@@ -89,7 +93,7 @@ if __name__ == "__main__":
         pool=True,
         network_interface=os.environ.get("INTERFACE", "eth0"),
     )
-    
+
     run_bsql_query(
         cli_args=cli_args, client=client, query_func=main
     )
