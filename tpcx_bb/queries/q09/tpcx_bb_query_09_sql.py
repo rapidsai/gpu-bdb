@@ -29,6 +29,36 @@ from xbb_tools.utils import (
 
 cli_args = tpcxbb_argparser()
 
+# -------- Q9 -----------
+q09_year = 2001
+
+q09_part1_ca_country = "United States"
+q09_part1_ca_state_IN = "'KY', 'GA', 'NM'"
+q09_part1_net_profit_min = 0
+q09_part1_net_profit_max = 2000
+q09_part1_education_status = "4 yr Degree"
+q09_part1_marital_status = "M"
+q09_part1_sales_price_min = 100
+q09_part1_sales_price_max = 150
+
+q09_part2_ca_country = "United States"
+q09_part2_ca_state_IN = "'MT', 'OR', 'IN'"
+q09_part2_net_profit_min = 150
+q09_part2_net_profit_max = 3000
+q09_part2_education_status = "4 yr Degree"
+q09_part2_marital_status = "M"
+q09_part2_sales_price_min = 50
+q09_part2_sales_price_max = 200
+
+q09_part3_ca_country = "United States"
+q09_part3_ca_state_IN = "'WI', 'MO', 'WV'"
+q09_part3_net_profit_min = 50
+q09_part3_net_profit_max = 25000
+q09_part3_education_status = "4 yr Degree"
+q09_part3_marital_status = "M"
+q09_part3_sales_price_min = 150
+q09_part3_sales_price_max = 200
+
 
 @benchmark(
     compute_result=cli_args["get_read_time"], dask_profile=cli_args["dask_profile"]
@@ -49,7 +79,7 @@ def read_tables(data_dir):
 def main(data_dir, client):
     read_tables(data_dir)
 
-    query = """
+    query = f"""
         SELECT SUM(ss1.ss_quantity)
         FROM store_sales ss1,
             date_dim dd,customer_address ca1,
@@ -57,54 +87,54 @@ def main(data_dir, client):
             customer_demographics cd
         -- select date range
         WHERE ss1.ss_sold_date_sk = dd.d_date_sk
-        AND dd.d_year = 2001
+        AND dd.d_year = {q09_year}
         AND ss1.ss_addr_sk = ca1.ca_address_sk
         AND s.s_store_sk = ss1.ss_store_sk
         AND cd.cd_demo_sk = ss1.ss_cdemo_sk
         AND
         (
             (
-                cd.cd_marital_status = 'M'
-                AND cd.cd_education_status = '4 yr Degree'
-                AND 100 <= ss1.ss_sales_price
-                AND ss1.ss_sales_price <= 150
+                cd.cd_marital_status = '{q09_part1_marital_status}'
+                AND cd.cd_education_status = '{q09_part1_education_status}'
+                AND {q09_part1_sales_price_min} <= ss1.ss_sales_price
+                AND ss1.ss_sales_price <= {q09_part1_sales_price_max}
             )
             OR
             (
-                cd.cd_marital_status = 'M'
-                AND cd.cd_education_status = '4 yr Degree'
-                AND 50 <= ss1.ss_sales_price
-                AND ss1.ss_sales_price <= 200
+                cd.cd_marital_status = '{q09_part2_marital_status}'
+                AND cd.cd_education_status = '{q09_part2_education_status}'
+                AND {q09_part2_sales_price_min} <= ss1.ss_sales_price
+                AND ss1.ss_sales_price <= {q09_part2_sales_price_max}
             )
             OR
             (
-                cd.cd_marital_status = 'M'
-                AND cd.cd_education_status = '4 yr Degree'
-                AND 150 <= ss1.ss_sales_price
-                AND ss1.ss_sales_price <= 200
+                cd.cd_marital_status = '{q09_part3_marital_status}'
+                AND cd.cd_education_status = '{q09_part3_education_status}'
+                AND {q09_part3_sales_price_min} <= ss1.ss_sales_price
+                AND ss1.ss_sales_price <= {q09_part3_sales_price_max}
             )
         )
         AND
         (
             (
-                ca1.ca_country = 'United States'
-                AND ca1.ca_state IN ('KY', 'GA', 'NM')
-                AND 0 <= ss1.ss_net_profit
-                AND ss1.ss_net_profit <= 2000
+                ca1.ca_country = '{q09_part1_ca_country}'
+                AND ca1.ca_state IN ({q09_part1_ca_state_IN})
+                AND {q09_part1_net_profit_min} <= ss1.ss_net_profit
+                AND ss1.ss_net_profit <= {q09_part1_net_profit_max}
             )
             OR
             (
-                ca1.ca_country = 'United States'
-                AND ca1.ca_state IN ('MT', 'OR', 'IN')
-                AND 150 <= ss1.ss_net_profit
-                AND ss1.ss_net_profit <= 3000
+                ca1.ca_country = '{q09_part2_ca_country}'
+                AND ca1.ca_state IN ({q09_part2_ca_state_IN})
+                AND {q09_part2_net_profit_min} <= ss1.ss_net_profit
+                AND ss1.ss_net_profit <= {q09_part2_net_profit_max}
             )
             OR
             (
-                ca1.ca_country = 'United States'
-                AND ca1.ca_state IN ('WI', 'MO', 'WV')
-                AND 50 <= ss1.ss_net_profit
-                AND ss1.ss_net_profit <= 25000
+                ca1.ca_country = '{q09_part3_ca_country}'
+                AND ca1.ca_state IN ({q09_part3_ca_state_IN})
+                AND {q09_part3_net_profit_min} <= ss1.ss_net_profit
+                AND ss1.ss_net_profit <= {q09_part3_net_profit_max}
             )
         )
     """
