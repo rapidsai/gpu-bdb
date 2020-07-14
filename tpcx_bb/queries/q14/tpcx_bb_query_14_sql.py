@@ -46,8 +46,8 @@ def read_tables(data_dir, bc):
 
 
 @benchmark(dask_profile=cli_args["dask_profile"])
-def main(data_dir, client):
-    read_tables(data_dir)
+def main(data_dir, client, bc):
+    read_tables(data_dir, bc)
 
     query = """ 
 		SELECT CASE WHEN pmc > 0.0 THEN CAST (amc AS DOUBLE) / CAST (pmc AS DOUBLE) ELSE -1.0 END AS am_pm_ratio

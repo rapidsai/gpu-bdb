@@ -47,8 +47,8 @@ def read_tables(data_dir, bc):
 
 
 @benchmark(dask_profile=cli_args["dask_profile"])
-def main(data_dir, client):
-    read_tables(data_dir)
+def main(data_dir, client, bc):
+    read_tables(data_dir, bc)
 
     date = datetime.datetime(2001, 3, 16)
     start = (date + timedelta(days=-30)).strftime("%Y-%m-%d")

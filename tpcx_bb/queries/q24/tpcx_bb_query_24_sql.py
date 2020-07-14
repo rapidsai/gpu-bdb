@@ -44,8 +44,8 @@ def read_tables(data_dir, bc):
 
 
 @benchmark(dask_profile=cli_args["dask_profile"])
-def main(data_dir, client):
-    read_tables(data_dir)
+def main(data_dir, client, bc):
+    read_tables(data_dir, bc)
 
     query = """
 		WITH temp_table as 
