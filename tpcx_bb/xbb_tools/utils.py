@@ -385,7 +385,6 @@ def get_tpcxbb_argparser_commandline_args():
         type=str,
         help="Location of benchmark configuration yaml file",
     )
-    parser.add_argument("--blazingsql", action="store_true", help="Whether this ")
 
     args = parser.parse_args()
     args = vars(args)
