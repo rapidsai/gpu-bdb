@@ -27,7 +27,7 @@ import os
 from xbb_tools.utils import (
     benchmark,
     tpcxbb_argparser,
-    run_bsql_query,
+    run_query,
 )
 from xbb_tools.cupy_metrics import cupy_conf_mat, cupy_precision_score
 from sklearn.metrics import roc_auc_score
@@ -48,7 +48,7 @@ convergence_tol = 1e-9
 @benchmark(
     compute_result=cli_args["get_read_time"], dask_profile=cli_args["dask_profile"]
 )
-def read_tables(data_dir):
+def read_tables(data_dir, bc):
     bc.create_table("web_clickstreams", data_dir + "web_clickstreams/*.parquet")
     bc.create_table("customer", data_dir + "customer/*.parquet")
     bc.create_table("item", data_dir + "item/*.parquet")
@@ -160,14 +160,5 @@ def main(data_dir, client):
 
 
 if __name__ == "__main__":
-    client = attach_to_cluster(cli_args)
-
-    bc = BlazingContext(
-        dask_client=client,
-        pool=True,
-        network_interface=os.environ.get("INTERFACE", "eth0"),
-    )
-    
-    run_bsql_query(
-        cli_args=cli_args, client=client, query_func=main
-    )
+    client, bc = attach_to_cluster(cli_args, create_blazing_context=True)
+    run_query(cli_args=cli_args, client=client, query_func=main, blazing_context=bc)
