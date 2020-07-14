@@ -66,9 +66,19 @@ def attach_to_cluster(cli_args, create_blazing_context=False):
     cli_args.update(ucx_config)
 
     # Save worker information
-    worker_counts = worker_count_info(client, gpu_sizes=["16GB", "32GB"])
+    gpu_sizes = ["16GB", "32GB", "40GB"]
+    worker_counts = worker_count_info(client, gpu_sizes=gpu_sizes)
+    for size in gpu_sizes:
+        key = size + "_workers"
+        if cli_args.get(key) is not None and cli_args.get(key) != worker_counts[size]:
+            print(
+                f"Expected {cli_args.get(key)} {size} workers in your cluster, but got {worker_counts[size]}. It can take a moment for all workers to join the cluster. You may also have misconfigred hosts."
+            )
+            sys.exit(-1)
+
     cli_args["16GB_workers"] = worker_counts["16GB"]
     cli_args["32GB_workers"] = worker_counts["32GB"]
+    cli_args["40GB_workers"] = worker_counts["40GB"]
 
     bc = None
     if create_blazing_context:
@@ -81,7 +91,7 @@ def attach_to_cluster(cli_args, create_blazing_context=False):
     return client, bc
 
 
-def worker_count_info(client, gpu_sizes=["16GB", "32GB"], tol="2.1GB"):
+def worker_count_info(client, gpu_sizes=["16GB", "32GB", "40GB"], tol="2.1GB"):
     """
     Method accepts the Client object, GPU sizes and tolerance limit and returns
     a dictionary containing number of workers per GPU size specified
