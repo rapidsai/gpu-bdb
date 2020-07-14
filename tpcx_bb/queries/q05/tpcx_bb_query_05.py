@@ -282,4 +282,4 @@ if __name__ == "__main__":
     import cuml
 
     client, bc = attach_to_cluster(cli_args)
-    run_dask_cudf_query(cli_args=cli_args, client=client, query_func=main)
+    run_query(cli_args=cli_args, client=client, query_func=main)
