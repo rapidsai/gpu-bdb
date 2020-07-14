@@ -22,13 +22,16 @@ import importlib
 import dask
 from dask.distributed import Client
 from dask.utils import parse_bytes
+from blazingsql import BlazingContext
 
 
-def attach_to_cluster(cli_args):
+def attach_to_cluster(cli_args, create_blazing_context=False):
     """Attaches to an existing cluster if available.
     By default, tries to attach to a cluster running on localhost:8786 (dask's default).
 
     This is currently hardcoded to assume the dashboard is running on port 8787.
+
+    Optionally, this will also create a BlazingContext.
     """
     host = cli_args.get("cluster_host")
     port = cli_args.get("cluster_port", "8786")
@@ -67,7 +70,15 @@ def attach_to_cluster(cli_args):
     cli_args["16GB_workers"] = worker_counts["16GB"]
     cli_args["32GB_workers"] = worker_counts["32GB"]
 
-    return client
+    bc = None
+    if create_blazing_context:
+        bc = BlazingContext(
+            dask_client=client,
+            pool=True,
+            network_interface=os.environ.get("INTERFACE", "eth0"),
+        )
+
+    return client, bc
 
 
 def worker_count_info(client, gpu_sizes=["16GB", "32GB"], tol="2.1GB"):
@@ -81,7 +92,8 @@ def worker_count_info(client, gpu_sizes=["16GB", "32GB"], tol="2.1GB"):
         # Assumption is that a node is homogeneous (on a specific node all gpus have the same size)
         worker_device_memory = info["gpu"]["memory-total"][0]
         for gpu_size in gpu_sizes:
-            if abs(parse_bytes(gpu_size) - worker_device_memory) < parse_bytes(tol):
+            if abs(parse_bytes(gpu_size) - worker_device_memory) < parse_bytes(
+                    tol):
                 counts_by_gpu_size[gpu_size] += 1
                 break
 
@@ -114,6 +126,7 @@ def import_query_libs():
         "pandas",
         "numpy",
         "spacy",
+        "blazingsql",
     ]
     for lib in library_list:
         importlib.import_module(lib)
