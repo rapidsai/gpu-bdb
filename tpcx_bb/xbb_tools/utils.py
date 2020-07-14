@@ -349,7 +349,6 @@ def add_empty_cli_args(args):
 
 def tpcxbb_argparser():
     import benchmark_runner
-    import importlib.resources as pkg_resources
 
     args = get_tpcxbb_argparser_commandline_args()
     with open(args["config_file"]) as fp:

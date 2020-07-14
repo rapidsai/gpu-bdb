@@ -3,7 +3,22 @@
 data_dir: /mnt/weka/tpcx-bb/sf10000/parquet_3gb/
 repartition_small_table: True
 cluster_host: 172.16.8.240
+cluster_port: 8786
+output_dir: ./
+
+file_format: parquet
+split_row_groups: False
+output_filetype: parquet
+repartition_small_table: True
+
+verify_results: False
+verify_dir: /mnt/weka/tpcx-bb/validation_data
+
+32GB_workers: 16
+
 sheet: TPCx-BB
 tab: SF10000 Benchmarking Matrix
-output_dir: /mnt/weka/tpcx-bb/query_results
-32GB_workers: 16
+get_read_time: False
+
+dask_profile: False
+dask_dir: ./
