@@ -297,8 +297,6 @@ def run_dask_cudf_query(cli_args, client, query_func, write_func=write_result):
             result_verified = verify_results(cli_args["verify_dir"])
         cli_args["result_verified"] = result_verified
 
-        if os.environ.get("tpcxbb_benchmark_sweep_run") != "True":
-            client.close()
     except:
         cli_args["query_status"] = "Failed"
         print("Encountered Exception while running query")

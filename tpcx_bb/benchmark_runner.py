@@ -5,8 +5,6 @@ import gc
 import time
 
 
-os.environ["tpcxbb_benchmark_sweep_run"] = "True"
-
 N_REPEATS = 1
 
 
@@ -40,7 +38,9 @@ if __name__ == "__main__":
     }
 
     cli_args = tpcxbb_argparser()
-    client, bc = attach_to_cluster(cli_args, create_blazing_context=True)
+    
+    include_blazing = cli_args.get("benchmark_runner_include_bsql")
+    client, bc = attach_to_cluster(cli_args, create_blazing_context=include_blazing)
 
     # Preload required libraries for queries on all workers
     client.run(import_query_libs)
@@ -68,7 +68,7 @@ if __name__ == "__main__":
                 time.sleep(3)
 
     # Run BSQL Queries
-    if len(bsql_qnums) > 0:
+    if include_blazing and len(bsql_qnums) > 0:
         print("Blazing Queries")
         for qnum, q_func in bsql_queries.items():
             print(qnum)
