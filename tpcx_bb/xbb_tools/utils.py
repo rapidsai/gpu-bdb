@@ -65,7 +65,8 @@ def benchmark(csv=True, dask_profile=False, compute_result=False):
             logging_info["function_name"] = name
             if compute_result:
                 import dask_cudf
-                if isinstance(result,dask_cudf.DataFrame):
+
+                if isinstance(result, dask_cudf.DataFrame):
                     len_tasks = [dask.delayed(len)(df) for df in result.to_delayed()]
                 else:
                     len_tasks = []
@@ -234,15 +235,21 @@ def write_clustering_result(result_dict, output_directory="./", filetype="csv"):
 
     return 0
 
+
 def remove_benchmark_files():
     """
     Removes benchmark result files from cwd
     to ensure that we don't upload stale results
     """
-    fname_ls = ["benchmarked_write_result.csv","benchmarked_read_tables.csv","benchmarked_main.csv"]
+    fname_ls = [
+        "benchmarked_write_result.csv",
+        "benchmarked_read_tables.csv",
+        "benchmarked_main.csv",
+    ]
     for fname in fname_ls:
         if os.path.exists(fname):
             os.remove(fname)
+
 
 #################################
 # Query Runner Utilities
@@ -341,16 +348,13 @@ def add_empty_cli_args(args):
 
 
 def tpcxbb_argparser():
-    if os.environ.get("tpcxbb_benchmark_sweep_run") == "True":
-        import benchmark_runner
-        import importlib.resources as pkg_resources
+    import benchmark_runner
+    import importlib.resources as pkg_resources
 
-        args = yaml.safe_load(
-            pkg_resources.read_text(benchmark_runner, "benchmark_config.yaml")
-        )
-        args = add_empty_cli_args(args)
-    else:
-        args = get_tpcxbb_argparser_commandline_args()
+    args = get_tpcxbb_argparser_commandline_args()
+    with open(args["config_file"]) as fp:
+        args = yaml.safe_load(fp.read())
+    args = add_empty_cli_args(args)
 
     return args
 
@@ -359,68 +363,13 @@ def get_tpcxbb_argparser_commandline_args():
     parser = argparse.ArgumentParser(description="Run TPCx-BB query")
     print("Using default arguments")
     parser.add_argument(
-        "--data_dir",
-        default="/datasets/tpcx-bb/sf1000/new_parquet/",
+        "--config_file",
+        default="benchmark_runner/benchmark_config.yaml",
         type=str,
-        help="Data Dir",
-    )
-    parser.add_argument(
-        "--file_format", default="parquet", type=str, help="File format"
-    )
-    parser.add_argument(
-        "--output_dir",
-        default="./",
-        type=str,
-        help="Query Output Directry. Defaults to the directory of the query script.",
-    )
-    parser.add_argument("--dask_dir", default="./", type=str, help="Dask Dir")
-    parser.add_argument(
-        "--repartition_small_table",
-        action="store_true",
-        help="Repartition small tables",
-    )
-    parser.add_argument("--verify_results", action="store_true", help="Verify Results")
-    parser.add_argument(
-        "--verify_dir", default=None, type=str, help="Vefifed Results directory"
-    )
-    parser.add_argument("--get_read_time", action="store_true", help="Get Read times")
-    parser.add_argument(
-        "--sheet", default="TPCx-BB", type=str, help="Uploading sheet name"
-    )
-    parser.add_argument("--tab", default=None, type=str, help="Uploading tab name")
-    parser.add_argument(
-        "--split_row_groups",
-        action="store_true",
-        help="split_row_groups (Read 1 row group per partition instead of 1 file per partition)",
-    )
-    parser.add_argument(
-        "--dask_profile", action="store_true", help="Include Dask Performance Report"
-    )
-    parser.add_argument(
-        "--cluster_host",
-        default=None,
-        type=str,
-        help="Hostname to use for the cluster scheduler. If you are trying to spin up a fresh SSHCluster, please ignore this and use --hosts instead.",
-    )
-    parser.add_argument(
-        "--cluster_port",
-        default=8786,
-        type=int,
-        help="Which port to use for the cluster scheduler. If you are trying to spin up a fresh SSHCluster, please ignore this and use --hosts instead.",
-    )
-    parser.add_argument(
-        "--output_filetype",
-        default="parquet",
-        type=str,
-        help="The filetype of the query output file",
+        help="Location of benchmark configuration yaml file",
     )
 
     args = parser.parse_args()
-
-    # ensure data_dir argument includes a trailing slash
-    if args.data_dir[-1] != '/':
-        args.data_dir = args.data_dir + '/'
-
     args = vars(args)
     return args
 
@@ -447,7 +396,7 @@ def get_query_number():
         with open("current_query_num.txt", "r") as file:
             QUERY_NUM = file.read()
     else:
-        QUERY_NUM = os.getcwd().split("/")[-1][1:]
+        QUERY_NUM = os.getcwd().split("/")[-1].strip("q")
     return QUERY_NUM
 
 
@@ -778,7 +727,7 @@ def build_benchmark_googlesheet_payload(cli_args):
     # get the hostname of the machine running this workload
     data["hostname"] = socket.gethostname()
 
-    QUERY_NUM = int(get_query_number())
+    QUERY_NUM = get_query_number()
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     query_time = _get_benchmarked_method_time(

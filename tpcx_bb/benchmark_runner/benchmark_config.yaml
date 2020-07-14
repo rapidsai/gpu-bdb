@@ -1,6 +1,9 @@
 # benchmark config yaml
 ### Please fill these accordingly
-data_dir: 
+data_dir: /mnt/weka/tpcx-bb/sf10000/parquet_3gb/
 repartition_small_table: True
-cluster_host:
-output_dir: 
+cluster_host: 172.16.8.240
+sheet: TPCx-BB
+tab: SF10000 Benchmarking Matrix
+output_dir: /mnt/weka/tpcx-bb/query_results
+32GB_workers: 16

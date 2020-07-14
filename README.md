@@ -51,6 +51,7 @@ Before running the script, you'll make changes specific to your environment.
 
 In `cluster_configuration/cluster-startup.sh`:
 
+    - Update `TPCX_BB_HOME=...` to location on disk of this repo
     - Update `INTERFACE=...` to refer to the relevant network interface present on your cluster.
     - Update `CONDA_ENV_PATH=...` to refer to your conda environment path.
     - Update `CONDA_ENV_NAME=...` to refer to the name of the conda environment you created, perhaps using the `yml` files provided in this repository.
