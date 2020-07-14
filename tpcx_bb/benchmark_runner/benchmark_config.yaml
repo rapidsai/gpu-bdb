@@ -2,5 +2,23 @@
 ### Please fill these accordingly
 data_dir: 
 repartition_small_table: True
-cluster_host:
-output_dir: 
+cluster_host: 
+cluster_port: 8786
+output_dir: ./
+
+file_format: parquet
+split_row_groups: False
+output_filetype: parquet
+repartition_small_table: True
+
+verify_results: False
+verify_dir: 
+
+32GB_workers: 16
+
+sheet: TPCx-BB
+tab: SF10000 Benchmarking Matrix
+get_read_time: False
+
+dask_profile: False
+dask_dir: ./
