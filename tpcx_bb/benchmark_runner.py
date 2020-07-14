@@ -4,6 +4,7 @@ import os
 import gc
 import time
 
+os.environ["tpcxbb_benchmark_sweep_run"] = "True"
 
 N_REPEATS = 1
 
