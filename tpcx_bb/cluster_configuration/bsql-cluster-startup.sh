@@ -34,6 +34,12 @@ rm -rf ~/.config/dask
 source $CONDA_ENV_PATH
 conda activate $CONDA_ENV_NAME
 
+# Check for and set BlazingContext parameters as environment variables
+if [ -z "$BLAZING_ALLOCATOR_MODE" ]
+then
+      export BLAZING_ALLOCATOR_MODE="existing"
+fi
+
 # Check for and set BlazingContext config_options as environment variables
 if [ -z "$JOIN_PARTITION_SIZE_THRESHOLD" ]
 then
@@ -51,7 +57,10 @@ if [ -z "$MAX_DATA_LOAD_CONCAT_CACHE_BYTE_SIZE" ]
 then
       export MAX_DATA_LOAD_CONCAT_CACHE_BYTE_SIZE=300000000
 fi
-
+if [ -z "$BLAZING_CACHE_DIRECTORY" ]
+then
+      export BLAZING_CACHE_DIRECTORY="/tmp/"
+fi
 
 # Dask/distributed configuration
 export DASK_DISTRIBUTED__COMM__TIMEOUTS__CONNECT="100s"
@@ -73,10 +82,20 @@ fi
 
 
 # Setup workers
-if [ "$CLUSTER_MODE" = "NVLINK" ]; then
-        dask-cuda-worker --device-memory-limit $DEVICE_MEMORY_LIMIT --local-directory $WORKER_DIR  --rmm-pool-size=$POOL_SIZE --memory-limit=$MAX_SYSTEM_MEMORY --enable-tcp-over-ucx --enable-nvlink  --disable-infiniband --scheduler-file $SCHEDULER_FILE >> $LOGDIR/worker.log 2>&1 &
-fi
+if [ "$BLAZING_ALLOCATOR_MODE" = "existing" ]; then
+   if [ "$CLUSTER_MODE" = "NVLINK" ]; then
+         dask-cuda-worker --device-memory-limit $DEVICE_MEMORY_LIMIT --local-directory $WORKER_DIR  --rmm-pool-size=$POOL_SIZE --memory-limit=$MAX_SYSTEM_MEMORY --enable-tcp-over-ucx --enable-nvlink  --disable-infiniband --scheduler-file $SCHEDULER_FILE >> $LOGDIR/worker.log 2>&1 &
+   fi
 
-if [ "$CLUSTER_MODE" = "TCP" ]; then
-    dask-cuda-worker --device-memory-limit $DEVICE_MEMORY_LIMIT --local-directory $WORKER_DIR  --rmm-pool-size=$POOL_SIZE --memory-limit=$MAX_SYSTEM_MEMORY --scheduler-file $SCHEDULER_FILE >> $LOGDIR/worker.log 2>&1 &
+   if [ "$CLUSTER_MODE" = "TCP" ]; then
+      dask-cuda-worker --device-memory-limit $DEVICE_MEMORY_LIMIT --local-directory $WORKER_DIR  --rmm-pool-size=$POOL_SIZE --memory-limit=$MAX_SYSTEM_MEMORY --scheduler-file $SCHEDULER_FILE >> $LOGDIR/worker.log 2>&1 &
+   fi
+else
+   if [ "$CLUSTER_MODE" = "NVLINK" ]; then
+         dask-cuda-worker --device-memory-limit $DEVICE_MEMORY_LIMIT --local-directory $WORKER_DIR  --memory-limit=$MAX_SYSTEM_MEMORY --enable-tcp-over-ucx --enable-nvlink  --disable-infiniband --scheduler-file $SCHEDULER_FILE >> $LOGDIR/worker.log 2>&1 &
+   fi
+
+   if [ "$CLUSTER_MODE" = "TCP" ]; then
+      dask-cuda-worker --device-memory-limit $DEVICE_MEMORY_LIMIT --local-directory $WORKER_DIR  --memory-limit=$MAX_SYSTEM_MEMORY --scheduler-file $SCHEDULER_FILE >> $LOGDIR/worker.log 2>&1 &
+   fi
 fi
