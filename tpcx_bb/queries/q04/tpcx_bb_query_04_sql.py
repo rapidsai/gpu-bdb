@@ -148,7 +148,6 @@ def main(data_dir, client):
 
     result = result.compute()
     result_df = cudf.DataFrame({"sum(pagecount)/count(*)": [result]})
-    print(result_df)
     return result_df
 
 
