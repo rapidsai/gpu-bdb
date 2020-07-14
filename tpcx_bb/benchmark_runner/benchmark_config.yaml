@@ -1,8 +1,8 @@
 # benchmark config yaml
 ### Please fill these accordingly
-data_dir: /mnt/weka/tpcx-bb/sf10000/parquet_3gb/
+data_dir: 
 repartition_small_table: True
-cluster_host: 172.16.8.240
+cluster_host: 
 cluster_port: 8786
 output_dir: ./
 
@@ -12,7 +12,7 @@ output_filetype: parquet
 repartition_small_table: True
 
 verify_results: False
-verify_dir: /mnt/weka/tpcx-bb/validation_data
+verify_dir: 
 
 32GB_workers: 16
 
