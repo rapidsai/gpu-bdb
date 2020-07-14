@@ -4,10 +4,9 @@ import os
 import gc
 import time
 
-
 os.environ["tpcxbb_benchmark_sweep_run"] = "True"
 
-N_REPEATS = 2
+N_REPEATS = 1
 
 
 def get_qnum_from_filename(name):
@@ -21,17 +20,6 @@ dask_qnums = [str(i).zfill(2) for i in range(1, 31)]
 bsql_query_files = sorted(glob.glob("./queries/q*/t*_sql.py"))
 bsql_qnums = [get_qnum_from_filename(x.split("/")[-1]) for x in bsql_query_files]
 
-dask_qnums = [
-    "01",
-    #     "07",
-    #     "09",
-]
-
-bsql_qnums = [
-    "01",
-    #     "07",
-    #     "09",
-]
 
 if __name__ == "__main__":
     from xbb_tools.cluster_startup import attach_to_cluster, import_query_libs
@@ -51,7 +39,9 @@ if __name__ == "__main__":
     }
 
     cli_args = tpcxbb_argparser()
-    client, bc = attach_to_cluster(cli_args, create_blazing_context=True)
+    
+    include_blazing = cli_args.get("benchmark_runner_include_bsql")
+    client, bc = attach_to_cluster(cli_args, create_blazing_context=include_blazing)
 
     # Preload required libraries for queries on all workers
     client.run(import_query_libs)
@@ -59,41 +49,46 @@ if __name__ == "__main__":
     base_path = os.getcwd()
 
     # Run Pure Dask Queries
-    print("Pure Dask Queries")
-    for qnum, q_func in dask_queries.items():
-        print(qnum)
+    if len(dask_qnums) > 0:
+        print("Pure Dask Queries")
+        for qnum, q_func in dask_queries.items():
+            print(qnum)
 
-        qpath = f"{base_path}/queries/q{qnum}/"
-        os.chdir(qpath)
-        if os.path.exists("current_query_num.txt"):
-            os.remove("current_query_num.txt")
-        with open("current_query_num.txt", "w") as fp:
-            fp.write(qnum)
+            qpath = f"{base_path}/queries/q{qnum}/"
+            os.chdir(qpath)
+            if os.path.exists("current_query_num.txt"):
+                os.remove("current_query_num.txt")
+            with open("current_query_num.txt", "w") as fp:
+                fp.write(qnum)
 
-        for r in range(N_REPEATS):
-            run_query(cli_args=cli_args, client=client, query_func=q_func)
-            client.run(gc.collect)
-            client.run_on_scheduler(gc.collect)
-            gc.collect()
-            time.sleep(3)
+            for r in range(N_REPEATS):
+                run_query(cli_args=cli_args, client=client, query_func=q_func)
+                client.run(gc.collect)
+                client.run_on_scheduler(gc.collect)
+                gc.collect()
+                time.sleep(3)
 
     # Run BSQL Queries
-    print("Blazing Queries")
-    for qnum, q_func in bsql_queries.items():
-        print(qnum)
+    if include_blazing and len(bsql_qnums) > 0:
+        print("Blazing Queries")
+        for qnum, q_func in bsql_queries.items():
+            print(qnum)
 
-        qpath = f"{base_path}/queries/q{qnum}/"
-        os.chdir(qpath)
-        if os.path.exists("current_query_num.txt"):
-            os.remove("current_query_num.txt")
-        with open("current_query_num.txt", "w") as fp:
-            fp.write(qnum)
+            qpath = f"{base_path}/queries/q{qnum}/"
+            os.chdir(qpath)
+            if os.path.exists("current_query_num.txt"):
+                os.remove("current_query_num.txt")
+            with open("current_query_num.txt", "w") as fp:
+                fp.write(qnum)
 
-        for r in range(N_REPEATS):
-            run_query(
-                cli_args=cli_args, client=client, query_func=q_func, blazing_context=bc
-            )
-            client.run(gc.collect)
-            client.run_on_scheduler(gc.collect)
-            gc.collect()
-            time.sleep(3)
+            for r in range(N_REPEATS):
+                run_query(
+                    cli_args=cli_args,
+                    client=client,
+                    query_func=q_func,
+                    blazing_context=bc,
+                )
+                client.run(gc.collect)
+                client.run_on_scheduler(gc.collect)
+                gc.collect()
+                time.sleep(3)

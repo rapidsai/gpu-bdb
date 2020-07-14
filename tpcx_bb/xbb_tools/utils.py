@@ -254,7 +254,9 @@ def remove_benchmark_files():
 #################################
 # Query Runner Utilities
 #################################
-def run_query(cli_args, client, query_func, write_func=write_result, blazing_context=None):
+def run_query(
+    cli_args, client, query_func, write_func=write_result, blazing_context=None
+):
     if blazing_context:
         run_bsql_query(
             cli_args=cli_args,
@@ -297,6 +299,7 @@ def run_dask_cudf_query(cli_args, client, query_func, write_func=write_result):
 
         if os.environ.get("tpcxbb_benchmark_sweep_run") != "True":
             client.close()
+
     except:
         cli_args["query_status"] = "Failed"
         print("Encountered Exception while running query")
@@ -306,7 +309,9 @@ def run_dask_cudf_query(cli_args, client, query_func, write_func=write_result):
     push_payload_to_googlesheet(cli_args)
 
 
-def run_bsql_query(cli_args, client, query_func, blazing_context, write_func=write_result):
+def run_bsql_query(
+    cli_args, client, query_func, blazing_context, write_func=write_result
+):
     """
     Common utility to perform all steps needed to execute a dask-cudf version
     of the query. Includes attaching to cluster, running the query and writing results
@@ -381,7 +386,6 @@ def get_tpcxbb_argparser_commandline_args():
         type=str,
         help="Location of benchmark configuration yaml file",
     )
-    parser.add_argument("--blazingsql", action="store_true", help="Whether this ")
 
     args = parser.parse_args()
     args = vars(args)
