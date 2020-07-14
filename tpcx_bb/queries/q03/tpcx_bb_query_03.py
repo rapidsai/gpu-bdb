@@ -301,5 +301,4 @@ if __name__ == "__main__":
     import dask_cudf
 
     client, bc = attach_to_cluster(cli_args)
-
     run_dask_cudf_query(cli_args=cli_args, client=client, query_func=main)

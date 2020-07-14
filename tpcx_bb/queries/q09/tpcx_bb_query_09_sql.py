@@ -65,9 +65,7 @@ q09_part3_sales_price_max = 200
 )
 def read_tables(data_dir, bc):
     bc.create_table("store_sales", data_dir + "/store_sales/*.parquet")
-    bc.create_table(
-        "customer_address", data_dir + "/customer_address/*.parquet"
-    )
+    bc.create_table("customer_address", data_dir + "/customer_address/*.parquet")
     bc.create_table(
         "customer_demographics", data_dir + "/customer_demographics/*.parquet"
     )
