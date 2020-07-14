@@ -1,19 +1,36 @@
+import glob
+import re
 import os
 import gc
 import time
 
+
 os.environ["tpcxbb_benchmark_sweep_run"] = "True"
+
 N_REPEATS = 2
 
+
+def get_qnum_from_filename(name):
+    m = re.search("[0-9]{2}", name).group()
+    return m
+
+
 dask_qnums = [str(i).zfill(2) for i in range(1, 31)]
-bsql_qnums = [str(i).zfill(2) for i in range(1, 31)]
+
+# Not all queries are implemented with BSQL
+bsql_query_files = sorted(glob.glob("./queries/q*/t*_sql.py"))
+bsql_qnums = [get_qnum_from_filename(x.split("/")[-1]) for x in bsql_query_files]
 
 dask_qnums = [
     "01",
+    #     "07",
+    #     "09",
 ]
 
 bsql_qnums = [
     "01",
+    #     "07",
+    #     "09",
 ]
 
 if __name__ == "__main__":
@@ -24,14 +41,12 @@ if __name__ == "__main__":
     import_query_libs()
 
     dask_queries = {
-        qnum: importlib.import_module(
-            f"queries.q{qnum}.tpcx_bb_query_{qnum}").main
+        qnum: importlib.import_module(f"queries.q{qnum}.tpcx_bb_query_{qnum}").main
         for qnum in dask_qnums
     }
 
     bsql_queries = {
-        qnum: importlib.import_module(
-            f"queries.q{qnum}.tpcx_bb_query_{qnum}_sql").main
+        qnum: importlib.import_module(f"queries.q{qnum}.tpcx_bb_query_{qnum}_sql").main
         for qnum in bsql_qnums
     }
 
@@ -75,8 +90,9 @@ if __name__ == "__main__":
             fp.write(qnum)
 
         for r in range(N_REPEATS):
-            run_query(cli_args=cli_args, client=client, query_func=q_func,
-                      blazing_context=bc)
+            run_query(
+                cli_args=cli_args, client=client, query_func=q_func, blazing_context=bc
+            )
             client.run(gc.collect)
             client.run_on_scheduler(gc.collect)
             gc.collect()
