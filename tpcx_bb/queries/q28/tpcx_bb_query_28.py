@@ -32,7 +32,7 @@ from xbb_tools.text_vectorizers.dist_hashing_vectorizer import cudf_hashing_vect
 from xbb_tools.utils import (
     benchmark,
     tpcxbb_argparser,
-    run_dask_cudf_query,
+    run_query,
 )
 from xbb_tools.readers import build_reader
 
