@@ -17,11 +17,8 @@
 
 import sys
 
-
 from blazingsql import BlazingContext
 from xbb_tools.cluster_startup import attach_to_cluster
-from dask_cuda import LocalCUDACluster
-from dask.distributed import Client
 import os
 
 from xbb_tools.utils import (
@@ -33,10 +30,11 @@ from xbb_tools.utils import (
 cli_args = tpcxbb_argparser()
 
 # ------- Q17 ------
+q17_gmt_offset = -5
+# --store_sales date
 q17_year = 2001
 q17_month = 12
-q17_i_category_IN = "('Books', 'Music')"
-date_string = str(q17_year) + "-" + str(q17_month) + "-"
+q17_i_category_IN = "'Books', 'Music'"
 
 @benchmark(
     compute_result=cli_args["get_read_time"], dask_profile=cli_args["dask_profile"]
@@ -54,25 +52,19 @@ def read_tables(data_dir):
 def main(data_dir, client):
     read_tables(data_dir)
 
-    dates_pandas = (
-        bc.sql(
-            """select min(d_date_sk) as start_date, max(d_date_sk) as end_date
-    from date_dim
-    where d_year = """
-            + str(q17_year)
-            + """ and d_moy = """
-            + str(q17_month)
-            + """
+    query_date = f"""
+        select min(d_date_sk) as min_d_date_sk,
+            max(d_date_sk) as max_d_date_sk
+        from date_dim
+        where d_year = {q17_year}
+        and d_moy = {q17_month}
     """
-        )
-        .compute()
-        .to_pandas()
-    )
-    date_start_sk = dates_pandas["start_date"][0]
-    date_end_sk = dates_pandas["end_date"][0]
+    dates_result = bc.sql(query_date).compute()
 
-    query = (
-        """
+    date_start_sk = dates_result["min_d_date_sk"][0]
+    date_end_sk = dates_result["max_d_date_sk"][0]
+
+    query = f"""
         SELECT sum(promotional) as promotional,
             sum(total) as total,
             CASE WHEN sum(total) > 0 THEN CAST (100.0 * sum(promotional) AS DOUBLE) /
@@ -91,22 +83,17 @@ def main(data_dir, client):
             inner join store s on ss.ss_store_sk = s.s_store_sk
             inner join customer c on c.c_customer_sk = ss.ss_customer_sk
             inner join customer_address ca on c.c_current_addr_sk = ca.ca_address_sk
-            WHERE i.i_category IN """
-        + q17_i_category_IN
-        + """ and s.s_gmt_offset = -5.0 and ca.ca_gmt_offset = -5.0 and
-            ss.ss_sold_date_sk >= """
-        + str(date_start_sk)
-        + """ and ss.ss_sold_date_sk <= """
-        + str(date_end_sk)
-        + """
+            WHERE i.i_category IN ({q17_i_category_IN})
+            AND s.s_gmt_offset = {q17_gmt_offset}
+            AND ca.ca_gmt_offset = {q17_gmt_offset}
+            AND ss.ss_sold_date_sk >= {date_start_sk}
+            AND ss.ss_sold_date_sk <= {date_end_sk}
             GROUP BY p_channel_email, p_channel_dmail, p_channel_tv
         ) sum_promotional
         -- we don't need a 'ON' join condition. result is just two numbers.
         ORDER by promotional, total
         LIMIT 100
     """
-    )
-
     result = bc.sql(query)
     return result
 
