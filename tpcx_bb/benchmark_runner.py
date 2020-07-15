@@ -15,11 +15,10 @@ def get_qnum_from_filename(name):
 
 
 dask_qnums = [str(i).zfill(2) for i in range(1, 31)]
-
 # Not all queries are implemented with BSQL
 bsql_query_files = sorted(glob.glob("./queries/q*/t*_sql.py"))
 bsql_qnums = [get_qnum_from_filename(x.split("/")[-1]) for x in bsql_query_files]
-
+bsql_qnums = []
 
 if __name__ == "__main__":
     from xbb_tools.cluster_startup import attach_to_cluster, import_query_libs
@@ -38,10 +37,10 @@ if __name__ == "__main__":
         for qnum in bsql_qnums
     }
 
-    cli_args = tpcxbb_argparser()
     
-    include_blazing = cli_args.get("benchmark_runner_include_bsql")
-    client, bc = attach_to_cluster(cli_args, create_blazing_context=include_blazing)
+    config = tpcxbb_argparser()
+    include_blazing = config.get("benchmark_runner_include_bsql")
+    client, bc = attach_to_cluster(config, create_blazing_context=include_blazing)
 
     # Preload required libraries for queries on all workers
     client.run(import_query_libs)
@@ -62,7 +61,7 @@ if __name__ == "__main__":
                 fp.write(qnum)
 
             for r in range(N_REPEATS):
-                run_query(cli_args=cli_args, client=client, query_func=q_func)
+                run_query(config=config, client=client, query_func=q_func)
                 client.run(gc.collect)
                 client.run_on_scheduler(gc.collect)
                 gc.collect()
@@ -83,7 +82,7 @@ if __name__ == "__main__":
 
             for r in range(N_REPEATS):
                 run_query(
-                    cli_args=cli_args,
+                    config=config,
                     client=client,
                     query_func=q_func,
                     blazing_context=bc,

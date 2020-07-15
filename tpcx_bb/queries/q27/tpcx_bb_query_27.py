@@ -36,18 +36,18 @@ from dask_cuda import LocalCUDACluster
 from dask.distributed import Client, wait
 
 
-cli_args = tpcxbb_argparser()
+
 # -------- Q27 -----------
 q27_pr_item_sk = 10002
 EOL_CHAR = "."
 
 
-@benchmark(compute_result=cli_args["get_read_time"])
-def read_tables():
+
+def read_tables(config):
     ### splitting by row groups for better parallelism
     table_reader = build_reader(
-        data_format=cli_args["file_format"],
-        basepath=cli_args["data_dir"],
+        data_format=config["file_format"],
+        basepath=config["data_dir"],
         split_row_groups=True,
     )
     product_reviews_cols = ["pr_item_sk", "pr_review_content", "pr_review_sk"]
@@ -71,11 +71,11 @@ def ner_parser(df, col_string, batch_size=256):
     return df
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
-def main(client):
+
+def main(client,config):
     import dask_cudf
 
-    product_reviews_df = read_tables()
+    product_reviews_df = benchmark(read_tables,config=config,compute_result=config["get_read_time"], dask_profile=config["dask_profile"])
     product_reviews_df = product_reviews_df[
         product_reviews_df.pr_item_sk == q27_pr_item_sk
     ]
@@ -139,5 +139,6 @@ if __name__ == "__main__":
     import cudf
     import dask_cudf
 
-    client, bc = attach_to_cluster(cli_args)
-    run_query(cli_args=cli_args, client=client, query_func=main)
+    config = tpcxbb_argparser()
+    client, bc = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main)

@@ -25,20 +25,18 @@ from xbb_tools.utils import (
 from xbb_tools.readers import build_reader
 from xbb_tools.sessionization import get_sessions
 
-cli_args = tpcxbb_argparser()
+
 
 # parameters
 q04_session_timeout_inSec = 3600
 
 
-@benchmark(
-    compute_result=cli_args["get_read_time"], dask_profile=cli_args["dask_profile"]
-)
-def read_tables():
+
+def read_tables(config):
     table_reader = build_reader(
-        data_format=cli_args["file_format"],
-        basepath=cli_args["data_dir"],
-        split_row_groups=cli_args["split_row_groups"],
+        data_format=config["file_format"],
+        basepath=config["data_dir"],
+        split_row_groups=config["split_row_groups"],
     )
 
     wp_cols = ["wp_type", "wp_web_page_sk"]
@@ -110,11 +108,11 @@ def reduction_function(df, keep_cols, DYNAMIC_CAT_CODE, ORDER_CAT_CODE):
     return df
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
-def main(client):
+
+def main(client,config):
     import cudf
 
-    wp, wcs_df = read_tables()
+    wp, wcs_df = benchmark(read_tables,config=config,compute_result=config["get_read_time"], dask_profile=config["dask_profile"])
 
     ### downcasting the column inline with q03
     wcs_df["wcs_user_sk"] = wcs_df["wcs_user_sk"].astype("int32")
@@ -169,5 +167,6 @@ if __name__ == "__main__":
     import cudf
     import dask_cudf
 
-    client, bc = attach_to_cluster(cli_args)
-    run_query(cli_args=cli_args, client=client, query_func=main)
+    config = tpcxbb_argparser()
+    client, bc = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main)

@@ -36,10 +36,7 @@ from xbb_tools.utils import (
 )
 from xbb_tools.readers import build_reader
 
-try:
-    cli_args = tpcxbb_argparser()
-except:
-    cli_args = {}
+
 
 QUERY_NUM = os.getcwd().split("/")[-1][1:]
 
@@ -99,12 +96,12 @@ def build_labels(reviews_df):
     return y
 
 
-@benchmark(compute_result=cli_args.get("get_read_time"))
-def read_tables():
+
+def read_tables(config):
     ### splitting by row groups for better parallelism
     table_reader = build_reader(
-        data_format=cli_args["file_format"],
-        basepath=cli_args["data_dir"],
+        data_format=config["file_format"],
+        basepath=config["data_dir"],
         split_row_groups=True,
     )
 
@@ -328,10 +325,10 @@ def post_etl_processing(client, train_data, test_data):
     return final_data, acc, prec, cmat
 
 
-@benchmark(dask_profile=cli_args.get("dask_profile"))
-def main(client):
+
+def main(client,config):
     q_st = time.time()
-    product_reviews_df = read_tables()
+    product_reviews_df = benchmark(read_tables,config=config,compute_result=config["get_read_time"], dask_profile=config["dask_profile"])
     product_reviews_df = product_reviews_df[
         product_reviews_df["pr_review_content"].notnull()
     ]
@@ -371,5 +368,6 @@ if __name__ == "__main__":
     from cuml.dask.common.input_utils import DistributedDataHandler
     from cuml.dask.common import to_dask_cudf
 
-    client, bc = attach_to_cluster(cli_args)
-    run_query(cli_args=cli_args, client=client, query_func=main)
+    config = tpcxbb_argparser()
+    client, bc = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main)

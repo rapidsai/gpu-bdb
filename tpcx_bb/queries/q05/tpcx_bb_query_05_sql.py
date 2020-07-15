@@ -34,7 +34,7 @@ from sklearn.metrics import roc_auc_score
 import cupy as cp
 
 
-cli_args = tpcxbb_argparser()
+
 
 # Logistic Regression params
 # solver = "LBFGS" Used by passing `penalty=None` or "l2"
@@ -45,9 +45,7 @@ C = 10_000  # reg_lambda = 0 hence C for model is a large value
 convergence_tol = 1e-9
 
 
-@benchmark(
-    compute_result=cli_args["get_read_time"], dask_profile=cli_args["dask_profile"]
-)
+
 def read_tables(data_dir, bc):
     bc.create_table("web_clickstreams", data_dir + "web_clickstreams/*.parquet")
     bc.create_table("customer", data_dir + "customer/*.parquet")
@@ -95,7 +93,7 @@ def build_and_predict_model(ml_input_df):
     return results_dict
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
+
 def main(data_dir, client, bc):
     read_tables(data_dir, bc)
 
@@ -160,5 +158,5 @@ def main(data_dir, client, bc):
 
 
 if __name__ == "__main__":
-    client, bc = attach_to_cluster(cli_args, create_blazing_context=True)
-    run_query(cli_args=cli_args, client=client, query_func=main, blazing_context=bc)
+    client, bc = attach_to_cluster(config, create_blazing_context=True)
+    run_query(config=config, client=client, query_func=main, blazing_context=bc)

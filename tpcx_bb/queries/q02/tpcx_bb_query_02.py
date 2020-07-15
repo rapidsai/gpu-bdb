@@ -28,11 +28,6 @@ from xbb_tools.sessionization import get_distinct_sessions
 # The bottleneck of current implimenation is `set-index`, once ucx is working correctly
 # it should go away
 
-try:
-    cli_args = tpcxbb_argparser()
-except:
-    cli_args = {}
-
 # -------- Q2 -----------
 q02_item_sk = 10001
 q02_MAX_ITEMS_PER_BASKET = 5000000
@@ -70,15 +65,12 @@ def reduction_function(df, q02_session_timeout_inSec):
     return grouped_df
 
 
-@benchmark(
-    compute_result=cli_args.get("get_read_time"),
-    dask_profile=cli_args.get("dask_profile"),
-)
-def read_tables():
+
+def read_tables(config):
     table_reader = build_reader(
-        data_format=cli_args["file_format"],
-        basepath=cli_args["data_dir"],
-        split_row_groups=cli_args["split_row_groups"],
+        data_format=config["file_format"],
+        basepath=config["data_dir"],
+        split_row_groups=config["split_row_groups"],
     )
     wcs_cols = ["wcs_user_sk", "wcs_item_sk", "wcs_click_date_sk", "wcs_click_time_sk"]
     wcs_df = table_reader.read("web_clickstreams", relevant_cols=wcs_cols)
@@ -105,10 +97,10 @@ def pre_repartition_task(wcs_df):
     return f_wcs_df
 
 
-@benchmark(dask_profile=cli_args.get("dask_profile"))
-def main(client):
 
-    wcs_df = read_tables()
+def main(client,config):
+
+    wcs_df = benchmark(read_tables,config=config,compute_result=config["get_read_time"], dask_profile=config["dask_profile"])
 
     ### filter nulls
     # SELECT
@@ -157,5 +149,6 @@ if __name__ == "__main__":
     import cudf
     import dask_cudf
 
-    client, bc = attach_to_cluster(cli_args)
-    run_query(cli_args=cli_args, client=client, query_func=main)
+    config = tpcxbb_argparser()
+    client, bc = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main)

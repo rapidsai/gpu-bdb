@@ -39,11 +39,11 @@ q01_limit = 100
 item_cols = ["i_item_sk", "i_category_id"]
 ss_cols = ["ss_item_sk", "ss_store_sk", "ss_ticket_number"]
 
-def read_tables(cli_args):
+def read_tables(config):
     table_reader = build_reader(
-        data_format=cli_args["file_format"],
-        basepath=cli_args["data_dir"],
-        split_row_groups=cli_args["split_row_groups"],
+        data_format=config["file_format"],
+        basepath=config["data_dir"],
+        split_row_groups=config["split_row_groups"],
     )
 
     item_df = table_reader.read("item", relevant_cols=item_cols)
@@ -83,9 +83,9 @@ def get_pairs(
 
 
 
-def main(client,cli_args):
+def main(client,config):
 
-    item_df, ss_df = benchmark(read_tables,compute_result=cli_args["get_read_time"], dask_profile=cli_args["dask_profile"])
+    item_df, ss_df = benchmark(read_tables,config=config,compute_result=config["get_read_time"], dask_profile=config["dask_profile"])
 
     # SELECT DISTINCT ss_item_sk,ss_ticket_number
     # FROM store_sales s, item i
@@ -161,6 +161,7 @@ if __name__ == "__main__":
     import cudf
     import dask_cudf
 
-    cli_args = tpcxbb_argparser()
-    client, bc = attach_to_cluster(cli_args)
-    run_query(cli_args=cli_args, client=client, query_func=main)
+    
+    config = tpcxbb_argparser()
+    client, bc = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main)

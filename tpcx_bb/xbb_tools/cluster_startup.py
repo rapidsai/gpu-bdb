@@ -25,7 +25,7 @@ from dask.utils import parse_bytes
 from blazingsql import BlazingContext
 
 
-def attach_to_cluster(cli_args, create_blazing_context=False):
+def attach_to_cluster(config, create_blazing_context=False):
     """Attaches to an existing cluster if available.
     By default, tries to attach to a cluster running on localhost:8786 (dask's default).
 
@@ -33,8 +33,8 @@ def attach_to_cluster(cli_args, create_blazing_context=False):
 
     Optionally, this will also create a BlazingContext.
     """
-    host = cli_args.get("cluster_host")
-    port = cli_args.get("cluster_port", "8786")
+    host = config.get("cluster_host")
+    port = config.get("cluster_port", "8786")
 
     if host is not None:
         try:
@@ -63,22 +63,22 @@ def attach_to_cluster(cli_args, create_blazing_context=False):
 
     # Get ucx config variables
     ucx_config = client.submit(_get_ucx_config).result()
-    cli_args.update(ucx_config)
+    config.update(ucx_config)
 
     # Save worker information
     gpu_sizes = ["16GB", "32GB", "40GB"]
     worker_counts = worker_count_info(client, gpu_sizes=gpu_sizes)
     for size in gpu_sizes:
         key = size + "_workers"
-        if cli_args.get(key) is not None and cli_args.get(key) != worker_counts[size]:
+        if config.get(key) is not None and config.get(key) != worker_counts[size]:
             print(
-                f"Expected {cli_args.get(key)} {size} workers in your cluster, but got {worker_counts[size]}. It can take a moment for all workers to join the cluster. You may also have misconfigred hosts."
+                f"Expected {config.get(key)} {size} workers in your cluster, but got {worker_counts[size]}. It can take a moment for all workers to join the cluster. You may also have misconfigred hosts."
             )
             sys.exit(-1)
 
-    cli_args["16GB_workers"] = worker_counts["16GB"]
-    cli_args["32GB_workers"] = worker_counts["32GB"]
-    cli_args["40GB_workers"] = worker_counts["40GB"]
+    config["16GB_workers"] = worker_counts["16GB"]
+    config["32GB_workers"] = worker_counts["32GB"]
+    config["40GB_workers"] = worker_counts["40GB"]
 
     bc = None
     if create_blazing_context:

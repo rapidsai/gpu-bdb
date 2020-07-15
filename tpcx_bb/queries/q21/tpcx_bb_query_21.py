@@ -30,7 +30,7 @@ q21_year = 2003
 q21_month = 1
 q21_limit = 100
 
-cli_args = tpcxbb_argparser()
+
 
 store_sales_cols = [
     "ss_item_sk",
@@ -55,14 +55,12 @@ item_cols = ["i_item_id", "i_item_desc", "i_item_sk"]
 # todo: See if persisting the date table improves performence as its used all over
 
 
-@benchmark(
-    compute_result=cli_args["get_read_time"], dask_profile=cli_args["dask_profile"]
-)
-def read_tables():
+
+def read_tables(config):
     table_reader = build_reader(
-        data_format=cli_args["file_format"],
-        basepath=cli_args["data_dir"],
-        split_row_groups=cli_args["split_row_groups"],
+        data_format=config["file_format"],
+        basepath=config["data_dir"],
+        split_row_groups=config["split_row_groups"],
     )
 
     store_sales_df = table_reader.read("store_sales", relevant_cols=store_sales_cols)
@@ -82,8 +80,8 @@ def read_tables():
     )
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
-def main(client):
+
+def main(client,config):
     (
         store_sales_df,
         date_dim_df,
@@ -91,7 +89,7 @@ def main(client):
         store_retuns_df,
         store_table_df,
         item_table_df,
-    ) = read_tables()
+    ) = benchmark(read_tables,config=config,compute_result=config["get_read_time"], dask_profile=config["dask_profile"])
 
     # SELECT sr_item_sk, sr_customer_sk, sr_ticket_number, sr_return_quantity
     # FROM
@@ -292,5 +290,6 @@ if __name__ == "__main__":
     import cudf
     import dask_cudf
 
-    client, bc = attach_to_cluster(cli_args)
-    run_query(cli_args=cli_args, client=client, query_func=main)
+    config = tpcxbb_argparser()
+    client, bc = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main)
