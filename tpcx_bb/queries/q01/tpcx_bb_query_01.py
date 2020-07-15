@@ -27,7 +27,6 @@ from xbb_tools.readers import build_reader
 # Settinng  index + merge using  map_parition can be a work-around if dask native merge is slow
 
 
-
 # -------- Q1 -----------
 q01_i_category_id_IN = [1, 2, 3]
 # -- sf1 -> 11 stores, 90k sales in 820k lines
@@ -38,6 +37,7 @@ q01_limit = 100
 
 item_cols = ["i_item_sk", "i_category_id"]
 ss_cols = ["ss_item_sk", "ss_store_sk", "ss_ticket_number"]
+
 
 def read_tables(config):
     table_reader = build_reader(
@@ -63,6 +63,7 @@ def read_tables(config):
 #     Where
 #     t1.ss_item_sk < t2.ss_item_sk
 
+
 def get_pairs(
     df,
     col_name="ss_item_sk",
@@ -82,10 +83,14 @@ def get_pairs(
     return pair_df
 
 
+def main(client, config):
 
-def main(client,config):
-
-    item_df, ss_df = benchmark(read_tables,config=config,compute_result=config["get_read_time"], dask_profile=config["dask_profile"])
+    item_df, ss_df = benchmark(
+        read_tables,
+        config=config,
+        compute_result=config["get_read_time"],
+        dask_profile=config["dask_profile"],
+    )
 
     # SELECT DISTINCT ss_item_sk,ss_ticket_number
     # FROM store_sales s, item i
@@ -161,7 +166,6 @@ if __name__ == "__main__":
     import cudf
     import dask_cudf
 
-    
     config = tpcxbb_argparser()
     client, bc = attach_to_cluster(config)
     run_query(config=config, client=client, query_func=main)

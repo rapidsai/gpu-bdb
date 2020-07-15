@@ -30,8 +30,6 @@ import datetime
 import numpy as np
 
 
-
-
 q15_startDate = "2001-09-02"
 q15_endDate = "2002-09-02"
 q15_store_sk = "10"
@@ -39,7 +37,6 @@ q15_store_sk = "10"
 store_sales_cols = ["ss_sold_date_sk", "ss_net_paid", "ss_store_sk", "ss_item_sk"]
 date_cols = ["d_date", "d_date_sk"]
 item_cols = ["i_item_sk", "i_category_id"]
-
 
 
 def read_tables(config):
@@ -56,10 +53,14 @@ def read_tables(config):
     return store_sales_df, date_dim_df, item_df
 
 
+def main(client, config):
 
-def main(client,config):
-
-    store_sales_df, date_dim_df, item_df = benchmark(read_tables,config=config,compute_result=config["get_read_time"], dask_profile=config["dask_profile"])
+    store_sales_df, date_dim_df, item_df = benchmark(
+        read_tables,
+        config=config,
+        compute_result=config["get_read_time"],
+        dask_profile=config["dask_profile"],
+    )
 
     ###  Query 0. Filtering store sales
     store_sales_df = store_sales_df.query(f"ss_store_sk == {q15_store_sk}")

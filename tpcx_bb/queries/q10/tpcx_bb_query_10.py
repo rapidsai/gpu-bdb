@@ -37,7 +37,6 @@ from dask.distributed import Client, wait
 eol_char = "è"
 
 
-
 def read_tables(config):
 
     ### splitting by row groups for better parallelism
@@ -67,12 +66,16 @@ def load_sentiment_words(filename, sentiment):
     return sent_df
 
 
-
-def main(client,config):
+def main(client, config):
     import cudf
     import dask_cudf
 
-    product_reviews_df = benchmark(read_tables,config=config,compute_result=config["get_read_time"], dask_profile=config["dask_profile"])
+    product_reviews_df = benchmark(
+        read_tables,
+        config=config,
+        compute_result=config["get_read_time"],
+        dask_profile=config["dask_profile"],
+    )
 
     product_reviews_df = product_reviews_df[
         ~product_reviews_df.pr_review_content.isnull()

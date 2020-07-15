@@ -25,9 +25,6 @@ from xbb_tools.utils import (
 from xbb_tools.readers import build_reader
 
 
-
-
-
 def read_tables(config):
     table_reader = build_reader(
         data_format=config["file_format"],
@@ -64,8 +61,7 @@ def read_tables(config):
     return store_sales, customer_address, customer_demographics, date_dim, store
 
 
-
-def main(client,config):
+def main(client, config):
     import cudf
 
     # Conf variables
@@ -105,7 +101,12 @@ def main(client,config):
         customer_demographics,
         date_dim,
         store,
-    ) = benchmark(read_tables,config=config,compute_result=config["get_read_time"], dask_profile=config["dask_profile"])
+    ) = benchmark(
+        read_tables,
+        config=config,
+        compute_result=config["get_read_time"],
+        dask_profile=config["dask_profile"],
+    )
 
     date_dim = date_dim.query(
         "d_year==@q09_year", meta=date_dim._meta, local_dict={"q09_year": q09_year}

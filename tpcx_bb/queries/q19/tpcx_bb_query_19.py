@@ -34,7 +34,6 @@ q19_returns_dates = ["2004-03-08", "2004-08-02", "2004-11-15", "2004-12-20"]
 eol_char = "è"
 
 
-
 def read_tables(config):
     table_reader = build_reader(
         data_format=config["file_format"], basepath=config["data_dir"],
@@ -63,12 +62,16 @@ def read_tables(config):
     return date_dim_df, store_returns_df, web_returns_df, product_reviews
 
 
-
-def main(client,config):
+def main(client, config):
     import cudf
     import dask_cudf
 
-    date_dim_df, store_returns_df, web_returns_df, product_reviews_df = benchmark(read_tables,config=config,compute_result=config["get_read_time"], dask_profile=config["dask_profile"])
+    date_dim_df, store_returns_df, web_returns_df, product_reviews_df = benchmark(
+        read_tables,
+        config=config,
+        compute_result=config["get_read_time"],
+        dask_profile=config["dask_profile"],
+    )
 
     # filter date table
     date_dim_df = date_dim_df.merge(

@@ -46,10 +46,10 @@ import json
 #################################
 # Benchmark Timing
 #################################
-def benchmark(func, *args, **kwargs):  
-    csv = kwargs.pop('csv', True)
-    dask_profile = kwargs.pop('dask_profile', False)
-    compute_result = kwargs.pop('compute_result', False) 
+def benchmark(func, *args, **kwargs):
+    csv = kwargs.pop("csv", True)
+    dask_profile = kwargs.pop("dask_profile", False)
+    compute_result = kwargs.pop("compute_result", False)
     name = func.__name__
     t0 = time.time()
     if dask_profile:
@@ -70,9 +70,7 @@ def benchmark(func, *args, **kwargs):
         else:
             len_tasks = []
             for read_df in result:
-                len_tasks += [
-                    dask.delayed(len)(df) for df in read_df.to_delayed()
-                ]
+                len_tasks += [dask.delayed(len)(df) for df in read_df.to_delayed()]
 
         compute_st = time.time()
         results = dask.compute(*len_tasks)
@@ -86,10 +84,11 @@ def benchmark(func, *args, **kwargs):
     else:
         print(logdf)
     return result
+
+
 #################################
 # Result Writing
 #################################
-
 
 
 def write_result(payload, filetype="parquet", output_directory="./"):
@@ -260,10 +259,7 @@ def run_query(
         )
     else:
         run_dask_cudf_query(
-            config=config,
-            client=client,
-            query_func=query_func,
-            write_func=write_func,
+            config=config, client=client, query_func=query_func, write_func=write_func,
         )
 
 
@@ -275,9 +271,15 @@ def run_dask_cudf_query(config, client, query_func, write_func=write_result):
     try:
         remove_benchmark_files()
         config["start_time"] = time.time()
-        results = benchmark(query_func,dask_profile=config.get("dask_profile"),client=client,config=config)
+        results = benchmark(
+            query_func,
+            dask_profile=config.get("dask_profile"),
+            client=client,
+            config=config,
+        )
 
-        benchmark(write_func,
+        benchmark(
+            write_func,
             results,
             output_directory=config["output_dir"],
             filetype=config["output_filetype"],
@@ -314,9 +316,17 @@ def run_bsql_query(
         remove_benchmark_files()
         config["start_time"] = time.time()
         data_dir = config["data_dir"]
-        results = query_func(data_dir=data_dir, client=client, bc=blazing_context)
+        results = benchmark(
+            query_func,
+            dask_profile=config.get("dask_profile"),
+            data_dir=data_dir,
+            client=client,
+            bc=blazing_context,
+            config=config,
+        )
 
-        write_func(
+        benchmark(
+            write_func,
             results,
             output_directory=config["output_dir"],
             filetype=config["output_filetype"],

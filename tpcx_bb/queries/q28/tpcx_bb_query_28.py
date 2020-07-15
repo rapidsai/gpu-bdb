@@ -37,7 +37,6 @@ from xbb_tools.utils import (
 from xbb_tools.readers import build_reader
 
 
-
 QUERY_NUM = os.getcwd().split("/")[-1][1:]
 
 N_FEATURES = 2 ** 23  # Spark is doing 2^20
@@ -94,7 +93,6 @@ def build_labels(reviews_df):
     y.compute_chunk_sizes()
 
     return y
-
 
 
 def read_tables(config):
@@ -325,10 +323,14 @@ def post_etl_processing(client, train_data, test_data):
     return final_data, acc, prec, cmat
 
 
-
-def main(client,config):
+def main(client, config):
     q_st = time.time()
-    product_reviews_df = benchmark(read_tables,config=config,compute_result=config["get_read_time"], dask_profile=config["dask_profile"])
+    product_reviews_df = benchmark(
+        read_tables,
+        config=config,
+        compute_result=config["get_read_time"],
+        dask_profile=config["dask_profile"],
+    )
     product_reviews_df = product_reviews_df[
         product_reviews_df["pr_review_content"].notnull()
     ]

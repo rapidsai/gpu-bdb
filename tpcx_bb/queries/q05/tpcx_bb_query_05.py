@@ -58,9 +58,6 @@ C = 10_000  # reg_lambda = 0 hence C for model is a large value
 convergence_tol = 1e-9
 
 
-
-
-
 def read_tables(config):
     table_reader = build_reader(
         data_format=config["file_format"],
@@ -165,12 +162,16 @@ def get_groupby_results(file_list, item_df):
     return sum_by_cat_ddf
 
 
-
-def main(client,config):
+def main(client, config):
     import cudf
     import dask_cudf
 
-    item_ddf, customer_ddf, customer_dem_ddf = benchmark(read_tables,config=config,compute_result=config["get_read_time"], dask_profile=config["dask_profile"])
+    item_ddf, customer_ddf, customer_dem_ddf = benchmark(
+        read_tables,
+        config=config,
+        compute_result=config["get_read_time"],
+        dask_profile=config["dask_profile"],
+    )
 
     # We want to find clicks in the parameterized category
     # It would be more efficient to translate to a category id, but
@@ -185,9 +186,7 @@ def main(client,config):
     keep_cols = ["i_item_sk", "i_category_id", "clicks_in_category"]
     item_ddf = item_ddf[keep_cols]
 
-    web_clickstream_flist = glob.glob(
-        config["data_dir"] + "web_clickstreams/*.parquet"
-    )
+    web_clickstream_flist = glob.glob(config["data_dir"] + "web_clickstreams/*.parquet")
     n_workers = len(client.scheduler_info()["workers"])
     batchsize = len(web_clickstream_flist) // n_workers
     if batchsize < 1:

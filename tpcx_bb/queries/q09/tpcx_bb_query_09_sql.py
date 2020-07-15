@@ -28,7 +28,6 @@ from xbb_tools.utils import (
 )
 
 
-
 # -------- Q9 -----------
 q09_year = 2001
 
@@ -60,7 +59,6 @@ q09_part3_sales_price_min = 150
 q09_part3_sales_price_max = 200
 
 
-
 def read_tables(data_dir, bc):
     bc.create_table("store_sales", data_dir + "/store_sales/*.parquet")
     bc.create_table("customer_address", data_dir + "/customer_address/*.parquet")
@@ -71,9 +69,8 @@ def read_tables(data_dir, bc):
     bc.create_table("store", data_dir + "/store/*.parquet")
 
 
-
-def main(data_dir, client, bc):
-    read_tables(data_dir, bc)
+def main(data_dir, client, bc, config):
+    benchmark(read_tables, data_dir, bc, dask_profile=config["dask_profile"])
 
     query = f"""
         SELECT SUM(ss1.ss_quantity)
@@ -140,5 +137,6 @@ def main(data_dir, client, bc):
 
 
 if __name__ == "__main__":
+    config = tpcxbb_argparser()
     client, bc = attach_to_cluster(config, create_blazing_context=True)
     run_query(config=config, client=client, query_func=main, blazing_context=bc)

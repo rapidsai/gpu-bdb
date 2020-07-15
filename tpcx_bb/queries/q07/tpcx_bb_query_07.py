@@ -25,14 +25,12 @@ from xbb_tools.utils import (
 from xbb_tools.readers import build_reader
 
 
-
 q07_HIGHER_PRICE_RATIO = 1.2
 # --store_sales date
 q07_YEAR = 2004
 q07_MONTH = 7
 q07_HAVING_COUNT_GE = 10
 q07_LIMIT = 10
-
 
 
 def create_high_price_items_df(item_df):
@@ -51,7 +49,6 @@ def create_high_price_items_df(item_df):
     high_price_items_df = item_df
     del item_df
     return high_price_items_df
-
 
 
 def read_tables(config):
@@ -87,8 +84,7 @@ def read_tables(config):
     )
 
 
-
-def main(client,config):
+def main(client, config):
     (
         item_df,
         store_sales_df,
@@ -96,7 +92,12 @@ def main(client,config):
         date_dim_df,
         customer_df,
         customer_address_df,
-    ) = benchmark(read_tables,config=config,compute_result=config["get_read_time"], dask_profile=config["dask_profile"])
+    ) = benchmark(
+        read_tables,
+        config=config,
+        compute_result=config["get_read_time"],
+        dask_profile=config["dask_profile"],
+    )
 
     high_price_items_df = create_high_price_items_df(item_df)
     del item_df

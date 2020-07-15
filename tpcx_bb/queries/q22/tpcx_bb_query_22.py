@@ -28,15 +28,12 @@ from xbb_tools.utils import (
 from xbb_tools.readers import build_reader
 
 
-
-
 def inventory_before_after(df, date):
     df["inv_before"] = df["inv_quantity_on_hand"].copy()
     df.loc[df["d_date"] >= date, "inv_before"] = 0
     df["inv_after"] = df["inv_quantity_on_hand"].copy()
     df.loc[df["d_date"] < date, "inv_after"] = 0
     return df
-
 
 
 def read_tables(config):
@@ -65,14 +62,18 @@ def read_tables(config):
     return inventory, item, warehouse, date_dim
 
 
-
-def main(client,config):
+def main(client, config):
 
     q22_date = "2001-05-08"
     q22_i_current_price_min = 0.98
     q22_i_current_price_max = 1.5
 
-    inventory, item, warehouse, date_dim = benchmark(read_tables,config=config,compute_result=config["get_read_time"], dask_profile=config["dask_profile"])
+    inventory, item, warehouse, date_dim = benchmark(
+        read_tables,
+        config=config,
+        compute_result=config["get_read_time"],
+        dask_profile=config["dask_profile"],
+    )
 
     item = item.query(
         "i_current_price >= @q22_i_current_price_min and i_current_price<= @q22_i_current_price_max",

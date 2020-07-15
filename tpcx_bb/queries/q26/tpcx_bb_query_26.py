@@ -29,14 +29,12 @@ from xbb_tools.readers import build_reader
 from dask import delayed
 
 
-
 # q26 parameters
 Q26_CATEGORY = "Books"
 Q26_ITEM_COUNT = 5
 N_CLUSTERS = 8
 CLUSTER_ITERATIONS = 20
 N_ITER = 5
-
 
 
 def read_tables(config):
@@ -88,11 +86,15 @@ def get_clusters(client, kmeans_input_df):
     return results_dict
 
 
-
-def main(client,config):
+def main(client, config):
     import cudf
 
-    ss_ddf, items_ddf = benchmark(read_tables,config=config,compute_result=config["get_read_time"], dask_profile=config["dask_profile"])
+    ss_ddf, items_ddf = benchmark(
+        read_tables,
+        config=config,
+        compute_result=config["get_read_time"],
+        dask_profile=config["dask_profile"],
+    )
 
     items_filtered = items_ddf[items_ddf.i_category == Q26_CATEGORY].reset_index(
         drop=True

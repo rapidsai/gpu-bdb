@@ -36,11 +36,9 @@ from dask_cuda import LocalCUDACluster
 from dask.distributed import Client, wait
 
 
-
 # -------- Q27 -----------
 q27_pr_item_sk = 10002
 EOL_CHAR = "."
-
 
 
 def read_tables(config):
@@ -71,11 +69,15 @@ def ner_parser(df, col_string, batch_size=256):
     return df
 
 
-
-def main(client,config):
+def main(client, config):
     import dask_cudf
 
-    product_reviews_df = benchmark(read_tables,config=config,compute_result=config["get_read_time"], dask_profile=config["dask_profile"])
+    product_reviews_df = benchmark(
+        read_tables,
+        config=config,
+        compute_result=config["get_read_time"],
+        dask_profile=config["dask_profile"],
+    )
     product_reviews_df = product_reviews_df[
         product_reviews_df.pr_item_sk == q27_pr_item_sk
     ]

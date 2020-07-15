@@ -29,12 +29,10 @@ from xbb_tools.utils import (
 from distributed import wait
 
 
-
 ### inventory date
 q23_year = 2001
 q23_month = 1
 q23_coefficient = 1.3
-
 
 
 def read_tables(config):
@@ -54,7 +52,6 @@ def read_tables(config):
     inv_df = table_reader.read("inventory", relevant_cols=inv_cols)
 
     return date_df, inv_df
-
 
 
 def get_iteration1(merged_inv_dates, n_workers):
@@ -78,9 +75,13 @@ def get_iteration1(merged_inv_dates, n_workers):
     return iteration1_df
 
 
-
-def main(client,config):
-    date_df, inv_df = benchmark(read_tables,config=config,compute_result=config["get_read_time"], dask_profile=config["dask_profile"])
+def main(client, config):
+    date_df, inv_df = benchmark(
+        read_tables,
+        config=config,
+        compute_result=config["get_read_time"],
+        dask_profile=config["dask_profile"],
+    )
 
     expr = (
         f"d_year == {q23_year} and (d_moy >= {q23_month} and d_moy <= {q23_month + 1})"

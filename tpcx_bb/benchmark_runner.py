@@ -18,7 +18,6 @@ dask_qnums = [str(i).zfill(2) for i in range(1, 31)]
 # Not all queries are implemented with BSQL
 bsql_query_files = sorted(glob.glob("./queries/q*/t*_sql.py"))
 bsql_qnums = [get_qnum_from_filename(x.split("/")[-1]) for x in bsql_query_files]
-bsql_qnums = []
 
 if __name__ == "__main__":
     from xbb_tools.cluster_startup import attach_to_cluster, import_query_libs

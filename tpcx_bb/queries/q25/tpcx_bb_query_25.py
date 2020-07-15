@@ -30,13 +30,11 @@ from xbb_tools.readers import build_reader
 from dask import delayed
 
 
-
 # q25 parameters
 Q25_DATE = "2002-01-02"
 N_CLUSTERS = 8
 CLUSTER_ITERATIONS = 20
 N_ITER = 5
-
 
 
 def read_tables(config):
@@ -100,11 +98,15 @@ def get_clusters(client, ml_input_df):
     return results_dict
 
 
-
-def main(client,config):
+def main(client, config):
     import dask_cudf
 
-    ss_ddf, ws_ddf, datedim_ddf = benchmark(read_tables,config=config,compute_result=config["get_read_time"], dask_profile=config["dask_profile"])
+    ss_ddf, ws_ddf, datedim_ddf = benchmark(
+        read_tables,
+        config=config,
+        compute_result=config["get_read_time"],
+        dask_profile=config["dask_profile"],
+    )
     datedim_ddf = datedim_ddf.map_partitions(convert_datestring_to_days)
     min_date = np.datetime64(Q25_DATE, "D").astype(int)
     # Filter by date

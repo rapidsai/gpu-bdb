@@ -39,13 +39,10 @@ import glob
 # it should go away
 
 
-
-
 ### session timeout in secs
 q30_session_timeout_inSec = 3600
 ### query output limit
 q30_limit = 40
-
 
 
 def read_tables(config):
@@ -85,12 +82,16 @@ def pre_repartition_task(wcs_fn, f_item_df):
     return merged_df
 
 
-
-def main(client,config):
+def main(client, config):
     import dask_cudf
     import cudf
 
-    item_df = benchmark(read_tables,config=config,compute_result=config["get_read_time"], dask_profile=config["dask_profile"])
+    item_df = benchmark(
+        read_tables,
+        config=config,
+        compute_result=config["get_read_time"],
+        dask_profile=config["dask_profile"],
+    )
 
     """
     Filter and Join web_clickstreams and item table.
@@ -111,9 +112,7 @@ def main(client,config):
     ### Below Pr has the dashboard snapshot which makes the problem clear
     ### https://github.com/rapidsai/tpcx-bb-internal/pull/496#issue-399946141
 
-    web_clickstream_flist = glob.glob(
-        config["data_dir"] + "web_clickstreams/*.parquet"
-    )
+    web_clickstream_flist = glob.glob(config["data_dir"] + "web_clickstreams/*.parquet")
     task_ls = [
         delayed(pre_repartition_task)(fn, f_item_df.to_delayed()[0])
         for fn in web_clickstream_flist

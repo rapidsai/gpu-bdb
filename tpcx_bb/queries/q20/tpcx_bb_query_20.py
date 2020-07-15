@@ -31,12 +31,10 @@ from dask import delayed
 from dask.distributed import wait
 
 
-
 # q20 parameters
 N_CLUSTERS = 8
 CLUSTER_ITERATIONS = 20
 N_ITER = 5
-
 
 
 def read_tables(config):
@@ -64,7 +62,6 @@ def read_tables(config):
         "store_returns", relevant_cols=store_returns_cols
     )
     return store_sales_df, store_returns_df
-
 
 
 def get_clusters(client, ml_input_df, feature_cols):
@@ -108,9 +105,13 @@ def remove_inf_and_nulls(df, column_names, value=0.0):
     return df
 
 
-
-def main(client,config):
-    store_sales_df, store_returns_df = benchmark(read_tables,config=config,compute_result=config["get_read_time"], dask_profile=config["dask_profile"])
+def main(client, config):
+    store_sales_df, store_returns_df = benchmark(
+        read_tables,
+        config=config,
+        compute_result=config["get_read_time"],
+        dask_profile=config["dask_profile"],
+    )
 
     n_workers = len(client.scheduler_info()["workers"])
 

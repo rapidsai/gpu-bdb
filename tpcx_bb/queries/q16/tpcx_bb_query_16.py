@@ -30,7 +30,6 @@ from dask.distributed import wait
 import numpy as np
 
 
-
 ### conf
 q16_date = "2001-03-16"
 
@@ -73,7 +72,6 @@ def get_before_after_sales(df, q16_timestamp):
     return df
 
 
-
 def read_tables(config):
     table_reader = build_reader(
         data_format=config["file_format"],
@@ -89,11 +87,15 @@ def read_tables(config):
     return web_sales_df, web_returns_df, date_dim_df, item_df, warehouse_df
 
 
-
-def main(client,config):
+def main(client, config):
     import cudf
 
-    web_sales_df, web_returns_df, date_dim_df, item_df, warehouse_df = benchmark(read_tables,config=config,compute_result=config["get_read_time"], dask_profile=config["dask_profile"])
+    web_sales_df, web_returns_df, date_dim_df, item_df, warehouse_df = benchmark(
+        read_tables,
+        config=config,
+        compute_result=config["get_read_time"],
+        dask_profile=config["dask_profile"],
+    )
 
     warehouse_df["w_state_code"] = warehouse_df[["w_state"]].categorize()["w_state"]
 

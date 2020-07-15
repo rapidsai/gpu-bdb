@@ -29,10 +29,8 @@ from numba import cuda
 import numpy as np
 
 
-
 q11_start_date = "2003-01-02"
 q11_end_date = "2003-02-02"
-
 
 
 def read_tables(config):
@@ -63,11 +61,15 @@ def read_tables(config):
     return pr_df, ws_df, date_df
 
 
-
-def main(client,config):
+def main(client, config):
     import cudf
 
-    pr_df, ws_df, date_df = benchmark(read_tables,config=config,compute_result=config["get_read_time"], dask_profile=config["dask_profile"])
+    pr_df, ws_df, date_df = benchmark(
+        read_tables,
+        config=config,
+        compute_result=config["get_read_time"],
+        dask_profile=config["dask_profile"],
+    )
 
     date_df = date_df.map_partitions(convert_datestring_to_days)
 

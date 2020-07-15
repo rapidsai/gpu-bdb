@@ -25,7 +25,6 @@ from xbb_tools.readers import build_reader
 from distributed import wait
 
 
-
 q13_Year = 2001
 q13_limit = 100
 
@@ -45,7 +44,6 @@ def get_sales_ratio(df):
     df["second_year_sales"][second_year_flag] = df["year_total"][second_year_flag]
 
     return df
-
 
 
 def read_tables(config):
@@ -70,9 +68,13 @@ def read_tables(config):
     return date_dim_df, customer_df, s_sales_df, web_sales_df
 
 
-
-def main(client,config):
-    date_dim_df, customer_df, s_sales_df, web_sales_df = benchmark(read_tables,config=config,compute_result=config["get_read_time"], dask_profile=config["dask_profile"])
+def main(client, config):
+    date_dim_df, customer_df, s_sales_df, web_sales_df = benchmark(
+        read_tables,
+        config=config,
+        compute_result=config["get_read_time"],
+        dask_profile=config["dask_profile"],
+    )
 
     # Query 0: time filtration
 

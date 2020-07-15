@@ -35,8 +35,6 @@ import rmm
 from dask import delayed
 
 
-
-
 q08_STARTDATE = "2001-09-02"
 q08_ENDDATE = "2002-09-02"
 q08_SECONDS_BEFORE_PURCHASE = 259200
@@ -184,7 +182,6 @@ def prep_for_sessionization(df, review_cat_code):
     return df_filtered
 
 
-
 def read_tables(config):
     table_reader = build_reader(
         data_format=config["file_format"],
@@ -215,12 +212,16 @@ def reduction_function(df, REVIEW_CAT_CODE):
     return df.to_frame()
 
 
-
-def main(client,config):
+def main(client, config):
     import cudf
     import dask_cudf
 
-    (date_dim_df, web_page_df, web_sales_df) = benchmark(read_tables,config=config,compute_result=config["get_read_time"], dask_profile=config["dask_profile"])
+    (date_dim_df, web_page_df, web_sales_df) = benchmark(
+        read_tables,
+        config=config,
+        compute_result=config["get_read_time"],
+        dask_profile=config["dask_profile"],
+    )
 
     date_dim_cov_df = date_dim_df.map_partitions(convert_datestring_to_days)
     q08_start_dt = np.datetime64(q08_STARTDATE, "D").astype(int)
@@ -250,9 +251,7 @@ def main(client,config):
     web_page_newcols = ["wp_web_page_sk", "wp_type_codes"]
     web_page_df = web_page_df[web_page_newcols]
 
-    web_clickstream_flist = glob.glob(
-        config["data_dir"] + "web_clickstreams/*.parquet"
-    )
+    web_clickstream_flist = glob.glob(config["data_dir"] + "web_clickstreams/*.parquet")
 
     task_ls = [
         delayed(etl_wcs)(

@@ -33,9 +33,6 @@ from xbb_tools.utils import (
 )
 
 
-
-
-
 def read_tables(data_dir, bc):
     bc.create_table("web_sales", data_dir + "/web_sales/*.parquet")
     bc.create_table("web_returns", data_dir + "/web_returns/*.parquet")
@@ -44,9 +41,8 @@ def read_tables(data_dir, bc):
     bc.create_table("warehouse", data_dir + "/warehouse/*.parquet")
 
 
-
-def main(data_dir, client, bc):
-    read_tables(data_dir, bc)
+def main(data_dir, client, bc, config):
+    benchmark(read_tables, data_dir, bc, dask_profile=config["dask_profile"])
 
     date = datetime.datetime(2001, 3, 16)
     start = (date + timedelta(days=-30)).strftime("%Y-%m-%d")
@@ -107,5 +103,6 @@ def main(data_dir, client, bc):
 
 
 if __name__ == "__main__":
+    config = tpcxbb_argparser()
     client, bc = attach_to_cluster(config, create_blazing_context=True)
     run_query(config=config, client=client, query_func=main, blazing_context=bc)

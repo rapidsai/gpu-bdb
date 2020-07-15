@@ -26,10 +26,8 @@ from xbb_tools.readers import build_reader
 from xbb_tools.sessionization import get_sessions
 
 
-
 # parameters
 q04_session_timeout_inSec = 3600
-
 
 
 def read_tables(config):
@@ -108,11 +106,15 @@ def reduction_function(df, keep_cols, DYNAMIC_CAT_CODE, ORDER_CAT_CODE):
     return df
 
 
-
-def main(client,config):
+def main(client, config):
     import cudf
 
-    wp, wcs_df = benchmark(read_tables,config=config,compute_result=config["get_read_time"], dask_profile=config["dask_profile"])
+    wp, wcs_df = benchmark(
+        read_tables,
+        config=config,
+        compute_result=config["get_read_time"],
+        dask_profile=config["dask_profile"],
+    )
 
     ### downcasting the column inline with q03
     wcs_df["wcs_user_sk"] = wcs_df["wcs_user_sk"].astype("int32")

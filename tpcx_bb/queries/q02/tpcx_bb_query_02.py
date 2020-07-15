@@ -65,7 +65,6 @@ def reduction_function(df, q02_session_timeout_inSec):
     return grouped_df
 
 
-
 def read_tables(config):
     table_reader = build_reader(
         data_format=config["file_format"],
@@ -97,10 +96,14 @@ def pre_repartition_task(wcs_df):
     return f_wcs_df
 
 
+def main(client, config):
 
-def main(client,config):
-
-    wcs_df = benchmark(read_tables,config=config,compute_result=config["get_read_time"], dask_profile=config["dask_profile"])
+    wcs_df = benchmark(
+        read_tables,
+        config=config,
+        compute_result=config["get_read_time"],
+        dask_profile=config["dask_profile"],
+    )
 
     ### filter nulls
     # SELECT

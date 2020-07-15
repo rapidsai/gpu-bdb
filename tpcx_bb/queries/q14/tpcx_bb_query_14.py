@@ -28,9 +28,6 @@ from xbb_tools.utils import (
 from xbb_tools.readers import build_reader
 
 
-
-
-
 def read_tables(config):
     table_reader = build_reader(
         data_format=config["file_format"],
@@ -55,8 +52,7 @@ def read_tables(config):
     return web_sales, household_demographics, web_page, time_dim
 
 
-
-def main(client,config):
+def main(client, config):
     import cudf
 
     q14_dependents = 5
@@ -67,7 +63,12 @@ def main(client,config):
     q14_content_len_min = 5000
     q14_content_len_max = 6000
 
-    web_sales, household_demographics, web_page, time_dim = benchmark(read_tables,config=config,compute_result=config["get_read_time"], dask_profile=config["dask_profile"])
+    web_sales, household_demographics, web_page, time_dim = benchmark(
+        read_tables,
+        config=config,
+        compute_result=config["get_read_time"],
+        dask_profile=config["dask_profile"],
+    )
 
     household_demographics = household_demographics.query(
         "hd_dep_count==@q14_dependents",

@@ -29,8 +29,6 @@ from distributed import wait
 ### Grouped Store sales and web sales of 1 item grouped by `date_sk` should fit in memory as number of dates is limited
 
 
-
-
 ## query parameter
 q24_i_item_sk = 10000
 
@@ -44,7 +42,6 @@ imp_cols = [
     "imp_sk",
 ]
 ss_cols = ["ss_item_sk", "ss_sold_date_sk", "ss_quantity"]
-
 
 
 def read_tables(config):
@@ -211,10 +208,14 @@ def get_ss(ss_df, item_imp_join_df):
     return r_ss
 
 
+def main(client, config):
 
-def main(client,config):
-
-    ws_df, item_df, imp_df, ss_df = benchmark(read_tables,config=config,compute_result=config["get_read_time"], dask_profile=config["dask_profile"])
+    ws_df, item_df, imp_df, ss_df = benchmark(
+        read_tables,
+        config=config,
+        compute_result=config["get_read_time"],
+        dask_profile=config["dask_profile"],
+    )
 
     ## helper table
     item_imp_join_df = get_helper_query_table(imp_df, item_df)

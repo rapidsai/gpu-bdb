@@ -34,8 +34,6 @@ import cupy as cp
 from distributed import wait
 
 
-
-
 # -------- Q18 -----------
 # -- store_sales date range
 q18_startDate = "2001-05-02"
@@ -43,7 +41,6 @@ q18_startDate = "2001-05-02"
 q18_endDate = "2001-09-02"
 TEMP_TABLE1 = "TEMP_TABLE1"
 EOL_CHAR = "è"
-
 
 
 def read_tables(config):
@@ -154,12 +151,16 @@ def find_relevant_reviews(df, targets_host, str_col_name="pr_review_content"):
     return combined
 
 
-
-def main(client,config):
+def main(client, config):
     import cudf
     import dask_cudf
 
-    store_sales, date_dim, store, product_reviews = benchmark(read_tables,config=config,compute_result=config["get_read_time"], dask_profile=config["dask_profile"])
+    store_sales, date_dim, store, product_reviews = benchmark(
+        read_tables,
+        config=config,
+        compute_result=config["get_read_time"],
+        dask_profile=config["dask_profile"],
+    )
     ### adding a wait call slows this down by 3-4 seconds, removing it for now
     ### Make TEMP_TABLE1
 

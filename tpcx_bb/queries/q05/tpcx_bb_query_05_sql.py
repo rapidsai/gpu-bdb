@@ -34,8 +34,6 @@ from sklearn.metrics import roc_auc_score
 import cupy as cp
 
 
-
-
 # Logistic Regression params
 # solver = "LBFGS" Used by passing `penalty=None` or "l2"
 # step_size = 1 Not used
@@ -43,7 +41,6 @@ import cupy as cp
 iterations = 100
 C = 10_000  # reg_lambda = 0 hence C for model is a large value
 convergence_tol = 1e-9
-
 
 
 def read_tables(data_dir, bc):
@@ -93,9 +90,8 @@ def build_and_predict_model(ml_input_df):
     return results_dict
 
 
-
-def main(data_dir, client, bc):
-    read_tables(data_dir, bc)
+def main(data_dir, client, bc, config):
+    benchmark(read_tables, data_dir, bc, dask_profile=config["dask_profile"])
 
     query = """
         SELECT
@@ -158,5 +154,6 @@ def main(data_dir, client, bc):
 
 
 if __name__ == "__main__":
+    config = tpcxbb_argparser()
     client, bc = attach_to_cluster(config, create_blazing_context=True)
     run_query(config=config, client=client, query_func=main, blazing_context=bc)

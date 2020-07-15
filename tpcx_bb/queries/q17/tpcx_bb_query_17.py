@@ -26,8 +26,6 @@ from xbb_tools.utils import (
 from xbb_tools.readers import build_reader
 
 
-
-
 ### conf
 q17_gmt_offset = -5
 # --store_sales date
@@ -50,7 +48,6 @@ store_cols = ["s_gmt_offset", "s_store_sk"]
 date_cols = ["d_date_sk", "d_year", "d_moy"]
 customer_address_cols = ["ca_address_sk", "ca_gmt_offset"]
 promotion_cols = ["p_channel_email", "p_channel_dmail", "p_channel_tv", "p_promo_sk"]
-
 
 
 def read_tables(config):
@@ -81,8 +78,7 @@ def read_tables(config):
     )
 
 
-
-def main(client,config):
+def main(client, config):
     import cudf
 
     (
@@ -93,7 +89,12 @@ def main(client,config):
         date_dim_df,
         customer_address_df,
         promotion_df,
-    ) = benchmark(read_tables,config=config,compute_result=config["get_read_time"], dask_profile=config["dask_profile"])
+    ) = benchmark(
+        read_tables,
+        config=config,
+        compute_result=config["get_read_time"],
+        dask_profile=config["dask_profile"],
+    )
 
     # store_sales ss LEFT SEMI JOIN date_dim dd ON ss.ss_sold_date_sk = dd.d_date_sk AND dd.d_year = ${hiveconf:q17_year} AND dd.d_moy = ${hiveconf:q17_month}
     filtered_date_df = date_dim_df.query(

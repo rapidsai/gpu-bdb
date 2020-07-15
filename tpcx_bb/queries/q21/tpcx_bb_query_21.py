@@ -31,7 +31,6 @@ q21_month = 1
 q21_limit = 100
 
 
-
 store_sales_cols = [
     "ss_item_sk",
     "ss_store_sk",
@@ -53,7 +52,6 @@ store_cols = ["s_store_name", "s_store_id", "s_store_sk"]
 item_cols = ["i_item_id", "i_item_desc", "i_item_sk"]
 
 # todo: See if persisting the date table improves performence as its used all over
-
 
 
 def read_tables(config):
@@ -80,8 +78,7 @@ def read_tables(config):
     )
 
 
-
-def main(client,config):
+def main(client, config):
     (
         store_sales_df,
         date_dim_df,
@@ -89,7 +86,12 @@ def main(client,config):
         store_retuns_df,
         store_table_df,
         item_table_df,
-    ) = benchmark(read_tables,config=config,compute_result=config["get_read_time"], dask_profile=config["dask_profile"])
+    ) = benchmark(
+        read_tables,
+        config=config,
+        compute_result=config["get_read_time"],
+        dask_profile=config["dask_profile"],
+    )
 
     # SELECT sr_item_sk, sr_customer_sk, sr_ticket_number, sr_return_quantity
     # FROM

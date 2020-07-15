@@ -32,7 +32,6 @@ import glob
 from dask import delayed
 
 
-
 q03_days_in_sec_before_purchase = 864000
 q03_views_before_purchase = 5
 q03_purchased_item_IN = 10001
@@ -106,7 +105,6 @@ def reduction_function(df, item_df_filtered):
     grouped_df = product_view_results.groupby(["i_item_sk"]).size().reset_index()
     grouped_df.columns = ["i_item_sk", "cnt"]
     return grouped_df
-
 
 
 def read_tables(config):
@@ -208,12 +206,16 @@ def apply_find_items_viewed(df, item_mappings):
     return filtered
 
 
-
-def main(client,config):
+def main(client, config):
     import dask_cudf
     import cudf
 
-    item_df = benchmark(read_tables,config=config,compute_result=config["get_read_time"], dask_profile=config["dask_profile"])
+    item_df = benchmark(
+        read_tables,
+        config=config,
+        compute_result=config["get_read_time"],
+        dask_profile=config["dask_profile"],
+    )
 
     wcs_tstamp_min = get_wcs_minima(config)
 
@@ -232,9 +234,7 @@ def main(client,config):
     ### Below Pr has the dashboard snapshot which makes the problem clear
     ### https://github.com/rapidsai/tpcx-bb-internal/pull/496#issue-399946141
 
-    web_clickstream_flist = glob.glob(
-        config["data_dir"] + "web_clickstreams/*.parquet"
-    )
+    web_clickstream_flist = glob.glob(config["data_dir"] + "web_clickstreams/*.parquet")
     task_ls = [
         delayed(pre_repartition_task)(fn, item_df.to_delayed()[0], wcs_tstamp_min)
         for fn in web_clickstream_flist

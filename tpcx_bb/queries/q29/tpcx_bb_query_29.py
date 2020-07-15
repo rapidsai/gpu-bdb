@@ -40,12 +40,9 @@ from distributed import wait
 # * The ws_item_join table after distincts has `48M` rows, can cause problems on bigger scale factors
 
 
-
-
 # -------- Q29 -----------
 q29_limit = 100
 q29_session_timeout_inSec = 3600
-
 
 
 def read_tables(config):
@@ -95,10 +92,14 @@ def get_pairs(
     return pair_df
 
 
+def main(client, config):
 
-def main(client,config):
-
-    item_df, ws_df = benchmark(read_tables,config=config,compute_result=config["get_read_time"], dask_profile=config["dask_profile"])
+    item_df, ws_df = benchmark(
+        read_tables,
+        config=config,
+        compute_result=config["get_read_time"],
+        dask_profile=config["dask_profile"],
+    )
     ### setting index on ws_order_number
     ws_df = ws_df.repartition(columns=["ws_order_number"])
     ### at sf-100k we will have max of 17M rows and 17 M rows with 2 columns, 1 part is very reasonable

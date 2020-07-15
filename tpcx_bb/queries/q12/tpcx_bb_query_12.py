@@ -34,8 +34,6 @@ from dask import delayed
 # Extrapolation to scale `1_000_000` ->non filtered-rows `17,820,000` -> filtered rows `6,005,900` (So should scale up)
 
 
-
-
 ### These parameters are not used
 # q12_startDate='2001-09-02'
 # q12_endDate1='2001-10-02'
@@ -62,7 +60,6 @@ def string_filter(df, col_name, col_values):
             bool_flag = (df[col_name] == val) | (bool_flag)
 
     return df[bool_flag].reset_index(drop=True)
-
 
 
 def read_tables(config):
@@ -151,11 +148,15 @@ def filter_ss_table(store_sales_df, filtered_item_df):
     return filtered_ss_df[["ss_customer_sk", "ss_sold_date_sk"]]
 
 
-
-def main(client,config):
+def main(client, config):
     import cudf, dask_cudf
 
-    item_df, store_sales_df = benchmark(read_tables,config=config,compute_result=config["get_read_time"], dask_profile=config["dask_profile"])
+    item_df, store_sales_df = benchmark(
+        read_tables,
+        config=config,
+        compute_result=config["get_read_time"],
+        dask_profile=config["dask_profile"],
+    )
 
     ### Query 0. Filtering item table
     filtered_item_df = string_filter(item_df, "i_category", q12_i_category_IN)
@@ -177,9 +178,7 @@ def main(client,config):
         "wcs_click_date_sk": np.ones(1, dtype=np.int64),
     }
     meta_df = cudf.DataFrame(meta_d)
-    web_clickstream_flist = glob.glob(
-        config["data_dir"] + "web_clickstreams/*.parquet"
-    )
+    web_clickstream_flist = glob.glob(config["data_dir"] + "web_clickstreams/*.parquet")
     task_ls = [
         delayed(filter_wcs_table)(fn, filtered_item_df.to_delayed()[0])
         for fn in web_clickstream_flist
