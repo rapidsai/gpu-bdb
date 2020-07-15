@@ -97,8 +97,6 @@ def main(data_dir, client):
         -- we don't need a 'ON' join condition. result is just two numbers.
     """
     result = bc.sql(query)
-    print(result.compute())
-    print(result.dtypes)
     return result
 
 
