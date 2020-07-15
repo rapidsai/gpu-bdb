@@ -46,59 +46,52 @@ import json
 #################################
 # Benchmark Timing
 #################################
+def benchmark(func, *args, **kwargs):  
+    csv = kwargs.pop('csv', True)
+    dask_profile = kwargs.pop('dask_profile', False)
+    compute_result = kwargs.pop('compute_result', False) 
+    name = func.__name__
+    t0 = time.time()
+    if dask_profile:
+        with performance_report(filename=f"profiled-{name}.html"):
+            result = func(*args, **kwargs)
+    else:
+        result = func(*args, **kwargs)
+    elapsed_time = time.time() - t0
 
+    logging_info = {}
+    logging_info["elapsed_time_seconds"] = elapsed_time
+    logging_info["function_name"] = name
+    if compute_result:
+        import dask_cudf
 
-def benchmark(csv=True, dask_profile=False, compute_result=False):
-    def decorate(func):
-        def profiled(*args, **kwargs):
-            name = func.__name__
-            t0 = time.time()
-            if dask_profile:
-                with performance_report(filename=f"profiled-{name}.html"):
-                    result = func(*args, **kwargs)
-            else:
-                result = func(*args, **kwargs)
-            elapsed_time = time.time() - t0
+        if isinstance(result, dask_cudf.DataFrame):
+            len_tasks = [dask.delayed(len)(df) for df in result.to_delayed()]
+        else:
+            len_tasks = []
+            for read_df in result:
+                len_tasks += [
+                    dask.delayed(len)(df) for df in read_df.to_delayed()
+                ]
 
-            logging_info = {}
-            logging_info["elapsed_time_seconds"] = elapsed_time
-            logging_info["function_name"] = name
-            if compute_result:
-                import dask_cudf
+        compute_st = time.time()
+        results = dask.compute(*len_tasks)
+        compute_et = time.time()
+        logging_info["compute_time_seconds"] = compute_et - compute_st
 
-                if isinstance(result, dask_cudf.DataFrame):
-                    len_tasks = [dask.delayed(len)(df) for df in result.to_delayed()]
-                else:
-                    len_tasks = []
-                    for read_df in result:
-                        len_tasks += [
-                            dask.delayed(len)(df) for df in read_df.to_delayed()
-                        ]
+    logdf = pd.DataFrame.from_dict(logging_info, orient="index").T
 
-                compute_st = time.time()
-                results = dask.compute(*len_tasks)
-                compute_et = time.time()
-                logging_info["compute_time_seconds"] = compute_et - compute_st
-
-            logdf = pd.DataFrame.from_dict(logging_info, orient="index").T
-
-            if csv:
-                logdf.to_csv(f"benchmarked_{name}.csv", index=False)
-            else:
-                print(logdf)
-            return result
-
-        return profiled
-
-    return decorate
-
-
+    if csv:
+        logdf.to_csv(f"benchmarked_{name}.csv", index=False)
+    else:
+        print(logdf)
+    return result
 #################################
 # Result Writing
 #################################
 
 
-@benchmark()
+
 def write_result(payload, filetype="parquet", output_directory="./"):
     """
     """
@@ -282,9 +275,9 @@ def run_dask_cudf_query(cli_args, client, query_func, write_func=write_result):
     try:
         remove_benchmark_files()
         cli_args["start_time"] = time.time()
-        results = query_func(client=client)
+        results = benchmark(query_func,dask_profile=cli_args.get("dask_profile"),client=client,cli_args=cli_args)
 
-        write_func(
+        benchmark(write_func,
             results,
             output_directory=cli_args["output_dir"],
             filetype=cli_args["output_filetype"],
@@ -759,7 +752,6 @@ def build_benchmark_googlesheet_payload(cli_args):
         filename="benchmarked_read_tables.csv",
         query_start_time=cli_args.get("start_time"),
     )
-
     if data["get_read_time"] and read_graph_creation_time and query_time:
         ### below contains the computation time
         compute_read_table_time = _get_benchmarked_method_time(

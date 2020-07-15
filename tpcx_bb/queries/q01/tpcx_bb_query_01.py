@@ -27,7 +27,6 @@ from xbb_tools.readers import build_reader
 # Settinng  index + merge using  map_parition can be a work-around if dask native merge is slow
 
 
-cli_args = tpcxbb_argparser()
 
 # -------- Q1 -----------
 q01_i_category_id_IN = [1, 2, 3]
@@ -40,11 +39,7 @@ q01_limit = 100
 item_cols = ["i_item_sk", "i_category_id"]
 ss_cols = ["ss_item_sk", "ss_store_sk", "ss_ticket_number"]
 
-
-@benchmark(
-    compute_result=cli_args["get_read_time"], dask_profile=cli_args["dask_profile"]
-)
-def read_tables():
+def read_tables(cli_args):
     table_reader = build_reader(
         data_format=cli_args["file_format"],
         basepath=cli_args["data_dir"],
@@ -68,8 +63,6 @@ def read_tables():
 #     Where
 #     t1.ss_item_sk < t2.ss_item_sk
 
-
-@benchmark(dask_profile=cli_args["dask_profile"])
 def get_pairs(
     df,
     col_name="ss_item_sk",
@@ -89,10 +82,10 @@ def get_pairs(
     return pair_df
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
-def main(client):
 
-    item_df, ss_df = read_tables()
+def main(client,cli_args):
+
+    item_df, ss_df = benchmark(read_tables,compute_result=cli_args["get_read_time"], dask_profile=cli_args["dask_profile"])
 
     # SELECT DISTINCT ss_item_sk,ss_ticket_number
     # FROM store_sales s, item i
@@ -168,5 +161,6 @@ if __name__ == "__main__":
     import cudf
     import dask_cudf
 
+    cli_args = tpcxbb_argparser()
     client, bc = attach_to_cluster(cli_args)
     run_query(cli_args=cli_args, client=client, query_func=main)
