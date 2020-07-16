@@ -17,7 +17,6 @@
 
 import sys
 
-from blazingsql import BlazingContext
 from xbb_tools.cluster_startup import attach_to_cluster
 import os
 import cudf
@@ -32,7 +31,7 @@ from xbb_tools.text import (
 from xbb_tools.utils import (
     benchmark,
     tpcxbb_argparser,
-    run_bsql_query,
+    run_query,
 )
 
 cli_args = tpcxbb_argparser()
@@ -121,19 +120,15 @@ def find_relevant_reviews(df, targets_host, str_col_name="pr_review_content"):
     return combined
 
 
-@benchmark(
-    compute_result=cli_args["get_read_time"], dask_profile=cli_args["dask_profile"]
-)
-def read_tables(data_dir):
+def read_tables(data_dir, bc):
     bc.create_table('store', data_dir + "store/*.parquet")
     bc.create_table('store_sales', data_dir + "store_sales/*.parquet")
     bc.create_table('date_dim', data_dir + "date_dim/*.parquet")
     bc.create_table('product_reviews', data_dir + "product_reviews/*.parquet")
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
-def main(data_dir, client):
-    read_tables(data_dir)
+def main(data_dir, client, bc, config):
+    benchmark(read_tables, data_dir, bc, dask_profile=config["dask_profile"])
 
     query_1 = f"""
         WITH temp_table1 AS
@@ -292,20 +287,11 @@ def main(data_dir, client):
         ON wsswsi.review_idx_global_pos = tt2.pr_review_sk
         ORDER BY s_name, r_date, r_sentence, sentiment_word
     """
-
     result = bc.sql(query_4)
     return result
 
 
 if __name__ == "__main__":
-    client = attach_to_cluster(cli_args)
-
-    bc = BlazingContext(
-        dask_client=client,
-        pool=True,
-        network_interface=os.environ.get("INTERFACE", "eth0"),
-    )
-
-    run_bsql_query(
-        cli_args=cli_args, client=client, query_func=main
-    )
+    config = tpcxbb_argparser()
+    client, bc = attach_to_cluster(config, create_blazing_context=True)
+    run_query(config=config, client=client, query_func=main, blazing_context=bc)
