@@ -105,7 +105,7 @@ def main(data_dir, client, bc, config):
     bc.create_table('ner_parsed', ner_parsed)
 
     query = """
-        SELECT review_idx_global_pos as review_sk, 10002 as item_sk, word as company_name, sentence as review_sentence
+        SELECT review_idx_global_pos as review_sk, CAST(10002 AS BIGINT) as item_sk, word as company_name, sentence as review_sentence
         FROM repeated_names left join ner_parsed
         ON sentence_idx_global_pos = sentence_tokenized_global_pos
         ORDER BY review_idx_global_pos, item_sk, word, sentence
