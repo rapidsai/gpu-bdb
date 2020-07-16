@@ -29,10 +29,6 @@ from xbb_tools.utils import (
 from xbb_tools.readers import build_reader
 from dask import delayed
 
-try:
-    cli_args = tpcxbb_argparser()
-except:
-    cli_args = {}
 
 # q25 parameters
 Q25_DATE = "2002-01-02"
@@ -41,12 +37,11 @@ CLUSTER_ITERATIONS = 20
 N_ITER = 5
 
 
-@benchmark(compute_result=cli_args.get("get_read_time"))
-def read_tables():
+def read_tables(config):
     table_reader = build_reader(
-        data_format=cli_args["file_format"],
-        basepath=cli_args["data_dir"],
-        split_row_groups=cli_args["split_row_groups"],
+        data_format=config["file_format"],
+        basepath=config["data_dir"],
+        split_row_groups=config["split_row_groups"],
     )
 
     ss_cols = ["ss_customer_sk", "ss_sold_date_sk", "ss_ticket_number", "ss_net_paid"]
@@ -103,11 +98,15 @@ def get_clusters(client, ml_input_df):
     return results_dict
 
 
-@benchmark(dask_profile=cli_args.get("dask_profile"))
-def main(client):
+def main(client, config):
     import dask_cudf
 
-    ss_ddf, ws_ddf, datedim_ddf = read_tables()
+    ss_ddf, ws_ddf, datedim_ddf = benchmark(
+        read_tables,
+        config=config,
+        compute_result=config["get_read_time"],
+        dask_profile=config["dask_profile"],
+    )
     datedim_ddf = datedim_ddf.map_partitions(convert_datestring_to_days)
     min_date = np.datetime64(Q25_DATE, "D").astype(int)
     # Filter by date
@@ -176,5 +175,6 @@ if __name__ == "__main__":
     import cudf
     import dask_cudf
 
-    client, bc = attach_to_cluster(cli_args)
-    run_query(cli_args=cli_args, client=client, query_func=main)
+    config = tpcxbb_argparser()
+    client, bc = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main)

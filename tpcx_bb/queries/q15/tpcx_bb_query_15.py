@@ -30,8 +30,6 @@ import datetime
 import numpy as np
 
 
-cli_args = tpcxbb_argparser()
-
 q15_startDate = "2001-09-02"
 q15_endDate = "2002-09-02"
 q15_store_sk = "10"
@@ -41,14 +39,11 @@ date_cols = ["d_date", "d_date_sk"]
 item_cols = ["i_item_sk", "i_category_id"]
 
 
-@benchmark(
-    compute_result=cli_args["get_read_time"], dask_profile=cli_args["dask_profile"]
-)
-def read_tables():
+def read_tables(config):
     table_reader = build_reader(
-        data_format=cli_args["file_format"],
-        basepath=cli_args["data_dir"],
-        split_row_groups=cli_args["split_row_groups"],
+        data_format=config["file_format"],
+        basepath=config["data_dir"],
+        split_row_groups=config["split_row_groups"],
     )
 
     store_sales_df = table_reader.read("store_sales", relevant_cols=store_sales_cols)
@@ -58,12 +53,14 @@ def read_tables():
     return store_sales_df, date_dim_df, item_df
 
 
-@benchmark(
-    compute_result=cli_args["get_read_time"], dask_profile=cli_args["dask_profile"]
-)
-def main(client):
+def main(client, config):
 
-    store_sales_df, date_dim_df, item_df = read_tables()
+    store_sales_df, date_dim_df, item_df = benchmark(
+        read_tables,
+        config=config,
+        compute_result=config["get_read_time"],
+        dask_profile=config["dask_profile"],
+    )
 
     ###  Query 0. Filtering store sales
     store_sales_df = store_sales_df.query(f"ss_store_sk == {q15_store_sk}")
@@ -172,5 +169,6 @@ if __name__ == "__main__":
     import cudf
     import dask_cudf
 
-    client, bc = attach_to_cluster(cli_args)
-    run_query(cli_args=cli_args, client=client, query_func=main)
+    config = tpcxbb_argparser()
+    client, bc = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main)

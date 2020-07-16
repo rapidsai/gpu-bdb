@@ -2,7 +2,7 @@ from xbb_tools.utils import benchmark, tpcxbb_argparser, run_query
 from xbb_tools.readers import build_reader
 import os, subprocess, math, time
 
-config = tpcxbb_argparser()
+
 config["data_dir"] = "/".join(config["data_dir"].rstrip("/").split("/")[:-1])
 
 spark_schema_dir = f"{os.getcwd()}/../../spark_table_schemas/"
@@ -144,8 +144,7 @@ def repartition(table, outdir, npartitions=None, chunksize=None, compression="sn
         ).to_parquet(outdir + table, compression=compression)
 
 
-@benchmark(dask_profile=config["dask_profile"])
-def main(client):
+def main(client, config):
     # location you want to write Parquet versions of the table data
     data_dir = "/".join(config["data_dir"].split("/")[:-1])
     outdir = f"{data_dir}/parquet_{part_size}gb/"
@@ -169,5 +168,6 @@ if __name__ == "__main__":
     import cudf
     import dask_cudf
 
+    config = tpcxbb_argparser()
     client, bc = attach_to_cluster(config)
-    run_query(cli_args=config, client=client, query_func=main)
+    run_query(config=config, client=client, query_func=main)

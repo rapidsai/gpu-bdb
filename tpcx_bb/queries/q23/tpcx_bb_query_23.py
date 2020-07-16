@@ -28,7 +28,6 @@ from xbb_tools.utils import (
 
 from distributed import wait
 
-cli_args = tpcxbb_argparser()
 
 ### inventory date
 q23_year = 2001
@@ -36,10 +35,9 @@ q23_month = 1
 q23_coefficient = 1.3
 
 
-@benchmark()
-def read_tables():
+def read_tables(config):
     table_reader = build_reader(
-        data_format=cli_args["file_format"], basepath=cli_args["data_dir"],
+        data_format=config["file_format"], basepath=config["data_dir"],
     )
 
     date_cols = ["d_date_sk", "d_year", "d_moy"]
@@ -56,7 +54,6 @@ def read_tables():
     return date_df, inv_df
 
 
-@benchmark()
 def get_iteration1(merged_inv_dates, n_workers):
     grouped_df = merged_inv_dates.groupby(["inv_warehouse_sk", "inv_item_sk", "d_moy"])
     q23_tmp_inv_part = grouped_df.agg(
@@ -78,9 +75,13 @@ def get_iteration1(merged_inv_dates, n_workers):
     return iteration1_df
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
-def main(client):
-    date_df, inv_df = read_tables()
+def main(client, config):
+    date_df, inv_df = benchmark(
+        read_tables,
+        config=config,
+        compute_result=config["get_read_time"],
+        dask_profile=config["dask_profile"],
+    )
 
     expr = (
         f"d_year == {q23_year} and (d_moy >= {q23_month} and d_moy <= {q23_month + 1})"
@@ -131,5 +132,6 @@ if __name__ == "__main__":
     import cudf
     import dask_cudf
 
-    client, bc = attach_to_cluster(cli_args)
-    run_query(cli_args=cli_args, client=client, query_func=main)
+    config = tpcxbb_argparser()
+    client, bc = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main)

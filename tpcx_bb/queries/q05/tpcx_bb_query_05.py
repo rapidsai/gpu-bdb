@@ -57,21 +57,12 @@ iterations = 100
 C = 10_000  # reg_lambda = 0 hence C for model is a large value
 convergence_tol = 1e-9
 
-try:
-    cli_args = tpcxbb_argparser()
-except:
-    cli_args = {}
 
-
-@benchmark(
-    compute_result=cli_args.get("get_read_time"),
-    dask_profile=cli_args.get("dask_profile"),
-)
-def read_tables():
+def read_tables(config):
     table_reader = build_reader(
-        data_format=cli_args["file_format"],
-        basepath=cli_args["data_dir"],
-        split_row_groups=cli_args["split_row_groups"],
+        data_format=config["file_format"],
+        basepath=config["data_dir"],
+        split_row_groups=config["split_row_groups"],
     )
 
     item_ddf = table_reader.read("item", relevant_cols=items_columns, index=False)
@@ -171,12 +162,16 @@ def get_groupby_results(file_list, item_df):
     return sum_by_cat_ddf
 
 
-@benchmark(dask_profile=cli_args.get("dask_profile"))
-def main(client):
+def main(client, config):
     import cudf
     import dask_cudf
 
-    item_ddf, customer_ddf, customer_dem_ddf = read_tables()
+    item_ddf, customer_ddf, customer_dem_ddf = benchmark(
+        read_tables,
+        config=config,
+        compute_result=config["get_read_time"],
+        dask_profile=config["dask_profile"],
+    )
 
     # We want to find clicks in the parameterized category
     # It would be more efficient to translate to a category id, but
@@ -191,9 +186,7 @@ def main(client):
     keep_cols = ["i_item_sk", "i_category_id", "clicks_in_category"]
     item_ddf = item_ddf[keep_cols]
 
-    web_clickstream_flist = glob.glob(
-        cli_args["data_dir"] + "web_clickstreams/*.parquet"
-    )
+    web_clickstream_flist = glob.glob(config["data_dir"] + "web_clickstreams/*.parquet")
     n_workers = len(client.scheduler_info()["workers"])
     batchsize = len(web_clickstream_flist) // n_workers
     if batchsize < 1:
@@ -281,5 +274,6 @@ if __name__ == "__main__":
     import dask_cudf
     import cuml
 
-    client, bc = attach_to_cluster(cli_args)
-    run_query(cli_args=cli_args, client=client, query_func=main)
+    config = tpcxbb_argparser()
+    client, bc = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main)

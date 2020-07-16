@@ -24,17 +24,12 @@ from xbb_tools.utils import (
 )
 from xbb_tools.readers import build_reader
 
-cli_args = tpcxbb_argparser()
 
-
-@benchmark(
-    compute_result=cli_args["get_read_time"], dask_profile=cli_args["dask_profile"]
-)
-def read_tables():
+def read_tables(config):
     table_reader = build_reader(
-        data_format=cli_args["file_format"],
-        basepath=cli_args["data_dir"],
-        split_row_groups=cli_args["split_row_groups"],
+        data_format=config["file_format"],
+        basepath=config["data_dir"],
+        split_row_groups=config["split_row_groups"],
     )
 
     ss_columns = [
@@ -66,8 +61,7 @@ def read_tables():
     return store_sales, customer_address, customer_demographics, date_dim, store
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
-def main(client):
+def main(client, config):
     import cudf
 
     # Conf variables
@@ -107,7 +101,12 @@ def main(client):
         customer_demographics,
         date_dim,
         store,
-    ) = read_tables()
+    ) = benchmark(
+        read_tables,
+        config=config,
+        compute_result=config["get_read_time"],
+        dask_profile=config["dask_profile"],
+    )
 
     date_dim = date_dim.query(
         "d_year==@q09_year", meta=date_dim._meta, local_dict={"q09_year": q09_year}
@@ -212,5 +211,6 @@ if __name__ == "__main__":
     import cudf
     import dask_cudf
 
-    client, bc = attach_to_cluster(cli_args)
-    run_query(cli_args=cli_args, client=client, query_func=main)
+    config = tpcxbb_argparser()
+    client, bc = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main)

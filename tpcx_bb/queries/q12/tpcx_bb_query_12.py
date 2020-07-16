@@ -34,8 +34,6 @@ from dask import delayed
 # Extrapolation to scale `1_000_000` ->non filtered-rows `17,820,000` -> filtered rows `6,005,900` (So should scale up)
 
 
-cli_args = tpcxbb_argparser()
-
 ### These parameters are not used
 # q12_startDate='2001-09-02'
 # q12_endDate1='2001-10-02'
@@ -64,14 +62,11 @@ def string_filter(df, col_name, col_values):
     return df[bool_flag].reset_index(drop=True)
 
 
-@benchmark(
-    dask_profile=cli_args["dask_profile"], compute_result=cli_args["get_read_time"]
-)
-def read_tables():
+def read_tables(config):
     table_reader = build_reader(
-        data_format=cli_args["file_format"],
-        basepath=cli_args["data_dir"],
-        split_row_groups=cli_args["split_row_groups"],
+        data_format=config["file_format"],
+        basepath=config["data_dir"],
+        split_row_groups=config["split_row_groups"],
     )
 
     item_df = table_reader.read("item", relevant_cols=item_cols)
@@ -153,11 +148,15 @@ def filter_ss_table(store_sales_df, filtered_item_df):
     return filtered_ss_df[["ss_customer_sk", "ss_sold_date_sk"]]
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
-def main(client):
+def main(client, config):
     import cudf, dask_cudf
 
-    item_df, store_sales_df = read_tables()
+    item_df, store_sales_df = benchmark(
+        read_tables,
+        config=config,
+        compute_result=config["get_read_time"],
+        dask_profile=config["dask_profile"],
+    )
 
     ### Query 0. Filtering item table
     filtered_item_df = string_filter(item_df, "i_category", q12_i_category_IN)
@@ -179,9 +178,7 @@ def main(client):
         "wcs_click_date_sk": np.ones(1, dtype=np.int64),
     }
     meta_df = cudf.DataFrame(meta_d)
-    web_clickstream_flist = glob.glob(
-        cli_args["data_dir"] + "web_clickstreams/*.parquet"
-    )
+    web_clickstream_flist = glob.glob(config["data_dir"] + "web_clickstreams/*.parquet")
     task_ls = [
         delayed(filter_wcs_table)(fn, filtered_item_df.to_delayed()[0])
         for fn in web_clickstream_flist
@@ -253,5 +250,6 @@ if __name__ == "__main__":
     import cudf
     import dask_cudf
 
-    client, bc = attach_to_cluster(cli_args)
-    run_query(cli_args=cli_args, client=client, query_func=main)
+    config = tpcxbb_argparser()
+    client, bc = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main)

@@ -30,10 +30,6 @@ from xbb_tools.readers import build_reader
 from dask import delayed
 from dask.distributed import wait
 
-try:
-    cli_args = tpcxbb_argparser()
-except:
-    cli_args = {}
 
 # q20 parameters
 N_CLUSTERS = 8
@@ -41,12 +37,11 @@ CLUSTER_ITERATIONS = 20
 N_ITER = 5
 
 
-@benchmark(compute_result=cli_args.get("get_read_time"))
-def read_tables():
+def read_tables(config):
     table_reader = build_reader(
-        data_format=cli_args["file_format"],
-        basepath=cli_args["data_dir"],
-        split_row_groups=cli_args["split_row_groups"],
+        data_format=config["file_format"],
+        basepath=config["data_dir"],
+        split_row_groups=config["split_row_groups"],
     )
 
     store_sales_cols = [
@@ -69,7 +64,6 @@ def read_tables():
     return store_sales_df, store_returns_df
 
 
-@benchmark(dask_profile=cli_args.get("dask_profile"))
 def get_clusters(client, ml_input_df, feature_cols):
     """
     Takes the dask client, kmeans_input_df and feature columns.
@@ -111,9 +105,13 @@ def remove_inf_and_nulls(df, column_names, value=0.0):
     return df
 
 
-@benchmark(dask_profile=cli_args.get("dask_profile"))
-def main(client):
-    store_sales_df, store_returns_df = read_tables()
+def main(client, config):
+    store_sales_df, store_returns_df = benchmark(
+        read_tables,
+        config=config,
+        compute_result=config["get_read_time"],
+        dask_profile=config["dask_profile"],
+    )
 
     n_workers = len(client.scheduler_info()["workers"])
 
@@ -230,5 +228,6 @@ if __name__ == "__main__":
     import cudf
     import dask_cudf
 
-    client, bc = attach_to_cluster(cli_args)
-    run_query(cli_args=cli_args, client=client, query_func=main)
+    config = tpcxbb_argparser()
+    client, bc = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main)
