@@ -22,16 +22,19 @@ import importlib
 import dask
 from dask.distributed import Client
 from dask.utils import parse_bytes
+from blazingsql import BlazingContext
 
 
-def attach_to_cluster(cli_args):
+def attach_to_cluster(config, create_blazing_context=False):
     """Attaches to an existing cluster if available.
     By default, tries to attach to a cluster running on localhost:8786 (dask's default).
 
     This is currently hardcoded to assume the dashboard is running on port 8787.
+
+    Optionally, this will also create a BlazingContext.
     """
-    host = cli_args.get("cluster_host")
-    port = cli_args.get("cluster_port", "8786")
+    host = config.get("cluster_host")
+    port = config.get("cluster_port", "8786")
 
     if host is not None:
         try:
@@ -60,17 +63,35 @@ def attach_to_cluster(cli_args):
 
     # Get ucx config variables
     ucx_config = client.submit(_get_ucx_config).result()
-    cli_args.update(ucx_config)
+    config.update(ucx_config)
 
     # Save worker information
-    worker_counts = worker_count_info(client, gpu_sizes=["16GB", "32GB"])
-    cli_args["16GB_workers"] = worker_counts["16GB"]
-    cli_args["32GB_workers"] = worker_counts["32GB"]
+    gpu_sizes = ["16GB", "32GB", "40GB"]
+    worker_counts = worker_count_info(client, gpu_sizes=gpu_sizes)
+    for size in gpu_sizes:
+        key = size + "_workers"
+        if config.get(key) is not None and config.get(key) != worker_counts[size]:
+            print(
+                f"Expected {config.get(key)} {size} workers in your cluster, but got {worker_counts[size]}. It can take a moment for all workers to join the cluster. You may also have misconfigred hosts."
+            )
+            sys.exit(-1)
 
-    return client
+    config["16GB_workers"] = worker_counts["16GB"]
+    config["32GB_workers"] = worker_counts["32GB"]
+    config["40GB_workers"] = worker_counts["40GB"]
+
+    bc = None
+    if create_blazing_context:
+        bc = BlazingContext(
+            dask_client=client,
+            pool=True,
+            network_interface=os.environ.get("INTERFACE", "eth0"),
+        )
+
+    return client, bc
 
 
-def worker_count_info(client, gpu_sizes=["16GB", "32GB"], tol="2.1GB"):
+def worker_count_info(client, gpu_sizes=["16GB", "32GB", "40GB"], tol="2.1GB"):
     """
     Method accepts the Client object, GPU sizes and tolerance limit and returns
     a dictionary containing number of workers per GPU size specified
@@ -114,6 +135,7 @@ def import_query_libs():
         "pandas",
         "numpy",
         "spacy",
+        "blazingsql",
     ]
     for lib in library_list:
         importlib.import_module(lib)
