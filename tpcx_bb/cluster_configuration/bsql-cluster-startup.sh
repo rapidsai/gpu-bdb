@@ -34,34 +34,6 @@ rm -rf ~/.config/dask
 source $CONDA_ENV_PATH
 conda activate $CONDA_ENV_NAME
 
-# Check for and set BlazingContext parameters as environment variables
-if [ -z "$BLAZING_ALLOCATOR_MODE" ]
-then
-      export BLAZING_ALLOCATOR_MODE="existing"
-fi
-
-# Check for and set BlazingContext config_options as environment variables
-if [ -z "$JOIN_PARTITION_SIZE_THRESHOLD" ]
-then
-      export JOIN_PARTITION_SIZE_THRESHOLD=300000000
-fi
-if [ -z "$BLAZING_DEVICE_MEM_CONSUMPTION_THRESHOLD" ]
-then
-      export BLAZING_DEVICE_MEM_CONSUMPTION_THRESHOLD=0.8
-fi
-if [ -z "$BLAZING_LOGGING_DIRECTORY" ]
-then
-      export BLAZING_LOGGING_DIRECTORY="blazing_log"
-fi
-if [ -z "$MAX_DATA_LOAD_CONCAT_CACHE_BYTE_SIZE" ]
-then
-      export MAX_DATA_LOAD_CONCAT_CACHE_BYTE_SIZE=300000000
-fi
-if [ -z "$BLAZING_CACHE_DIRECTORY" ]
-then
-      export BLAZING_CACHE_DIRECTORY="/tmp/"
-fi
-
 # Dask/distributed configuration
 export DASK_DISTRIBUTED__COMM__TIMEOUTS__CONNECT="100s"
 export DASK_DISTRIBUTED__COMM__TIMEOUTS__TCP="600s"
