@@ -20,7 +20,7 @@ import sys
 from xbb_tools.utils import (
     benchmark,
     tpcxbb_argparser,
-    run_dask_cudf_query,
+    run_query,
 )
 from xbb_tools.readers import build_reader
 from distributed import wait
@@ -255,6 +255,5 @@ if __name__ == "__main__":
     import cudf
     import dask_cudf
 
-    client = attach_to_cluster(cli_args)
-
-    run_dask_cudf_query(cli_args=cli_args, client=client, query_func=main)
+    client, bc = attach_to_cluster(cli_args)
+    run_query(cli_args=cli_args, client=client, query_func=main)

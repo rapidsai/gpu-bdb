@@ -32,7 +32,7 @@ from xbb_tools.text_vectorizers.dist_hashing_vectorizer import cudf_hashing_vect
 from xbb_tools.utils import (
     benchmark,
     tpcxbb_argparser,
-    run_dask_cudf_query,
+    run_query,
 )
 from xbb_tools.readers import build_reader
 
@@ -371,6 +371,5 @@ if __name__ == "__main__":
     from cuml.dask.common.input_utils import DistributedDataHandler
     from cuml.dask.common import to_dask_cudf
 
-    client = attach_to_cluster(cli_args)
-
-    run_dask_cudf_query(cli_args=cli_args, client=client, query_func=main)
+    client, bc = attach_to_cluster(cli_args)
+    run_query(cli_args=cli_args, client=client, query_func=main)

@@ -254,6 +254,24 @@ def remove_benchmark_files():
 #################################
 # Query Runner Utilities
 #################################
+def run_query(
+    cli_args, client, query_func, write_func=write_result, blazing_context=None
+):
+    if blazing_context:
+        run_bsql_query(
+            cli_args=cli_args,
+            client=client,
+            query_func=query_func,
+            blazing_context=blazing_context,
+            write_func=write_func,
+        )
+    else:
+        run_dask_cudf_query(
+            cli_args=cli_args,
+            client=client,
+            query_func=query_func,
+            write_func=write_func,
+        )
 
 
 def run_dask_cudf_query(cli_args, client, query_func, write_func=write_result):
@@ -281,6 +299,7 @@ def run_dask_cudf_query(cli_args, client, query_func, write_func=write_result):
 
         if os.environ.get("tpcxbb_benchmark_sweep_run") != "True":
             client.close()
+
     except:
         cli_args["query_status"] = "Failed"
         print("Encountered Exception while running query")
@@ -290,7 +309,9 @@ def run_dask_cudf_query(cli_args, client, query_func, write_func=write_result):
     push_payload_to_googlesheet(cli_args)
 
 
-def run_bsql_query(cli_args, client, query_func, write_func=write_result):
+def run_bsql_query(
+    cli_args, client, query_func, blazing_context, write_func=write_result
+):
     """
     Common utility to perform all steps needed to execute a dask-cudf version
     of the query. Includes attaching to cluster, running the query and writing results
@@ -300,7 +321,7 @@ def run_bsql_query(cli_args, client, query_func, write_func=write_result):
         remove_benchmark_files()
         cli_args["start_time"] = time.time()
         data_dir = cli_args["data_dir"]
-        results = query_func(data_dir=data_dir, client=client)
+        results = query_func(data_dir=data_dir, client=client, bc=blazing_context)
 
         write_func(
             results,
