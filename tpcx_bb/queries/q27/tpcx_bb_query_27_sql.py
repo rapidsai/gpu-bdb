@@ -18,13 +18,10 @@
 import sys
 
 
-from blazingsql import BlazingContext
 from xbb_tools.text import create_sentences_from_reviews, create_words_from_sentences
 from xbb_tools.cluster_startup import attach_to_cluster
-from dask_cuda import LocalCUDACluster
 from dask.distributed import Client, wait
 import os
-import cudf
 import spacy
 
 from xbb_tools.utils import (
@@ -34,6 +31,8 @@ from xbb_tools.utils import (
 )
 
 cli_args = tpcxbb_argparser()
+
+
 # -------- Q27 -----------
 q27_pr_item_sk = 10002
 EOL_CHAR = "."
@@ -62,10 +61,10 @@ def main(data_dir, client, bc, config):
 
     import dask_cudf
 
-    query = """
+    query = f"""
         SELECT pr_review_sk, pr_item_sk, pr_review_content
         FROM product_reviews
-        WHERE pr_item_sk = 10002
+        WHERE pr_item_sk = {q27_pr_item_sk}
     """
     product_reviews_df = bc.sql(query)
 
@@ -104,14 +103,16 @@ def main(data_dir, client, bc, config):
     bc.create_table('repeated_names', repeated_names)
     bc.create_table('ner_parsed', ner_parsed)
 
-    query = """
-        SELECT review_idx_global_pos as review_sk, CAST(10002 AS BIGINT) as item_sk, word as company_name, sentence as review_sentence
+    query = f"""
+        SELECT review_idx_global_pos as review_sk, 
+            CAST({q27_pr_item_sk} AS BIGINT) as item_sk,
+            word as company_name,
+            sentence as review_sentence
         FROM repeated_names left join ner_parsed
         ON sentence_idx_global_pos = sentence_tokenized_global_pos
         ORDER BY review_idx_global_pos, item_sk, word, sentence
     """
     recombined = bc.sql(query)
-
     return recombined.compute()
 
 
