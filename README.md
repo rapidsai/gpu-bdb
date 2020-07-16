@@ -82,28 +82,18 @@ bash cluster-startup.sh NVLINK
 
 ## Running the Queries
 
-To run a query, starting from the repository root, go to the `queries` directory:
+To run a query, starting from the repository root, go to the query specific subdirectory. For example, to run q07:
 
 ```bash
-cd tpcx_bb/queries/
+cd tpcx_bb/queries/q07/
 ```
 
-Choose a query to run, and `cd` to that directory. We'll pick query 07.
+The queries assume that they can attach to a running Dask cluster. Cluster address and other benchmark configuration lives in a yaml file.
 
 ```bash
-cd q07
-```
-
-Activate the conda environment you've created.
-
-The queries assume that they can attach to a running Dask cluster. Command line arguments are used to determine the cluster and dataset on which to run the queries. The following is an example of running query 07.
-
-```bash
+conda activate rapids-tpcx-bb
 python tpcx_bb_query_07.py --config_file=../../benchmark_runner/benchmark_config.yaml
 ```
-
-- `config_file` points to a yaml file with all the necessary configuration to run either the end to end benchmark, or individual queries
-
 
 ## Performance Tracking
 
@@ -141,4 +131,4 @@ bash cluster_configuration/cluster-startup.sh TCP
 
 ## Data Generation
 
-The RAPIDS queries expect [Apache Parquet](http://parquet.apache.org/) formatted data. We provide a [script](tpcx_bb/queries/load_test/tpcx-bb-load-test.py) which can be used to convert bigBench dataGen's raw CSV files to optimally sized Parquet partitions.
+The RAPIDS queries expect [Apache Parquet](http://parquet.apache.org/) formatted data. We provide a [script](tpcx_bb/queries/load_test/tpcx_bb_load_test.py) which can be used to convert bigBench dataGen's raw CSV files to optimally sized Parquet partitions.
