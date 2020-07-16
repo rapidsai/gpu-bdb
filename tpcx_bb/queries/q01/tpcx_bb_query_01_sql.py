@@ -17,11 +17,8 @@
 
 import sys
 
-
 from blazingsql import BlazingContext
 from xbb_tools.cluster_startup import attach_to_cluster
-from dask_cuda import LocalCUDACluster
-from dask.distributed import Client
 import os
 
 from xbb_tools.utils import (
@@ -31,54 +28,50 @@ from xbb_tools.utils import (
 )
 
 
+# -------- Q1 -----------
+q01_i_category_id_IN = "1, 2, 3"
+# -- sf1 -> 11 stores, 90k sales in 820k lines
+q01_ss_store_sk_IN = "10, 20, 33, 40, 50"
+q01_viewed_together_count = 50
+q01_limit = 100
+
+
 def read_tables(data_dir, bc):
     bc.create_table("item", data_dir + "/item/*.parquet")
-    bc.create_table("customer", data_dir + "/customer/*.parquet")
     bc.create_table("store_sales", data_dir + "/store_sales/*.parquet")
-    bc.create_table("date_dim", data_dir + "/date_dim/*.parquet")
-    bc.create_table("customer_address", data_dir + "/customer_address/*.parquet")
 
 
 def main(data_dir, client, bc, config):
     benchmark(read_tables, data_dir, bc, dask_profile=config["dask_profile"])
 
-    query = """
-		WITH temp_table as 
-		(
-			SELECT k.i_item_sk
-			FROM item k,
-			(
-				SELECT i_category, 
-					SUM(j.i_current_price) / COUNT(j.i_current_price) * 1.2 AS avg_price
-				FROM item j
-				GROUP BY j.i_category
-			) avgCategoryPrice
-			WHERE avgCategoryPrice.i_category = k.i_category
-			AND k.i_current_price > avgCategoryPrice.avg_price 
-		)
-		SELECT ca_state, COUNT(*) AS cnt
-		FROM
-			customer_address a,
-			customer c,
-			store_sales s,
-			temp_table highPriceItems
-		WHERE a.ca_address_sk = c.c_current_addr_sk
-		AND c.c_customer_sk = s.ss_customer_sk
-		AND ca_state IS NOT NULL
-		AND ss_item_sk = highPriceItems.i_item_sk
-		AND s.ss_sold_date_sk IN
-		( 
-			SELECT d_date_sk
-			FROM date_dim
-			WHERE d_year = 2004
-			AND d_moy = 7
-		)
-		GROUP BY ca_state
-		HAVING COUNT(*) >= 10
-		ORDER BY cnt DESC, ca_state
-		LIMIT 10
-	"""
+    query_distinct = f"""
+        SELECT DISTINCT ss_item_sk, ss_ticket_number
+        FROM store_sales s, item i
+        WHERE s.ss_item_sk = i.i_item_sk
+        AND i.i_category_id IN ({q01_i_category_id_IN})
+        AND s.ss_store_sk IN ({q01_ss_store_sk_IN})
+    """
+    result_distinct = bc.sql(query_distinct)
 
+    bc.create_table("distinct_table", result_distinct)
+
+    query = f"""
+        SELECT item_sk_1, item_sk_2, COUNT(*) AS cnt
+        FROM
+        (
+            SELECT CAST(t1.ss_item_sk as BIGINT) AS item_sk_1,
+                CAST(t2.ss_item_sk AS BIGINT) AS item_sk_2
+            FROM distinct_table t1
+            INNER JOIN distinct_table t2
+            ON t1.ss_ticket_number = t2.ss_ticket_number
+            WHERE t1.ss_item_sk < t2.ss_item_sk
+        )
+        GROUP BY item_sk_1, item_sk_2
+        HAVING  COUNT(*) > {q01_viewed_together_count}
+        ORDER BY cnt DESC, CAST(item_sk_1 AS VARCHAR),
+                 CAST(item_sk_2 AS VARCHAR)
+        LIMIT {q01_limit}
+    """
     result = bc.sql(query)
     return result
 
