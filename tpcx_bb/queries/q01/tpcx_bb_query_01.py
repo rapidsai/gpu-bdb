@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 
-from xbb_tools.utils import benchmark, tpcxbb_argparser, run_dask_cudf_query
+from xbb_tools.utils import benchmark, tpcxbb_argparser, run_query
 from xbb_tools.readers import build_reader
 
 
@@ -26,8 +26,6 @@ from xbb_tools.readers import build_reader
 ### Future Notes:
 # Settinng  index + merge using  map_parition can be a work-around if dask native merge is slow
 
-
-cli_args = tpcxbb_argparser()
 
 # -------- Q1 -----------
 q01_i_category_id_IN = [1, 2, 3]
@@ -41,14 +39,11 @@ item_cols = ["i_item_sk", "i_category_id"]
 ss_cols = ["ss_item_sk", "ss_store_sk", "ss_ticket_number"]
 
 
-@benchmark(
-    compute_result=cli_args["get_read_time"], dask_profile=cli_args["dask_profile"]
-)
-def read_tables():
+def read_tables(config):
     table_reader = build_reader(
-        data_format=cli_args["file_format"],
-        basepath=cli_args["data_dir"],
-        split_row_groups=cli_args["split_row_groups"],
+        data_format=config["file_format"],
+        basepath=config["data_dir"],
+        split_row_groups=config["split_row_groups"],
     )
 
     item_df = table_reader.read("item", relevant_cols=item_cols)
@@ -69,7 +64,6 @@ def read_tables():
 #     t1.ss_item_sk < t2.ss_item_sk
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
 def get_pairs(
     df,
     col_name="ss_item_sk",
@@ -89,10 +83,14 @@ def get_pairs(
     return pair_df
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
-def main(client):
+def main(client, config):
 
-    item_df, ss_df = read_tables()
+    item_df, ss_df = benchmark(
+        read_tables,
+        config=config,
+        compute_result=config["get_read_time"],
+        dask_profile=config["dask_profile"],
+    )
 
     # SELECT DISTINCT ss_item_sk,ss_ticket_number
     # FROM store_sales s, item i
@@ -168,5 +166,6 @@ if __name__ == "__main__":
     import cudf
     import dask_cudf
 
-    client = attach_to_cluster(cli_args)
-    run_dask_cudf_query(cli_args=cli_args, client=client, query_func=main)
+    config = tpcxbb_argparser()
+    client, bc = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main)
