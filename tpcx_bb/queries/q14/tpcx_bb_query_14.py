@@ -27,17 +27,12 @@ from xbb_tools.utils import (
 )
 from xbb_tools.readers import build_reader
 
-cli_args = tpcxbb_argparser()
 
-
-@benchmark(
-    compute_result=cli_args["get_read_time"], dask_profile=cli_args["dask_profile"]
-)
-def read_tables():
+def read_tables(config):
     table_reader = build_reader(
-        data_format=cli_args["file_format"],
-        basepath=cli_args["data_dir"],
-        split_row_groups=cli_args["split_row_groups"],
+        data_format=config["file_format"],
+        basepath=config["data_dir"],
+        split_row_groups=config["split_row_groups"],
     )
 
     ws_columns = ["ws_ship_hdemo_sk", "ws_web_page_sk", "ws_sold_time_sk"]
@@ -57,8 +52,7 @@ def read_tables():
     return web_sales, household_demographics, web_page, time_dim
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
-def main(client):
+def main(client, config):
     import cudf
 
     q14_dependents = 5
@@ -69,7 +63,12 @@ def main(client):
     q14_content_len_min = 5000
     q14_content_len_max = 6000
 
-    web_sales, household_demographics, web_page, time_dim = read_tables()
+    web_sales, household_demographics, web_page, time_dim = benchmark(
+        read_tables,
+        config=config,
+        compute_result=config["get_read_time"],
+        dask_profile=config["dask_profile"],
+    )
 
     household_demographics = household_demographics.query(
         "hd_dep_count==@q14_dependents",
@@ -144,5 +143,6 @@ if __name__ == "__main__":
     import cudf
     import dask_cudf
 
-    client, bc = attach_to_cluster(cli_args)
-    run_query(cli_args=cli_args, client=client, query_func=main)
+    config = tpcxbb_argparser()
+    client, bc = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main)

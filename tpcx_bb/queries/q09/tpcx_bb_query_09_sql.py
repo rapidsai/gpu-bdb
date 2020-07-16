@@ -27,7 +27,6 @@ from xbb_tools.utils import (
     run_query,
 )
 
-cli_args = tpcxbb_argparser()
 
 # -------- Q9 -----------
 q09_year = 2001
@@ -60,9 +59,6 @@ q09_part3_sales_price_min = 150
 q09_part3_sales_price_max = 200
 
 
-@benchmark(
-    compute_result=cli_args["get_read_time"], dask_profile=cli_args["dask_profile"]
-)
 def read_tables(data_dir, bc):
     bc.create_table("store_sales", data_dir + "/store_sales/*.parquet")
     bc.create_table("customer_address", data_dir + "/customer_address/*.parquet")
@@ -73,9 +69,8 @@ def read_tables(data_dir, bc):
     bc.create_table("store", data_dir + "/store/*.parquet")
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
-def main(data_dir, client, bc):
-    read_tables(data_dir, bc)
+def main(data_dir, client, bc, config):
+    benchmark(read_tables, data_dir, bc, dask_profile=config["dask_profile"])
 
     query = f"""
         SELECT SUM(ss1.ss_quantity)
@@ -142,5 +137,6 @@ def main(data_dir, client, bc):
 
 
 if __name__ == "__main__":
-    client, bc = attach_to_cluster(cli_args, create_blazing_context=True)
-    run_query(cli_args=cli_args, client=client, query_func=main, blazing_context=bc)
+    config = tpcxbb_argparser()
+    client, bc = attach_to_cluster(config, create_blazing_context=True)
+    run_query(config=config, client=client, query_func=main, blazing_context=bc)

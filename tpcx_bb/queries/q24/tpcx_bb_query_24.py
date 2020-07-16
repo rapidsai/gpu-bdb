@@ -28,8 +28,6 @@ from distributed import wait
 ### Current Implimenation Assumption
 ### Grouped Store sales and web sales of 1 item grouped by `date_sk` should fit in memory as number of dates is limited
 
-cli_args = tpcxbb_argparser()
-
 
 ## query parameter
 q24_i_item_sk = 10000
@@ -46,12 +44,11 @@ imp_cols = [
 ss_cols = ["ss_item_sk", "ss_sold_date_sk", "ss_quantity"]
 
 
-@benchmark(compute_result=cli_args["get_read_time"])
-def read_tables():
+def read_tables(config):
     table_reader = build_reader(
-        data_format=cli_args["file_format"],
-        basepath=cli_args["data_dir"],
-        split_row_groups=cli_args["split_row_groups"],
+        data_format=config["file_format"],
+        basepath=config["data_dir"],
+        split_row_groups=config["split_row_groups"],
     )
     ### read tables
     ws_df = table_reader.read("web_sales", relevant_cols=ws_cols)
@@ -211,10 +208,14 @@ def get_ss(ss_df, item_imp_join_df):
     return r_ss
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
-def main(client):
+def main(client, config):
 
-    ws_df, item_df, imp_df, ss_df = read_tables()
+    ws_df, item_df, imp_df, ss_df = benchmark(
+        read_tables,
+        config=config,
+        compute_result=config["get_read_time"],
+        dask_profile=config["dask_profile"],
+    )
 
     ## helper table
     item_imp_join_df = get_helper_query_table(imp_df, item_df)
@@ -256,5 +257,6 @@ if __name__ == "__main__":
     import cudf
     import dask_cudf
 
-    client, bc = attach_to_cluster(cli_args)
-    run_query(cli_args=cli_args, client=client, query_func=main)
+    config = tpcxbb_argparser()
+    client, bc = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main)

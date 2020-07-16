@@ -31,10 +31,6 @@ from numba import cuda
 import glob
 from dask import delayed
 
-try:
-    cli_args = tpcxbb_argparser()
-except:
-    cli_args = {}
 
 q03_days_in_sec_before_purchase = 864000
 q03_views_before_purchase = 5
@@ -43,11 +39,11 @@ q03_purchased_item_category_IN = [2, 3]
 q03_limit = 100
 
 
-def get_wcs_minima(cli_args):
+def get_wcs_minima(config):
     import dask_cudf
 
     wcs_df = dask_cudf.read_parquet(
-        cli_args["data_dir"] + "web_clickstreams/*.parquet",
+        config["data_dir"] + "web_clickstreams/*.parquet",
         columns=["wcs_click_date_sk", "wcs_click_time_sk"],
     )
 
@@ -111,15 +107,11 @@ def reduction_function(df, item_df_filtered):
     return grouped_df
 
 
-@benchmark(
-    compute_result=cli_args.get("get_read_time"),
-    dask_profile=cli_args.get("dask_profile"),
-)
-def read_tables():
+def read_tables(config):
     table_reader = build_reader(
-        data_format=cli_args["file_format"],
-        basepath=cli_args["data_dir"],
-        split_row_groups=cli_args["split_row_groups"],
+        data_format=config["file_format"],
+        basepath=config["data_dir"],
+        split_row_groups=config["split_row_groups"],
     )
 
     item_cols = ["i_category_id", "i_item_sk"]
@@ -214,14 +206,18 @@ def apply_find_items_viewed(df, item_mappings):
     return filtered
 
 
-@benchmark(dask_profile=cli_args.get("dask_profile"))
-def main(client):
+def main(client, config):
     import dask_cudf
     import cudf
 
-    item_df = read_tables()
+    item_df = benchmark(
+        read_tables,
+        config=config,
+        compute_result=config["get_read_time"],
+        dask_profile=config["dask_profile"],
+    )
 
-    wcs_tstamp_min = get_wcs_minima(cli_args)
+    wcs_tstamp_min = get_wcs_minima(config)
 
     item_df["i_item_sk"] = item_df["i_item_sk"].astype("int32")
     item_df["i_category_id"] = item_df["i_category_id"].astype("int8")
@@ -238,9 +234,7 @@ def main(client):
     ### Below Pr has the dashboard snapshot which makes the problem clear
     ### https://github.com/rapidsai/tpcx-bb-internal/pull/496#issue-399946141
 
-    web_clickstream_flist = glob.glob(
-        cli_args["data_dir"] + "web_clickstreams/*.parquet"
-    )
+    web_clickstream_flist = glob.glob(config["data_dir"] + "web_clickstreams/*.parquet")
     task_ls = [
         delayed(pre_repartition_task)(fn, item_df.to_delayed()[0], wcs_tstamp_min)
         for fn in web_clickstream_flist
@@ -300,5 +294,6 @@ if __name__ == "__main__":
     import cudf
     import dask_cudf
 
-    client, bc = attach_to_cluster(cli_args)
-    run_query(cli_args=cli_args, client=client, query_func=main)
+    config = tpcxbb_argparser()
+    client, bc = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main)

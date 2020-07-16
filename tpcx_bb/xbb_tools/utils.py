@@ -46,51 +46,44 @@ import json
 #################################
 # Benchmark Timing
 #################################
+def benchmark(func, *args, **kwargs):
+    csv = kwargs.pop("csv", True)
+    dask_profile = kwargs.pop("dask_profile", False)
+    compute_result = kwargs.pop("compute_result", False)
+    name = func.__name__
+    t0 = time.time()
+    if dask_profile:
+        with performance_report(filename=f"profiled-{name}.html"):
+            result = func(*args, **kwargs)
+    else:
+        result = func(*args, **kwargs)
+    elapsed_time = time.time() - t0
 
+    logging_info = {}
+    logging_info["elapsed_time_seconds"] = elapsed_time
+    logging_info["function_name"] = name
+    if compute_result:
+        import dask_cudf
 
-def benchmark(csv=True, dask_profile=False, compute_result=False):
-    def decorate(func):
-        def profiled(*args, **kwargs):
-            name = func.__name__
-            t0 = time.time()
-            if dask_profile:
-                with performance_report(filename=f"profiled-{name}.html"):
-                    result = func(*args, **kwargs)
-            else:
-                result = func(*args, **kwargs)
-            elapsed_time = time.time() - t0
+        if isinstance(result, dask_cudf.DataFrame):
+            len_tasks = [dask.delayed(len)(df) for df in result.to_delayed()]
+        else:
+            len_tasks = []
+            for read_df in result:
+                len_tasks += [dask.delayed(len)(df) for df in read_df.to_delayed()]
 
-            logging_info = {}
-            logging_info["elapsed_time_seconds"] = elapsed_time
-            logging_info["function_name"] = name
-            if compute_result:
-                import dask_cudf
+        compute_st = time.time()
+        results = dask.compute(*len_tasks)
+        compute_et = time.time()
+        logging_info["compute_time_seconds"] = compute_et - compute_st
 
-                if isinstance(result, dask_cudf.DataFrame):
-                    len_tasks = [dask.delayed(len)(df) for df in result.to_delayed()]
-                else:
-                    len_tasks = []
-                    for read_df in result:
-                        len_tasks += [
-                            dask.delayed(len)(df) for df in read_df.to_delayed()
-                        ]
+    logdf = pd.DataFrame.from_dict(logging_info, orient="index").T
 
-                compute_st = time.time()
-                results = dask.compute(*len_tasks)
-                compute_et = time.time()
-                logging_info["compute_time_seconds"] = compute_et - compute_st
-
-            logdf = pd.DataFrame.from_dict(logging_info, orient="index").T
-
-            if csv:
-                logdf.to_csv(f"benchmarked_{name}.csv", index=False)
-            else:
-                print(logdf)
-            return result
-
-        return profiled
-
-    return decorate
+    if csv:
+        logdf.to_csv(f"benchmarked_{name}.csv", index=False)
+    else:
+        print(logdf)
+    return result
 
 
 #################################
@@ -98,7 +91,6 @@ def benchmark(csv=True, dask_profile=False, compute_result=False):
 #################################
 
 
-@benchmark()
 def write_result(payload, filetype="parquet", output_directory="./"):
     """
     """
@@ -255,11 +247,11 @@ def remove_benchmark_files():
 # Query Runner Utilities
 #################################
 def run_query(
-    cli_args, client, query_func, write_func=write_result, blazing_context=None
+    config, client, query_func, write_func=write_result, blazing_context=None
 ):
     if blazing_context:
         run_bsql_query(
-            cli_args=cli_args,
+            config=config,
             client=client,
             query_func=query_func,
             blazing_context=blazing_context,
@@ -267,50 +259,53 @@ def run_query(
         )
     else:
         run_dask_cudf_query(
-            cli_args=cli_args,
-            client=client,
-            query_func=query_func,
-            write_func=write_func,
+            config=config, client=client, query_func=query_func, write_func=write_func,
         )
 
 
-def run_dask_cudf_query(cli_args, client, query_func, write_func=write_result):
+def run_dask_cudf_query(config, client, query_func, write_func=write_result):
     """
     Common utility to perform all steps needed to execute a dask-cudf version
     of the query. Includes attaching to cluster, running the query and writing results
     """
     try:
         remove_benchmark_files()
-        cli_args["start_time"] = time.time()
-        results = query_func(client=client)
-
-        write_func(
-            results,
-            output_directory=cli_args["output_dir"],
-            filetype=cli_args["output_filetype"],
+        config["start_time"] = time.time()
+        results = benchmark(
+            query_func,
+            dask_profile=config.get("dask_profile"),
+            client=client,
+            config=config,
         )
-        cli_args["query_status"] = "Success"
+
+        benchmark(
+            write_func,
+            results,
+            output_directory=config["output_dir"],
+            filetype=config["output_filetype"],
+        )
+        config["query_status"] = "Success"
 
         result_verified = False
 
-        if cli_args["verify_results"]:
-            result_verified = verify_results(cli_args["verify_dir"])
-        cli_args["result_verified"] = result_verified
+        if config["verify_results"]:
+            result_verified = verify_results(config["verify_dir"])
+        config["result_verified"] = result_verified
 
         if os.environ.get("tpcxbb_benchmark_sweep_run") != "True":
             client.close()
 
     except:
-        cli_args["query_status"] = "Failed"
+        config["query_status"] = "Failed"
         print("Encountered Exception while running query")
         print(traceback.format_exc())
 
     # google sheet benchmarking automation
-    push_payload_to_googlesheet(cli_args)
+    push_payload_to_googlesheet(config)
 
 
 def run_bsql_query(
-    cli_args, client, query_func, blazing_context, write_func=write_result
+    config, client, query_func, blazing_context, write_func=write_result
 ):
     """
     Common utility to perform all steps needed to execute a dask-cudf version
@@ -319,35 +314,43 @@ def run_bsql_query(
     # TODO: Unify this with dask-cudf version
     try:
         remove_benchmark_files()
-        cli_args["start_time"] = time.time()
-        data_dir = cli_args["data_dir"]
-        results = query_func(data_dir=data_dir, client=client, bc=blazing_context)
-
-        write_func(
-            results,
-            output_directory=cli_args["output_dir"],
-            filetype=cli_args["output_filetype"],
+        config["start_time"] = time.time()
+        data_dir = config["data_dir"]
+        results = benchmark(
+            query_func,
+            dask_profile=config.get("dask_profile"),
+            data_dir=data_dir,
+            client=client,
+            bc=blazing_context,
+            config=config,
         )
-        cli_args["query_status"] = "Success"
+
+        benchmark(
+            write_func,
+            results,
+            output_directory=config["output_dir"],
+            filetype=config["output_filetype"],
+        )
+        config["query_status"] = "Success"
 
         result_verified = False
 
-        if cli_args["verify_results"]:
-            result_verified = verify_results(cli_args["verify_dir"])
-        cli_args["result_verified"] = result_verified
+        if config["verify_results"]:
+            result_verified = verify_results(config["verify_dir"])
+        config["result_verified"] = result_verified
 
         if os.environ.get("tpcxbb_benchmark_sweep_run") != "True":
             client.close()
     except:
-        cli_args["query_status"] = "Failed"
+        config["query_status"] = "Failed"
         print("Encountered Exception while running query")
         print(traceback.format_exc())
 
     # google sheet benchmarking automation
-    push_payload_to_googlesheet(cli_args)
+    push_payload_to_googlesheet(config)
 
 
-def add_empty_cli_args(args):
+def add_empty_config(args):
     keys = [
         "get_read_time",
         "split_row_groups",
@@ -372,7 +375,7 @@ def tpcxbb_argparser():
     args = get_tpcxbb_argparser_commandline_args()
     with open(args["config_file"]) as fp:
         args = yaml.safe_load(fp.read())
-    args = add_empty_cli_args(args)
+    args = add_empty_config(args)
 
     return args
 
@@ -735,12 +738,12 @@ def verify_results(verify_dir):
 #################################
 
 
-def build_benchmark_googlesheet_payload(cli_args):
+def build_benchmark_googlesheet_payload(config):
     """
-    cli_args : dict
+    config : dict
     """
     # Don't mutate original dictionary
-    data = cli_args.copy()
+    data = config.copy()
 
     # get the hostname of the machine running this workload
     data["hostname"] = socket.gethostname()
@@ -749,23 +752,22 @@ def build_benchmark_googlesheet_payload(cli_args):
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     query_time = _get_benchmarked_method_time(
-        filename="benchmarked_main.csv", query_start_time=cli_args.get("start_time")
+        filename="benchmarked_main.csv", query_start_time=config.get("start_time")
     )
     writing_time = _get_benchmarked_method_time(
         filename="benchmarked_write_result.csv",
-        query_start_time=cli_args.get("start_time"),
+        query_start_time=config.get("start_time"),
     )
     read_graph_creation_time = _get_benchmarked_method_time(
         filename="benchmarked_read_tables.csv",
-        query_start_time=cli_args.get("start_time"),
+        query_start_time=config.get("start_time"),
     )
-
     if data["get_read_time"] and read_graph_creation_time and query_time:
         ### below contains the computation time
         compute_read_table_time = _get_benchmarked_method_time(
             filename="benchmarked_read_tables.csv",
             field="compute_time_seconds",
-            query_start_time=cli_args.get("start_time"),
+            query_start_time=config.get("start_time"),
         )
         # subtracting read calculation time
         query_time = query_time - compute_read_table_time
@@ -878,7 +880,7 @@ def generate_library_information():
     return lib_dict
 
 
-def push_payload_to_googlesheet(cli_args):
+def push_payload_to_googlesheet(config):
     try:
         import gspread
         from oauth2client.service_account import ServiceAccountCredentials
@@ -889,7 +891,7 @@ def push_payload_to_googlesheet(cli_args):
         )
         return 1
 
-    if not cli_args.get("tab") or not cli_args.get("sheet"):
+    if not config.get("tab") or not config.get("sheet"):
         print("Must pass a sheet and tab name to use Google Sheets automation")
         return 1
 
@@ -903,9 +905,9 @@ def push_payload_to_googlesheet(cli_args):
         credentials_path, scope
     )
     gc = gspread.authorize(credentials)
-    payload = build_benchmark_googlesheet_payload(cli_args)
-    s = gc.open(cli_args["sheet"])
-    tab = s.worksheet(cli_args["tab"])
+    payload = build_benchmark_googlesheet_payload(config)
+    s = gc.open(config["sheet"])
+    tab = s.worksheet(config["tab"])
     tab.append_row(payload)
 
 

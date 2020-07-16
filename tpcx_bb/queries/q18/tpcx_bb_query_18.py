@@ -33,8 +33,6 @@ import numpy as np
 import cupy as cp
 from distributed import wait
 
-cli_args = tpcxbb_argparser()
-
 
 # -------- Q18 -----------
 # -- store_sales date range
@@ -45,12 +43,9 @@ TEMP_TABLE1 = "TEMP_TABLE1"
 EOL_CHAR = "è"
 
 
-@benchmark(
-    compute_result=cli_args["get_read_time"], dask_profile=cli_args["dask_profile"]
-)
-def read_tables():
+def read_tables(config):
     table_reader = build_reader(
-        data_format=cli_args["file_format"], basepath=cli_args["data_dir"],
+        data_format=config["file_format"], basepath=config["data_dir"],
     )
 
     store_sales_cols = [
@@ -67,8 +62,8 @@ def read_tables():
 
     ### splitting by row groups for better parallelism
     pr_table_reader = build_reader(
-        data_format=cli_args["file_format"],
-        basepath=cli_args["data_dir"],
+        data_format=config["file_format"],
+        basepath=config["data_dir"],
         split_row_groups=True,
     )
 
@@ -156,12 +151,16 @@ def find_relevant_reviews(df, targets_host, str_col_name="pr_review_content"):
     return combined
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
-def main(client):
+def main(client, config):
     import cudf
     import dask_cudf
 
-    store_sales, date_dim, store, product_reviews = read_tables()
+    store_sales, date_dim, store, product_reviews = benchmark(
+        read_tables,
+        config=config,
+        compute_result=config["get_read_time"],
+        dask_profile=config["dask_profile"],
+    )
     ### adding a wait call slows this down by 3-4 seconds, removing it for now
     ### Make TEMP_TABLE1
 
@@ -336,5 +335,6 @@ if __name__ == "__main__":
     import cudf
     import dask_cudf
 
-    client, bc = attach_to_cluster(cli_args)
-    run_query(cli_args=cli_args, client=client, query_func=main)
+    config = tpcxbb_argparser()
+    client, bc = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main)
