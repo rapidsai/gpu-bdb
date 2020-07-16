@@ -17,13 +17,6 @@ conda env create --name $CONDA_ENV -f tpcx-bb/conda/rapids-tpcx-bb.yml
 conda activate rapids-tpcx-bb
 ```
 
-For Query 27, we rely on [spacy](https://spacy.io/). To download the necessary language model after activating the Conda environment:
-
-```bash
-python -m spacy download en_core_web_sm
-````
-
-
 ### Installing RAPIDS TPCxBB Tools
 This repository includes a small local module containing utility functions for running the queries. You can install it with the following:
 
@@ -42,8 +35,27 @@ xbb-tools                 0.2                      pypi_0    pypi
 
 Note that this Conda environment needs to be replicated or installed manually on all nodes, which will allow starting one dask-cuda-worker per node.
 
+## NLP Query Setup
 
-## Cluster Setup
+Queries 10, 18, and 19 depend on two static (negativeSentiment.txt, positiveSentiment.txt) files. As we cannot redistribute those files, you should [download the tpcx-bb toolkit](http://www.tpc.org/tpc_documents_current_versions/download_programs/tools-download-request5.asp?bm_type=TPCX-BB&bm_vers=1.3.1&mode=CURRENT-ONLY) and extract them:
+```
+jar xf bigbenchqueriesmr.jar
+cp tpcx-bb1.3.1/distributions/Resources/io/bigdatabenchmark/v1/queries/q10/negativeSentiment.txt $TPCX_BB_HOME/tpcx_bb/queries/q10
+cp tpcx-bb1.3.1/distributions/Resources/io/bigdatabenchmark/v1/queries/q10/negativeSentiment.txt $TPCX_BB_HOME/tpcx_bb/queries/q18
+cp tpcx-bb1.3.1/distributions/Resources/io/bigdatabenchmark/v1/queries/q10/negativeSentiment.txt $TPCX_BB_HOME/tpcx_bb/queries/q19
+
+cp tpcx-bb1.3.1/distributions/Resources/io/bigdatabenchmark/v1/queries/q10/positiveSentiment.txt $TPCX_BB_HOME/tpcx_bb/queries/q10
+cp tpcx-bb1.3.1/distributions/Resources/io/bigdatabenchmark/v1/queries/q10/positiveSentiment.txt $TPCX_BB_HOME/tpcx_bb/queries/q18
+cp tpcx-bb1.3.1/distributions/Resources/io/bigdatabenchmark/v1/queries/q10/positiveSentiment.txt $TPCX_BB_HOME/tpcx_bb/queries/q19
+```
+
+For Query 27, we rely on [spacy](https://spacy.io/). To download the necessary language model after activating the Conda environment:
+
+```bash
+python -m spacy download en_core_web_sm
+````
+
+## Starting Your Cluster
 
 We use the `dask-scheduler` and `dask-cuda-worker` command line interfaces to start a Dask cluster. We provide a `cluster_configuration` directory with a bash script to help you set up an NVLink-enabled cluster using UCX.
 
@@ -87,26 +99,19 @@ Activate the conda environment you've created.
 The queries assume that they can attach to a running Dask cluster. Command line arguments are used to determine the cluster and dataset on which to run the queries. The following is an example of running query 07.
 
 ```bash
-python tpcx_bb_query_07.py --data_dir=$DATA_DIR --cluster_host=$SCHEDULER_IP --output_dir=$OUTPUT_DIR
+python tpcx_bb_query_07.py --config_file=../../benchmark_runner/benchmark_config.yaml
 ```
 
-- `data_dir` points to the location of the data
-- `cluster_host` corresponds to the schedyler address of the running Dask cluster
-    - In this case, this query would attempt to connect to a cluster running at `$SCHEDULER_IP`, which we configured during cluster startup
-- `output_dir` points to where the queries should write output files. If not specified, queries will write output into their respective directories
+- `config_file` points to a yaml file with all the necessary configuration to run either the end to end benchmark, or individual queries
 
 
 ## Performance Tracking
 
-This repository contains support for performance-tracking automation using Google Sheets. If you install `gspread` and `oauth2client` in the provided environment spec, passing `--sheet` and `--tab` arguments during query execution will log query runtime in a Google Sheet. You must provide a path to a Google Sheets API credentials file as an environment variable called `GOOGLE_SHEETS_CREDENTIALS_PATH` on the node running the client. If you do not have these libraries installed, you will see `Please install gspread and oauth2client to use Google Sheets automation` after running a query. It's fine to ignore this output.
-
-Expanding on the example above, you could do the following:
-
-```bash
-python tpcx_bb_query_07.py --data_dir=$DATA_DIR --cluster_host=$SCHEDULER_IP --output_dir=$OUTPUT_DIR --sheet=TPCx-BB --tab="SF1000 Benchmarking Matrix"
+This repository contains support for performance-tracking automation using Google Sheets. To enable logging query runtimes:
 ```
-
-
+conda install -c conda-forge gspread oauth2client
+```
+Then configre the `--sheet` and `--tab` arguments in benchmark_config.yaml. You must provide a path to a Google Sheets API credentials file as an environment variable called `GOOGLE_SHEETS_CREDENTIALS_PATH` on the node running the client. If you do not have these libraries installed, you will see `Please install gspread and oauth2client to use Google Sheets automation` after running a query. It's fine to ignore this output if you don't care about logging to Google Sheets.
 
 ### Running all of the Queries
 
@@ -115,7 +120,7 @@ The included `benchmark_runner.py` script will run all queries sequentially. Con
 To run all queries, cd to `tpcx_bb/` and:
 
 ```python
-python benchmark_runner.py
+python benchmark_runner.py --config_file benchmark_runner/benchmark_config.yaml
 ```
 
 By default, this will run each query three times. You can control the number of repeats by changing the `n_repeats` variable in the script.
@@ -125,25 +130,15 @@ By default, this will run each query three times. You can control the number of 
 
 We include BlazingSQL implementations of several queries. As we continue scale testing BlazingSQL implementations, we'll add them to the `queries` folder in the appropriate locations.
 
-We provide a conda environment definition specifying all RAPIDS dependencies needed to run the BSQL query implementations. To install and activate it:
-
-```bash
-CONDA_ENV="rapids-bsql-tpcx-bb"
-conda env create --name $CONDA_ENV -f tpcx-bb/conda/rapids-bsql-tpcx-bb.yml
-conda activate rapids-bsql-tpcx-bb
-```
-
-The environment will also require installation of the `xbb_tools` module. Directions are provided [above](#installing-rapids-tpcxbb-tools).
-
 
 ### Cluster Configuration for TCP
 
 BlazingSQL currently supports clusters using TCP. Please follow the instructions above, making sure to use the InfiniBand interface as the `INTERFACE` variable. Then, start the cluster with:
 
 ```bash
-bash cluster-startup.sh TCP
+bash cluster_configuration/cluster-startup.sh TCP
 ```
 
 ## Data Generation
 
-The RAPIDS queries expect [Apache Parquet](http://parquet.apache.org/) formatted data. We provide a [Jupyter notebook](tpcx_bb/data-conversion.ipynb) which can be used to convert bigBench dataGen's raw CSV files to optimally sized Parquet partitions.
+The RAPIDS queries expect [Apache Parquet](http://parquet.apache.org/) formatted data. We provide a [script](tpcx_bb/queries/load_test/tpcx-bb-load-test.py) which can be used to convert bigBench dataGen's raw CSV files to optimally sized Parquet partitions.
