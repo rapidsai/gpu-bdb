@@ -38,10 +38,7 @@ q17_month = 12
 q17_i_category_IN = "'Books', 'Music'"
 
 
-@benchmark(
-    compute_result=cli_args["get_read_time"], dask_profile=cli_args["dask_profile"]
-)
-def read_tables(data_dir):
+def read_tables(data_dir, bc):
     bc.create_table("store_sales", data_dir + "store_sales/*.parquet")
     bc.create_table("item", data_dir + "item/*.parquet")
     bc.create_table("customer", data_dir + "customer/*.parquet")
@@ -51,9 +48,8 @@ def read_tables(data_dir):
     bc.create_table("promotion", data_dir + "promotion/*.parquet")
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
-def main(data_dir, client):
-    read_tables(data_dir)
+def main(data_dir, client, bc, config):
+    benchmark(read_tables, data_dir, bc, dask_profile=config["dask_profile"])
 
     query_date = f"""
         select min(d_date_sk) as min_d_date_sk,
