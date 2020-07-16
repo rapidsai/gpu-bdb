@@ -38,11 +38,10 @@ cli_args = tpcxbb_argparser()
 q27_pr_item_sk = 10002
 EOL_CHAR = "."
 
-@benchmark(
-    compute_result=cli_args["get_read_time"], dask_profile=cli_args["dask_profile"]
-)
+
 def read_tables(data_dir, bc):
     bc.create_table("product_reviews", data_dir + "/product_reviews/*.parquet")
+
 
 def ner_parser(df, col_string, batch_size=256):
     spacy.require_gpu()
@@ -57,11 +56,11 @@ def ner_parser(df, col_string, batch_size=256):
     df["company_name_list"] = out
     return df
 
-@benchmark(dask_profile=cli_args["dask_profile"])
-def main(data_dir, client, bc):
-    import dask_cudf
 
-    read_tables(data_dir, bc)
+def main(data_dir, client, bc, config):
+    benchmark(read_tables, data_dir, bc, dask_profile=config["dask_profile"])
+
+    import dask_cudf
 
     query = """
         SELECT pr_review_sk, pr_item_sk, pr_review_content
@@ -106,7 +105,7 @@ def main(data_dir, client, bc):
     bc.create_table('ner_parsed', ner_parsed)
 
     query = """
-        SELECT 10002 as item_sk, review_idx_global_pos as review_sk, word as company_name, sentence as review_sentence
+        SELECT review_idx_global_pos as review_sk, 10002 as item_sk, word as company_name, sentence as review_sentence
         FROM repeated_names left join ner_parsed
         ON sentence_idx_global_pos = sentence_tokenized_global_pos
         ORDER BY review_idx_global_pos, item_sk, word, sentence
@@ -118,5 +117,5 @@ def main(data_dir, client, bc):
 
 if __name__ == "__main__":
     config = tpcxbb_argparser()
-    client, bc = attach_to_cluster(config)
-    run_query(config=config, client=client, query_func=main)
+    client, bc = attach_to_cluster(config, create_blazing_context=True)
+    run_query(config=config, client=client, query_func=main, blazing_context=bc)
