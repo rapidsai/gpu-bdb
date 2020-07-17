@@ -20,7 +20,7 @@ import sys
 from xbb_tools.utils import (
     benchmark,
     tpcxbb_argparser,
-    run_dask_cudf_query,
+    run_query,
     convert_datestring_to_days,
 )
 from xbb_tools.merge_util import hash_merge
@@ -29,7 +29,6 @@ from dask.distributed import wait
 
 import numpy as np
 
-cli_args = tpcxbb_argparser()
 
 ### conf
 q16_date = "2001-03-16"
@@ -73,14 +72,11 @@ def get_before_after_sales(df, q16_timestamp):
     return df
 
 
-@benchmark(
-    compute_result=cli_args["get_read_time"], dask_profile=cli_args["dask_profile"]
-)
-def read_tables():
+def read_tables(config):
     table_reader = build_reader(
-        data_format=cli_args["file_format"],
-        basepath=cli_args["data_dir"],
-        split_row_groups=cli_args["split_row_groups"],
+        data_format=config["file_format"],
+        basepath=config["data_dir"],
+        split_row_groups=config["split_row_groups"],
     )
 
     web_sales_df = table_reader.read("web_sales", relevant_cols=websale_cols)
@@ -91,11 +87,15 @@ def read_tables():
     return web_sales_df, web_returns_df, date_dim_df, item_df, warehouse_df
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
-def main(client):
+def main(client, config):
     import cudf
 
-    web_sales_df, web_returns_df, date_dim_df, item_df, warehouse_df = read_tables()
+    web_sales_df, web_returns_df, date_dim_df, item_df, warehouse_df = benchmark(
+        read_tables,
+        config=config,
+        compute_result=config["get_read_time"],
+        dask_profile=config["dask_profile"],
+    )
 
     warehouse_df["w_state_code"] = warehouse_df[["w_state"]].categorize()["w_state"]
 
@@ -267,6 +267,6 @@ if __name__ == "__main__":
     import cudf
     import dask_cudf
 
-    client = attach_to_cluster(cli_args)
-
-    run_dask_cudf_query(cli_args=cli_args, client=client, query_func=main)
+    config = tpcxbb_argparser()
+    client, bc = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main)
