@@ -17,7 +17,6 @@
 
 import sys
 
-from blazingsql import BlazingContext
 from xbb_tools.cluster_startup import attach_to_cluster
 from xbb_tools.text_vectorizers.dist_hashing_vectorizer import cudf_hashing_vectorizer
 import os
@@ -31,7 +30,7 @@ import numpy as np
 from xbb_tools.utils import (
     benchmark,
     tpcxbb_argparser,
-    run_bsql_query,
+    run_query,
 )
 
 cli_args = tpcxbb_argparser()
@@ -304,16 +303,12 @@ def post_etl_processing(client, train_data, test_data):
     return final_data, acc, prec, cmat
 
 
-@benchmark(
-    compute_result=cli_args["get_read_time"], dask_profile=cli_args["dask_profile"]
-)
 def read_tables(data_dir):
     bc.create_table("product_reviews", data_dir + "product_reviews/*.parquet")
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
-def main(data_dir, client):
-    read_tables(data_dir)
+def main(data_dir, client, bc, config):
+    benchmark(read_tables, data_dir, bc, dask_profile=config["dask_profile"])
 
     # 10 % of data
     query1 = """
@@ -357,14 +352,6 @@ def main(data_dir, client):
 
 
 if __name__ == "__main__":
-    client = attach_to_cluster(cli_args)
-
-    bc = BlazingContext(
-        dask_client=client,
-        pool=True,
-        network_interface=os.environ.get("INTERFACE", "eth0"),
-    )
-
-    run_bsql_query(
-        cli_args=cli_args, client=client, query_func=main
-    )
+    config = tpcxbb_argparser()
+    client, bc = attach_to_cluster(config, create_blazing_context=True)
+    run_query(config=config, client=client, query_func=main, blazing_context=bc)
