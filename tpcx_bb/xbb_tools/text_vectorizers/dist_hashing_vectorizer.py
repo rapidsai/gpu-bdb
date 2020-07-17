@@ -76,6 +76,7 @@ def rm_punctuations_characters(text_sents):
 
 def get_ngram(str_series, n, doc_id_sr, token_count_sr, delimiter):
     import cudf
+
     """
         This returns the ngrams for the string series
          Args:
@@ -85,11 +86,9 @@ def get_ngram(str_series, n, doc_id_sr, token_count_sr, delimiter):
              token_count_sr(cudf.Series):  int series containing tokens per doc
              delimiter(string): delimiter to split on
 
-    """    
-    ngram_sr = str_series.str.ngrams_tokenize(
-        n=n, sep="_", delimiter=delimiter
-    )
-    
+    """
+    ngram_sr = str_series.str.ngrams_tokenize(n=n, sep="_", delimiter=delimiter)
+
     ### for ngram we have `x-(n-1)`  grams per doc
     ### where x = total number of tokens in the doc
     ### eg: for bigram we have `x-1` bigrams per doc
@@ -110,10 +109,9 @@ def create_tokenized_df(str_series, delimiter=" ", ngram_range=(1, 1)):
         Also returns a  empty doc_id series
     """
     import cudf
+
     token_count_sr = str_series.str.token_count(delimiter=delimiter)
-    doc_id_ar = cp.arange(
-        start=0, stop=len(str_series), dtype=np.int32
-    )
+    doc_id_ar = cp.arange(start=0, stop=len(str_series), dtype=np.int32)
 
     doc_id_sr = cudf.Series(doc_id_ar)
 
