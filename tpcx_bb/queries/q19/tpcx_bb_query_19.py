@@ -19,7 +19,7 @@ import sys
 from xbb_tools.utils import (
     benchmark,
     tpcxbb_argparser,
-    run_dask_cudf_query,
+    run_query,
 )
 from xbb_tools.text import create_sentences_from_reviews, create_words_from_sentences
 
@@ -28,18 +28,15 @@ from xbb_tools.readers import build_reader
 from dask.distributed import Client, wait
 import distributed
 
-cli_args = tpcxbb_argparser()
+
 # -------- Q19 -----------
 q19_returns_dates = ["2004-03-08", "2004-08-02", "2004-11-15", "2004-12-20"]
 eol_char = "è"
 
 
-@benchmark(
-    compute_result=cli_args["get_read_time"], dask_profile=cli_args["dask_profile"]
-)
-def read_tables():
+def read_tables(config):
     table_reader = build_reader(
-        data_format=cli_args["file_format"], basepath=cli_args["data_dir"],
+        data_format=config["file_format"], basepath=config["data_dir"],
     )
     date_dim_cols = ["d_week_seq", "d_date_sk", "d_date"]
     date_dim_df = table_reader.read("date_dim", relevant_cols=date_dim_cols)
@@ -52,8 +49,8 @@ def read_tables():
 
     ### splitting by row groups for better parallelism
     pr_table_reader = build_reader(
-        data_format=cli_args["file_format"],
-        basepath=cli_args["data_dir"],
+        data_format=config["file_format"],
+        basepath=config["data_dir"],
         split_row_groups=True,
     )
 
@@ -65,12 +62,16 @@ def read_tables():
     return date_dim_df, store_returns_df, web_returns_df, product_reviews
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
-def main(client):
+def main(client, config):
     import cudf
     import dask_cudf
 
-    date_dim_df, store_returns_df, web_returns_df, product_reviews_df = read_tables()
+    date_dim_df, store_returns_df, web_returns_df, product_reviews_df = benchmark(
+        read_tables,
+        config=config,
+        compute_result=config["get_read_time"],
+        dask_profile=config["dask_profile"],
+    )
 
     # filter date table
     date_dim_df = date_dim_df.merge(
@@ -207,6 +208,6 @@ if __name__ == "__main__":
     import cudf
     import dask_cudf
 
-    client = attach_to_cluster(cli_args)
-
-    run_dask_cudf_query(cli_args=cli_args, client=client, query_func=main)
+    config = tpcxbb_argparser()
+    client, bc = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main)

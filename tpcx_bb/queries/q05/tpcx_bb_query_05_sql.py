@@ -27,14 +27,12 @@ import os
 from xbb_tools.utils import (
     benchmark,
     tpcxbb_argparser,
-    run_bsql_query,
+    run_query,
 )
 from xbb_tools.cupy_metrics import cupy_conf_mat, cupy_precision_score
 from sklearn.metrics import roc_auc_score
 import cupy as cp
 
-
-cli_args = tpcxbb_argparser()
 
 # Logistic Regression params
 # solver = "LBFGS" Used by passing `penalty=None` or "l2"
@@ -45,10 +43,7 @@ C = 10_000  # reg_lambda = 0 hence C for model is a large value
 convergence_tol = 1e-9
 
 
-@benchmark(
-    compute_result=cli_args["get_read_time"], dask_profile=cli_args["dask_profile"]
-)
-def read_tables(data_dir):
+def read_tables(data_dir, bc):
     bc.create_table("web_clickstreams", data_dir + "web_clickstreams/*.parquet")
     bc.create_table("customer", data_dir + "customer/*.parquet")
     bc.create_table("item", data_dir + "item/*.parquet")
@@ -95,9 +90,8 @@ def build_and_predict_model(ml_input_df):
     return results_dict
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
-def main(data_dir, client):
-    read_tables(data_dir)
+def main(data_dir, client, bc, config):
+    benchmark(read_tables, data_dir, bc, dask_profile=config["dask_profile"])
 
     query = """
         SELECT
@@ -160,14 +154,6 @@ def main(data_dir, client):
 
 
 if __name__ == "__main__":
-    client = attach_to_cluster(cli_args)
-
-    bc = BlazingContext(
-        dask_client=client,
-        pool=True,
-        network_interface=os.environ.get("INTERFACE", "eth0"),
-    )
-    
-    run_bsql_query(
-        cli_args=cli_args, client=client, query_func=main
-    )
+    config = tpcxbb_argparser()
+    client, bc = attach_to_cluster(config, create_blazing_context=True)
+    run_query(config=config, client=client, query_func=main, blazing_context=bc)
