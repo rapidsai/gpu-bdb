@@ -49,14 +49,17 @@ We use the `dask-scheduler` and `dask-cuda-worker` command line interfaces to st
 
 Before running the script, you'll make changes specific to your environment.
 
-In `cluster_configuration/cluster-startup.sh`, please do the following:
+In `cluster_configuration/cluster-startup.sh`:
 
+    - Update `TPCX_BB_HOME=...` to location on disk of this repo
     - Update `INTERFACE=...` to refer to the relevant network interface present on your cluster.
     - Update `CONDA_ENV_PATH=...` to refer to your conda environment path.
     - Update `CONDA_ENV_NAME=...` to refer to the name of the conda environment you created, perhaps using the `yml` files provided in this repository.
     - Update `SCHEDULER=...` to refer to the host name of the node you intend to use as the scheduler.
+    - Update `SCHEDULER_FILE=...` to refer to the location of your scheduler file
 
-In `cluster_configuration/example-cluster-scheduler.json`, please update the scheduler address to be the address for the network interface you chose for `INTERFACE=...` just above. If you are not using UCX, you'll need to adjust the address to be `tcp://...` rather than `ucx://...`. Also please note that this is an example cluster scheduler file. You can create your own with a superset of this information.
+In `cluster_configuration/example-cluster-scheduler.json`:
+Update the scheduler address to be the address for the network interface you chose for `INTERFACE=...` above. If you are not using UCX, you'll need to adjust the address to be `tcp://...` rather than `ucx://...`. Note that `example-cluster-scheduler.json` is just an example scheduler configuration. See [the Dask docs](https://docs.dask.org/en/latest/setup/hpc.html#using-a-shared-network-file-system-and-a-job-scheduler) for more details on how you can generate your own and make it available to all cluster nodes.
 
 To start up the cluster, please run the following on every node from `tpcx_bb/cluster_configuration/`.
 
