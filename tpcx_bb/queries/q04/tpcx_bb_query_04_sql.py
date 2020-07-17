@@ -21,21 +21,18 @@ from blazingsql import BlazingContext
 from xbb_tools.cluster_startup import attach_to_cluster
 from xbb_tools.sessionization import get_sessions
 
-import os
 import cudf
 
 from xbb_tools.utils import (
     benchmark,
     tpcxbb_argparser,
-    run_bsql_query,
+    run_query,
 )
 
 cli_args = tpcxbb_argparser()
 
 
 def abandonedShoppingCarts(df, DYNAMIC_CAT_CODE, ORDER_CAT_CODE):
-    import cudf
-
     # work around for https://github.com/rapidsai/cudf/issues/5470
     df.reset_index(drop=True, inplace=True)
 
@@ -87,18 +84,14 @@ def reduction_function(df, keep_cols, DYNAMIC_CAT_CODE, ORDER_CAT_CODE):
     return df
 
 
-@benchmark(
-    compute_result=cli_args["get_read_time"], dask_profile=cli_args["dask_profile"]
-)
-def read_tables(data_dir):
+def read_tables(data_dir, bc):
     bc.create_table('web_page_wo_categorical', data_dir + "web_page/*.parquet")
     bc.create_table('web_clickstreams',
                     data_dir + "web_clickstreams/*.parquet")
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
-def main(data_dir, client):
-    read_tables(data_dir)
+def main(data_dir, client, bc, config):
+    benchmark(read_tables, data_dir, bc, dask_profile=config["dask_profile"])
 
     query_web_page = """
         SELECT wp_type, wp_web_page_sk
@@ -152,14 +145,6 @@ def main(data_dir, client):
 
 
 if __name__ == "__main__":
-    client = attach_to_cluster(cli_args)
-
-    bc = BlazingContext(
-        dask_client=client,
-        pool=True,
-        network_interface=os.environ.get("INTERFACE", "eth0"),
-    )
-
-    run_bsql_query(
-        cli_args=cli_args, client=client, query_func=main
-    )
+    config = tpcxbb_argparser()
+    client, bc = attach_to_cluster(config, create_blazing_context=True)
+    run_query(config=config, client=client, query_func=main, blazing_context=bc)
