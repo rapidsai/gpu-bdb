@@ -22,7 +22,7 @@ import glob
 from xbb_tools.utils import (
     benchmark,
     tpcxbb_argparser,
-    run_dask_cudf_query,
+    run_query,
     convert_datestring_to_days,
 )
 from xbb_tools.readers import build_reader
@@ -34,11 +34,6 @@ import cupy as cp
 import rmm
 from dask import delayed
 
-
-try:
-    cli_args = tpcxbb_argparser()
-except:
-    cli_args = {}
 
 q08_STARTDATE = "2001-09-02"
 q08_ENDDATE = "2002-09-02"
@@ -187,15 +182,11 @@ def prep_for_sessionization(df, review_cat_code):
     return df_filtered
 
 
-@benchmark(
-    compute_result=cli_args.get("get_read_time"),
-    dask_profile=cli_args.get("dask_profile"),
-)
-def read_tables():
+def read_tables(config):
     table_reader = build_reader(
-        data_format=cli_args["file_format"],
-        basepath=cli_args["data_dir"],
-        split_row_groups=cli_args["split_row_groups"],
+        data_format=config["file_format"],
+        basepath=config["data_dir"],
+        split_row_groups=config["split_row_groups"],
     )
 
     date_dim_cols = ["d_date_sk", "d_date"]
@@ -221,12 +212,16 @@ def reduction_function(df, REVIEW_CAT_CODE):
     return df.to_frame()
 
 
-@benchmark(dask_profile=cli_args.get("dask_profile"))
-def main(client):
+def main(client, config):
     import cudf
     import dask_cudf
 
-    (date_dim_df, web_page_df, web_sales_df) = read_tables()
+    (date_dim_df, web_page_df, web_sales_df) = benchmark(
+        read_tables,
+        config=config,
+        compute_result=config["get_read_time"],
+        dask_profile=config["dask_profile"],
+    )
 
     date_dim_cov_df = date_dim_df.map_partitions(convert_datestring_to_days)
     q08_start_dt = np.datetime64(q08_STARTDATE, "D").astype(int)
@@ -256,9 +251,7 @@ def main(client):
     web_page_newcols = ["wp_web_page_sk", "wp_type_codes"]
     web_page_df = web_page_df[web_page_newcols]
 
-    web_clickstream_flist = glob.glob(
-        cli_args["data_dir"] + "web_clickstreams/*.parquet"
-    )
+    web_clickstream_flist = glob.glob(config["data_dir"] + "web_clickstreams/*.parquet")
 
     task_ls = [
         delayed(etl_wcs)(
@@ -337,6 +330,6 @@ if __name__ == "__main__":
     import cudf
     import dask_cudf
 
-    client = attach_to_cluster(cli_args)
-
-    run_dask_cudf_query(cli_args=cli_args, client=client, query_func=main)
+    config = tpcxbb_argparser()
+    client, bc = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main)
