@@ -19,12 +19,11 @@ import sys
 from xbb_tools.utils import (
     benchmark,
     tpcxbb_argparser,
-    run_dask_cudf_query,
+    run_query,
 )
 from xbb_tools.readers import build_reader
 from distributed import wait
 
-cli_args = tpcxbb_argparser()
 
 q13_Year = 2001
 q13_limit = 100
@@ -47,14 +46,11 @@ def get_sales_ratio(df):
     return df
 
 
-@benchmark(
-    compute_result=cli_args["get_read_time"], dask_profile=cli_args["dask_profile"]
-)
-def read_tables():
+def read_tables(config):
     table_reader = build_reader(
-        data_format=cli_args["file_format"],
-        basepath=cli_args["data_dir"],
-        split_row_groups=cli_args["split_row_groups"],
+        data_format=config["file_format"],
+        basepath=config["data_dir"],
+        split_row_groups=config["split_row_groups"],
     )
 
     date_cols = ["d_date_sk", "d_year"]
@@ -72,9 +68,13 @@ def read_tables():
     return date_dim_df, customer_df, s_sales_df, web_sales_df
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
-def main(client):
-    date_dim_df, customer_df, s_sales_df, web_sales_df = read_tables()
+def main(client, config):
+    date_dim_df, customer_df, s_sales_df, web_sales_df = benchmark(
+        read_tables,
+        config=config,
+        compute_result=config["get_read_time"],
+        dask_profile=config["dask_profile"],
+    )
 
     # Query 0: time filtration
 
@@ -215,6 +215,6 @@ if __name__ == "__main__":
     import cudf
     import dask_cudf
 
-    client = attach_to_cluster(cli_args)
-
-    run_dask_cudf_query(cli_args=cli_args, client=client, query_func=main)
+    config = tpcxbb_argparser()
+    client, bc = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main)
