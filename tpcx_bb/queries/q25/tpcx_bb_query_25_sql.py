@@ -17,14 +17,12 @@
 
 import sys
 
-from blazingsql import BlazingContext
 from xbb_tools.cluster_startup import attach_to_cluster
-import os
 
 from xbb_tools.utils import (
     benchmark,
     tpcxbb_argparser,
-    run_bsql_query,
+    run_query,
     train_clustering_model
 )
 from dask import delayed
@@ -62,18 +60,14 @@ def get_clusters(client, ml_input_df):
     return results_dict
 
 
-@benchmark(
-    compute_result=cli_args["get_read_time"], dask_profile=cli_args["dask_profile"]
-)
-def read_tables(data_dir):
+def read_tables(data_dir, bc):
     bc.create_table("web_sales", data_dir + "web_sales/*.parquet")
     bc.create_table("store_sales", data_dir + "store_sales/*.parquet")
     bc.create_table("date_dim", data_dir + "date_dim/*.parquet")
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
-def main(data_dir, client):
-    read_tables(data_dir)
+def main(data_dir, client, bc, config):
+    benchmark(read_tables, data_dir, bc, dask_profile=config["dask_profile"])
 
     query = f"""
         WITH concat_table AS
@@ -127,14 +121,6 @@ def main(data_dir, client):
 
 
 if __name__ == "__main__":
-    client = attach_to_cluster(cli_args)
-
-    bc = BlazingContext(
-        dask_client=client,
-        pool=True,
-        network_interface=os.environ.get("INTERFACE", "eth0"),
-    )
-
-    run_bsql_query(
-        cli_args=cli_args, client=client, query_func=main
-    )
+    config = tpcxbb_argparser()
+    client, bc = attach_to_cluster(config, create_blazing_context=True)
+    run_query(config=config, client=client, query_func=main, blazing_context=bc)
