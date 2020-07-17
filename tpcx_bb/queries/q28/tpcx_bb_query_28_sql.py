@@ -303,7 +303,7 @@ def post_etl_processing(client, train_data, test_data):
     return final_data, acc, prec, cmat
 
 
-def read_tables(data_dir):
+def read_tables(data_dir, bc):
     bc.create_table("product_reviews", data_dir + "product_reviews/*.parquet")
 
 
