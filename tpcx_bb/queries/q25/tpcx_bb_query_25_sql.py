@@ -27,8 +27,6 @@ from xbb_tools.utils import (
 )
 from dask import delayed
 
-cli_args = tpcxbb_argparser()
-
 
 # -------- Q25 -----------
 # -- store_sales and web_sales date
