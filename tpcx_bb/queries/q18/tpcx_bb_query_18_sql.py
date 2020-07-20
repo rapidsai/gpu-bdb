@@ -19,7 +19,6 @@ import sys
 
 from xbb_tools.cluster_startup import attach_to_cluster
 import os
-import cudf
 import numpy as np
 import cupy as cp
 
@@ -189,6 +188,7 @@ def main(data_dir, client, bc, config):
     # perssiting because no_nulls is used twice
     no_nulls = no_nulls.persist()
 
+    import cudf
     temp_table2_meta_empty_df = cudf.DataFrame(
         {
             "word": ["a"],
