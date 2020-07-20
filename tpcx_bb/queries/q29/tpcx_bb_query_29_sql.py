@@ -17,12 +17,7 @@
 
 import sys
 
-
-from blazingsql import BlazingContext
 from xbb_tools.cluster_startup import attach_to_cluster
-from dask_cuda import LocalCUDACluster
-from dask.distributed import Client
-import os
 
 from xbb_tools.utils import (
     benchmark,
@@ -31,37 +26,44 @@ from xbb_tools.utils import (
 )
 
 
+# -------- Q29 -----------
+q29_limit = 100
+
+
 def read_tables(data_dir, bc):
-    bc.create_table(
-        "household_demographics", data_dir + "/household_demographics/*.parquet"
-    )
-    bc.create_table("web_page", data_dir + "/web_page/*.parquet")
-    bc.create_table("web_sales", data_dir + "/web_sales/*.parquet")
-    bc.create_table("time_dim", data_dir + "/time_dim/*.parquet")
+    bc.create_table('item', data_dir + "item/*.parquet")
+    bc.create_table('web_sales', data_dir + "web_sales/*.parquet")
 
 
 def main(data_dir, client, bc, config):
     benchmark(read_tables, data_dir, bc, dask_profile=config["dask_profile"])
 
-    query = """ 
-		SELECT CASE WHEN pmc > 0.0 THEN CAST (amc AS DOUBLE) / CAST (pmc AS DOUBLE) ELSE -1.0 END AS am_pm_ratio
-		FROM 
-		(
-			SELECT SUM(amc1) AS amc, SUM(pmc1) AS pmc
-			FROM
-			(
-				SELECT
-					CASE WHEN t_hour BETWEEN 7 AND 8 THEN COUNT(1) ELSE 0 END AS amc1,
-					CASE WHEN t_hour BETWEEN 19 AND 20 THEN COUNT(1) ELSE 0 END AS pmc1
-				FROM web_sales ws
-				JOIN household_demographics hd ON (hd.hd_demo_sk = ws.ws_ship_hdemo_sk and hd.hd_dep_count = 5)
-				JOIN web_page wp ON (wp.wp_web_page_sk = ws.ws_web_page_sk and wp.wp_char_count BETWEEN 5000 AND 6000)
-				JOIN time_dim td ON (td.t_time_sk = ws.ws_sold_time_sk and td.t_hour IN (7,8,19,20))
-				GROUP BY t_hour
-			) cnt_am_pm
-		) sum_am_pm
-	"""
 
+    query_distinct = """
+        SELECT DISTINCT i_category_id, ws_order_number
+        FROM web_sales ws, item i
+        WHERE ws.ws_item_sk = i.i_item_sk
+        AND i.i_category_id IS NOT NULL
+    """
+    result_distinct = bc.sql(query_distinct)
+
+    bc.create_table('distinct_table', result_distinct)
+
+    query = f"""
+        SELECT category_id_1, category_id_2, COUNT (*) AS cnt
+        FROM
+        (
+            SELECT CAST(t1.i_category_id as BIGINT) AS category_id_1,
+                CAST(t2.i_category_id as BIGINT) AS category_id_2
+            FROM distinct_table t1
+            INNER JOIN distinct_table t2
+            ON t1.ws_order_number = t2.ws_order_number
+            WHERE t1.i_category_id < t2.i_category_id
+        )
+        GROUP BY category_id_1, category_id_2
+        ORDER BY cnt DESC, category_id_1, category_id_2
+        LIMIT {q29_limit}
+    """
     result = bc.sql(query)
     return result
 
