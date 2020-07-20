@@ -17,7 +17,6 @@
 
 import sys
 
-from blazingsql import BlazingContext
 from xbb_tools.cluster_startup import attach_to_cluster
 from xbb_tools.sessionization import get_sessions
 
@@ -28,8 +27,6 @@ from xbb_tools.utils import (
     tpcxbb_argparser,
     run_query,
 )
-
-cli_args = tpcxbb_argparser()
 
 
 def abandonedShoppingCarts(df, DYNAMIC_CAT_CODE, ORDER_CAT_CODE):
@@ -116,7 +113,7 @@ def main(data_dir, client, bc, config):
 
     bc.create_table('web_page', wp)
 
-    query_1 = """
+    query = """
         SELECT
             c.wcs_user_sk,
             w.wp_type_codes,
@@ -128,7 +125,7 @@ def main(data_dir, client, bc, config):
         AND   c.wcs_sales_sk    IS NULL --abandoned implies: no sale
         ORDER BY wcs_user_sk, tstamp_inSec
     """
-    merged_df = bc.sql(query_1)
+    merged_df = bc.sql(query)
 
     keep_cols = ["wcs_user_sk", "wp_type_codes", "tstamp_inSec"]
     result_df = merged_df.map_partitions(
