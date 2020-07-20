@@ -31,7 +31,6 @@ from xbb_tools.text import (
     create_words_from_sentences
 )
 
-cli_args = tpcxbb_argparser()
 
 eol_char = "è"
 
