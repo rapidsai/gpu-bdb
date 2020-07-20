@@ -25,8 +25,6 @@ from xbb_tools.utils import (
     run_query,
 )
 
-cli_args = tpcxbb_argparser()
-
 
 # ------- Q17 ------
 q17_gmt_offset = -5.0
