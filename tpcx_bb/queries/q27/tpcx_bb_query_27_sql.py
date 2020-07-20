@@ -17,11 +17,13 @@
 
 import sys
 
+from xbb_tools.text import (
+    create_sentences_from_reviews,
+    create_words_from_sentences
+)
 
-from xbb_tools.text import create_sentences_from_reviews, create_words_from_sentences
 from xbb_tools.cluster_startup import attach_to_cluster
-from dask.distributed import Client, wait
-import os
+from dask.distributed import wait
 import spacy
 
 from xbb_tools.utils import (
@@ -29,8 +31,6 @@ from xbb_tools.utils import (
     tpcxbb_argparser,
     run_query,
 )
-
-cli_args = tpcxbb_argparser()
 
 
 # -------- Q27 -----------
@@ -104,7 +104,7 @@ def main(data_dir, client, bc, config):
     bc.create_table('ner_parsed', ner_parsed)
 
     query = f"""
-        SELECT review_idx_global_pos as review_sk, 
+        SELECT review_idx_global_pos as review_sk,
             CAST({q27_pr_item_sk} AS BIGINT) as item_sk,
             word as company_name,
             sentence as review_sentence
@@ -120,3 +120,4 @@ if __name__ == "__main__":
     config = tpcxbb_argparser()
     client, bc = attach_to_cluster(config, create_blazing_context=True)
     run_query(config=config, client=client, query_func=main, blazing_context=bc)
+
