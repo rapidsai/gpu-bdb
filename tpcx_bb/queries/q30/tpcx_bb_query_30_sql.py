@@ -43,7 +43,6 @@ def read_tables(data_dir, bc):
     bc.create_table('item', data_dir + "item/*.parquet")
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
 def main(data_dir, client, bc, config):
     benchmark(read_tables, data_dir, bc, dask_profile=config["dask_profile"])
 
