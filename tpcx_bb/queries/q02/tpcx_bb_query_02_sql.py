@@ -22,12 +22,10 @@ from xbb_tools.cluster_startup import attach_to_cluster
 from xbb_tools.utils import (
     benchmark,
     tpcxbb_argparser,
-    run_bsql_query,
+    run_query,
 )
 
 from xbb_tools.sessionization import get_distinct_sessions
-
-cli_args = tpcxbb_argparser()
 
 
 # -------- Q2 -----------
@@ -47,7 +45,6 @@ def get_relevant_item_series(df, q02_item_sk):
     return pair_df[pair_df["wcs_item_sk_t2"] != q02_item_sk][
         "wcs_item_sk_t2"
     ].reset_index(drop=True)
-
 
 
 def read_tables(data_dir, bc):
