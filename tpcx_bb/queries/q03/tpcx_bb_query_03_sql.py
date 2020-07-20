@@ -17,18 +17,15 @@
 
 import sys
 
-from blazingsql import BlazingContext
 from xbb_tools.cluster_startup import attach_to_cluster
-import os
 from numba import cuda
 
 from xbb_tools.utils import (
     benchmark,
     tpcxbb_argparser,
-    run_bsql_query,
+    run_query,
 )
 
-cli_args = tpcxbb_argparser()
 
 # -------- Q03 -----------
 q03_days_in_sec_before_purchase = 864000
@@ -126,29 +123,25 @@ def apply_find_items_viewed(df, item_mappings):
     return filtered
 
 
-@benchmark(
-    compute_result=cli_args["get_read_time"], dask_profile=cli_args["dask_profile"]
-)
-def read_tables(data_dir):
+def read_tables(data_dir, bc):
     bc.create_table("web_clickstreams",
                     data_dir + "web_clickstreams/*.parquet")
     bc.create_table("item", data_dir + "item/*.parquet")
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
-def main(data_dir, client):
-    read_tables(data_dir)
+def main(data_dir, client, bc, config):
+    benchmark(read_tables, data_dir, bc, dask_profile=config["dask_profile"])
 
-    query = """
+    query_1 = """
         SELECT i_item_sk,
             CAST(i_category_id AS TINYINT) AS i_category_id
         FROM item
     """
-    item_df = bc.sql(query)
+    item_df = bc.sql(query_1)
 
     bc.create_table("item_df", item_df)
 
-    query = """
+    query_2 = """
         SELECT CAST(w.wcs_user_sk AS INTEGER) as wcs_user_sk,
             wcs_click_date_sk * 86400 + wcs_click_time_sk AS tstamp,
             CAST(w.wcs_item_sk AS INTEGER) as wcs_item_sk,
@@ -160,14 +153,14 @@ def main(data_dir, client):
         AND w.wcs_item_sk IS NOT NULL
         ORDER BY w.wcs_user_sk
     """
-    merged_df = bc.sql(query)
+    merged_df = bc.sql(query_2)
 
-    query = f"""
+    query_3 = f"""
         SELECT i_item_sk, i_category_id
         FROM item_df
         WHERE i_category_id IN ({q03_purchased_item_category_IN})
     """
-    item_df_filtered = bc.sql(query)
+    item_df_filtered = bc.sql(query_3)
 
     product_view_results = merged_df.map_partitions(
         apply_find_items_viewed, item_mappings=item_df_filtered
@@ -190,14 +183,6 @@ def main(data_dir, client):
 
 
 if __name__ == "__main__":
-    client = attach_to_cluster(cli_args)
-
-    bc = BlazingContext(
-        dask_client=client,
-        pool=True,
-        network_interface=os.environ.get("INTERFACE", "eth0"),
-    )
-
-    run_bsql_query(
-        cli_args=cli_args, client=client, query_func=main
-    )
+    config = tpcxbb_argparser()
+    client, bc = attach_to_cluster(config, create_blazing_context=True)
+    run_query(config=config, client=client, query_func=main, blazing_context=bc)
