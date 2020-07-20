@@ -20,8 +20,6 @@ import sys
 from xbb_tools.cluster_startup import attach_to_cluster
 from xbb_tools.sessionization import get_sessions
 
-import cudf
-
 from xbb_tools.utils import (
     benchmark,
     tpcxbb_argparser,
@@ -30,6 +28,7 @@ from xbb_tools.utils import (
 
 
 def abandonedShoppingCarts(df, DYNAMIC_CAT_CODE, ORDER_CAT_CODE):
+    import cudf
     # work around for https://github.com/rapidsai/cudf/issues/5470
     df.reset_index(drop=True, inplace=True)
 
@@ -104,6 +103,7 @@ def main(data_dir, client, bc, config):
     ORDER_CAT_CODE = cpu_categories.get_loc("order")
 
     # ### cast to minimum viable dtype
+    import cudf
     codes_min_signed_type = cudf.utils.dtypes.min_signed_type(
                                                     len(cpu_categories))
     wp["wp_type_codes"] = wp["wp_type"].cat.codes.astype(codes_min_signed_type)
