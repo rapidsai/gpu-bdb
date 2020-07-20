@@ -25,6 +25,21 @@ from dask.utils import parse_bytes
 from blazingsql import BlazingContext
 
 
+def get_config_options():
+    """Loads configuration environment variables.
+    In case it is not previously set, returns a default value for each one.
+
+    Returns a dictionary object.
+    """
+    config_options = {}
+    config_options['JOIN_PARTITION_SIZE_THRESHOLD'] = os.environ.get("JOIN_PARTITION_SIZE_THRESHOLD", 300000000)
+    config_options['BLAZING_DEVICE_MEM_CONSUMPTION_THRESHOLD'] = os.environ.get("BLAZING_DEVICE_MEM_CONSUMPTION_THRESHOLD", 0.8)
+    config_options['BLAZING_LOGGING_DIRECTORY'] = os.environ.get("BLAZING_LOGGING_DIRECTORY", 'blazing_log')
+    config_options['MAX_DATA_LOAD_CONCAT_CACHE_BYTE_SIZE'] =  os.environ.get("MAX_DATA_LOAD_CONCAT_CACHE_BYTE_SIZE", 300000000)
+    config_options['BLAZING_CACHE_DIRECTORY'] = os.environ.get("BLAZING_CACHE_DIRECTORY", '/tmp/')
+
+    return config_options
+
 def attach_to_cluster(config, create_blazing_context=False):
     """Attaches to an existing cluster if available.
     By default, tries to attach to a cluster running on localhost:8786 (dask's default).
@@ -84,8 +99,11 @@ def attach_to_cluster(config, create_blazing_context=False):
     if create_blazing_context:
         bc = BlazingContext(
             dask_client=client,
-            pool=True,
-            network_interface=os.environ.get("INTERFACE", "eth0"),
+            pool=os.environ.get("BLAZING_POOL", False),
+            network_interface=os.environ.get("INTERFACE", "ib0"),
+            config_options=get_config_options(),
+            allocator=os.environ.get("BLAZING_ALLOCATOR_MODE", "managed"),
+            initial_pool_size=os.environ.get("BLAZING_INITIAL_POOL_SIZE", None)
         )
 
     return client, bc
