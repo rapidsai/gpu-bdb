@@ -17,12 +17,7 @@
 
 import sys
 
-
-from blazingsql import BlazingContext
 from xbb_tools.cluster_startup import attach_to_cluster
-from dask_cuda import LocalCUDACluster
-from dask.distributed import Client
-import os
 
 from xbb_tools.utils import (
     benchmark,
@@ -122,8 +117,8 @@ def main(data_dir, client, bc, config):
 			part_s.s_store_name
 		LIMIT 100
 	"""
-
     result = bc.sql(query)
+    result['i_item_desc'] = result['i_item_desc'].str.strip()
     return result
 
 
