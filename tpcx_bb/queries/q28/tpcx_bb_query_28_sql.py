@@ -19,7 +19,6 @@ import sys
 
 from xbb_tools.cluster_startup import attach_to_cluster
 from xbb_tools.text_vectorizers.dist_hashing_vectorizer import cudf_hashing_vectorizer
-import os
 import cupy
 import dask
 import time
@@ -32,8 +31,6 @@ from xbb_tools.utils import (
     tpcxbb_argparser,
     run_query,
 )
-
-cli_args = tpcxbb_argparser()
 
 
 N_FEATURES = 2 ** 23  # Spark is doing 2^20
