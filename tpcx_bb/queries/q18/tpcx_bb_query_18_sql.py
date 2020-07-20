@@ -34,7 +34,6 @@ from xbb_tools.utils import (
     run_query,
 )
 
-cli_args = tpcxbb_argparser()
 
 # -------- Q18 -----------
 q18_startDate = "2001-05-02"
