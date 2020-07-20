@@ -28,8 +28,6 @@ from xbb_tools.utils import (
     run_query,
 )
 
-cli_args = tpcxbb_argparser()
-
 
 # -------- Q8 -----------
 q08_SECONDS_BEFORE_PURCHASE = 259200
