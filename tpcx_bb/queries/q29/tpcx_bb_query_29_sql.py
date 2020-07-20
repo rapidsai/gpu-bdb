@@ -25,8 +25,6 @@ from xbb_tools.utils import (
     run_query,
 )
 
-cli_args = tpcxbb_argparser()
-
 
 # -------- Q29 -----------
 q29_limit = 100
