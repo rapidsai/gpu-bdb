@@ -22,12 +22,10 @@ import sys
 from xbb_tools.utils import (
     benchmark,
     tpcxbb_argparser,
-    run_dask_cudf_query,
+    run_query,
     convert_datestring_to_days,
 )
 from xbb_tools.readers import build_reader
-
-cli_args = tpcxbb_argparser()
 
 
 def inventory_before_after(df, date):
@@ -38,12 +36,11 @@ def inventory_before_after(df, date):
     return df
 
 
-@benchmark(compute_result=cli_args["get_read_time"])
-def read_tables():
+def read_tables(config):
     table_reader = build_reader(
-        data_format=cli_args["file_format"],
-        basepath=cli_args["data_dir"],
-        split_row_groups=cli_args["split_row_groups"],
+        data_format=config["file_format"],
+        basepath=config["data_dir"],
+        split_row_groups=config["split_row_groups"],
     )
     inv_columns = [
         "inv_item_sk",
@@ -65,14 +62,18 @@ def read_tables():
     return inventory, item, warehouse, date_dim
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
-def main(client):
+def main(client, config):
 
     q22_date = "2001-05-08"
     q22_i_current_price_min = 0.98
     q22_i_current_price_max = 1.5
 
-    inventory, item, warehouse, date_dim = read_tables()
+    inventory, item, warehouse, date_dim = benchmark(
+        read_tables,
+        config=config,
+        compute_result=config["get_read_time"],
+        dask_profile=config["dask_profile"],
+    )
 
     item = item.query(
         "i_current_price >= @q22_i_current_price_min and i_current_price<= @q22_i_current_price_max",
@@ -163,6 +164,6 @@ if __name__ == "__main__":
     import cudf
     import dask_cudf
 
-    client = attach_to_cluster(cli_args)
-
-    run_dask_cudf_query(cli_args=cli_args, client=client, query_func=main)
+    config = tpcxbb_argparser()
+    client, bc = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main)

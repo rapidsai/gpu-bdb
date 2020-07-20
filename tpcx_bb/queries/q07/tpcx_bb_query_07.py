@@ -20,11 +20,10 @@ import sys
 from xbb_tools.utils import (
     benchmark,
     tpcxbb_argparser,
-    run_dask_cudf_query,
+    run_query,
 )
 from xbb_tools.readers import build_reader
 
-cli_args = tpcxbb_argparser()
 
 q07_HIGHER_PRICE_RATIO = 1.2
 # --store_sales date
@@ -34,7 +33,6 @@ q07_HAVING_COUNT_GE = 10
 q07_LIMIT = 10
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
 def create_high_price_items_df(item_df):
     grouped_item_df = (
         item_df[["i_category", "i_current_price"]]
@@ -53,14 +51,11 @@ def create_high_price_items_df(item_df):
     return high_price_items_df
 
 
-@benchmark(
-    dask_profile=cli_args["dask_profile"], compute_result=cli_args["get_read_time"]
-)
-def read_tables():
+def read_tables(config):
     table_reader = build_reader(
-        data_format=cli_args["file_format"],
-        basepath=cli_args["data_dir"],
-        split_row_groups=cli_args["split_row_groups"],
+        data_format=config["file_format"],
+        basepath=config["data_dir"],
+        split_row_groups=config["split_row_groups"],
     )
 
     item_cols = ["i_item_sk", "i_current_price", "i_category"]
@@ -89,8 +84,7 @@ def read_tables():
     )
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
-def main(client):
+def main(client, config):
     (
         item_df,
         store_sales_df,
@@ -98,7 +92,12 @@ def main(client):
         date_dim_df,
         customer_df,
         customer_address_df,
-    ) = read_tables()
+    ) = benchmark(
+        read_tables,
+        config=config,
+        compute_result=config["get_read_time"],
+        dask_profile=config["dask_profile"],
+    )
 
     high_price_items_df = create_high_price_items_df(item_df)
     del item_df
@@ -159,6 +158,6 @@ if __name__ == "__main__":
     import cudf
     import dask_cudf
 
-    client = attach_to_cluster(cli_args)
-
-    run_dask_cudf_query(cli_args=cli_args, client=client, query_func=main)
+    config = tpcxbb_argparser()
+    client, bc = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main)
