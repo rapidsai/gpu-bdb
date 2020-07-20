@@ -21,12 +21,10 @@ from xbb_tools.utils import (
     benchmark,
     tpcxbb_argparser,
     left_semi_join,
-    run_dask_cudf_query,
+    run_query,
 )
 from xbb_tools.readers import build_reader
 
-
-cli_args = tpcxbb_argparser()
 
 ### conf
 q17_gmt_offset = -5
@@ -52,14 +50,11 @@ customer_address_cols = ["ca_address_sk", "ca_gmt_offset"]
 promotion_cols = ["p_channel_email", "p_channel_dmail", "p_channel_tv", "p_promo_sk"]
 
 
-@benchmark(
-    compute_result=cli_args["get_read_time"], dask_profile=cli_args["dask_profile"]
-)
-def read_tables():
+def read_tables(config):
     table_reader = build_reader(
-        data_format=cli_args["file_format"],
-        basepath=cli_args["data_dir"],
-        split_row_groups=cli_args["split_row_groups"],
+        data_format=config["file_format"],
+        basepath=config["data_dir"],
+        split_row_groups=config["split_row_groups"],
     )
 
     store_sales_df = table_reader.read("store_sales", relevant_cols=store_sales_cols)
@@ -83,8 +78,7 @@ def read_tables():
     )
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
-def main(client):
+def main(client, config):
     import cudf
 
     (
@@ -95,7 +89,12 @@ def main(client):
         date_dim_df,
         customer_address_df,
         promotion_df,
-    ) = read_tables()
+    ) = benchmark(
+        read_tables,
+        config=config,
+        compute_result=config["get_read_time"],
+        dask_profile=config["dask_profile"],
+    )
 
     # store_sales ss LEFT SEMI JOIN date_dim dd ON ss.ss_sold_date_sk = dd.d_date_sk AND dd.d_year = ${hiveconf:q17_year} AND dd.d_moy = ${hiveconf:q17_month}
     filtered_date_df = date_dim_df.query(
@@ -218,6 +217,6 @@ if __name__ == "__main__":
     import cudf
     import dask_cudf
 
-    client = attach_to_cluster(cli_args)
-
-    run_dask_cudf_query(cli_args=cli_args, client=client, query_func=main)
+    config = tpcxbb_argparser()
+    client, bc = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main)
