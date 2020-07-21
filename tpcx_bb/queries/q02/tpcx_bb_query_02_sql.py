@@ -34,19 +34,6 @@ q02_limit = 30
 q02_session_timeout_inSec = 3600
 
 
-def get_relevant_item_series(df, q02_item_sk):
-    """
-        Returns relevant items directly
-    """
-    item_df = df[df["wcs_item_sk"] == q02_item_sk].reset_index(drop=True)
-    pair_df = item_df.merge(
-        df, on=["wcs_user_sk", "session_id"], suffixes=["_t1", "_t2"], how="inner"
-    )
-    return pair_df[pair_df["wcs_item_sk_t2"] != q02_item_sk][
-        "wcs_item_sk_t2"
-    ].reset_index(drop=True)
-
-
 def read_tables(data_dir, bc):
     bc.create_table("web_clickstreams",
                     data_dir + "web_clickstreams/*.parquet")
@@ -55,7 +42,7 @@ def read_tables(data_dir, bc):
 def main(data_dir, client, bc, config):
     benchmark(read_tables, data_dir, bc, dask_profile=config["dask_profile"])
 
-    query = """
+    query_1 = """
         SELECT
             wcs_user_sk,
             wcs_item_sk,
@@ -65,7 +52,7 @@ def main(data_dir, client, bc, config):
         AND   wcs_user_sk IS NOT NULL
         ORDER BY wcs_user_sk, tstamp_inSec
     """
-    wcs_result = bc.sql(query)
+    wcs_result = bc.sql(query_1)
 
     session_df = wcs_result.map_partitions(
         get_distinct_sessions,
@@ -73,19 +60,27 @@ def main(data_dir, client, bc, config):
         time_out=q02_session_timeout_inSec,
     )
 
-    item_series = session_df.map_partitions(get_relevant_item_series,
-                                            q02_item_sk)
+    bc.create_table('session_df', session_df)
 
-    # bringing unique items viewed with query item at cudf level
-    items_value_counts = item_series.value_counts().head(q02_limit)
-    items_value_counts.columns = ["item_sk_1", "cnt"]
-    items_value_counts = items_value_counts.to_frame()
-
-    result = items_value_counts.reset_index(drop=False)
-    result.columns = ["item_sk_1", "cnt"]
-    result["item_sk_2"] = q02_item_sk
-    result = result[["item_sk_1", "item_sk_2", "cnt"]]
-
+    last_query = f"""
+        WITH item_df AS (
+            SELECT wcs_user_sk, session_id
+            FROM session_df
+            WHERE wcs_item_sk = {q02_item_sk}
+        )
+        SELECT sd.wcs_item_sk as item_sk_1,
+            {q02_item_sk} as item_sk_2,
+            count(sd.wcs_item_sk) as cnt
+        FROM session_df sd
+        INNER JOIN item_df id
+        ON sd.wcs_user_sk = id.wcs_user_sk
+        AND sd.session_id = id.session_id
+        AND sd.wcs_item_sk <> {q02_item_sk}
+        GROUP BY sd.wcs_item_sk
+        ORDER BY cnt desc
+        LIMIT {q02_limit}
+    """
+    result = bc.sql(last_query)
     return result
 
 
