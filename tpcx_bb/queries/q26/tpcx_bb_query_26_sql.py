@@ -28,8 +28,6 @@ from xbb_tools.utils import (
 
 from dask import delayed
 
-cli_args = tpcxbb_argparser()
-
 
 # -------- Q26 -----------
 q26_i_category_IN = "Books"
