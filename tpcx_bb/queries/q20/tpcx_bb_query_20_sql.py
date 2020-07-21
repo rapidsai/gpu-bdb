@@ -29,7 +29,6 @@ from xbb_tools.utils import (
     train_clustering_model
 )
 
-cli_args = tpcxbb_argparser()
 
 # q20 parameters
 N_CLUSTERS = 8
