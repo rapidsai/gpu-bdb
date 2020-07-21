@@ -113,7 +113,7 @@ def main(data_dir, client, bc, config):
         ORDER BY review_idx_global_pos, item_sk, word, sentence
     """
     recombined = bc.sql(query)
-    return recombined.compute()
+    return recombined
 
 
 if __name__ == "__main__":
