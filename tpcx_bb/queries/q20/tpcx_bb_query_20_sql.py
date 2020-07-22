@@ -60,22 +60,6 @@ def get_clusters(client, ml_input_df, feature_cols):
     return results_dict
 
 
-def remove_inf_and_nulls(df, column_names, value=0.0):
-    """
-    Replace all nulls, inf, -inf with value column_name from df
-    """
-
-    to_replace_dict = dict.fromkeys(column_names, [np.inf, -np.inf])
-    value_dict = dict.fromkeys(column_names, 0.0)
-
-    # Fill nulls for ratio columns with 0.0
-    df.fillna(value_dict, inplace=True)
-    # Replace inf and -inf with 0.0
-    df.replace(to_replace_dict, value_dict, inplace=True)
-
-    return df
-
-
 def read_tables(data_dir, bc):
     bc.create_table("store_sales", data_dir + "store_sales/*.parquet")
     bc.create_table("store_returns", data_dir + "store_returns/*.parquet")
