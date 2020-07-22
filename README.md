@@ -107,7 +107,7 @@ To run all queries, cd to `tpcx_bb/` and:
 python benchmark_runner.py --config_file benchmark_runner/benchmark_config.yaml
 ```
 
-By default, this will run each query three times. You can control the number of repeats by changing the `n_repeats` variable in the script.
+By default, this will run each query once. You can control the number of repeats by changing the `N_REPEATS` variable in the script.
 
 
 ## BlazingSQL
