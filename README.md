@@ -95,7 +95,7 @@ This repository includes optional performance-tracking automation using Google S
 ```
 export GOOGLE_SHEETS_CREDENTIALS_PATH=<path to creds.json>
 ```
-Then configre the `--sheet` and `--tab` arguments in benchmark_config.yaml.
+Then configure the `--sheet` and `--tab` arguments in benchmark_config.yaml.
 
 ### Running all of the Queries
 
