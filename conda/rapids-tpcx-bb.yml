@@ -25,6 +25,8 @@ dependencies:
   - psutil
   - ipykernel
   - jupyterlab
+  - gspread
+  - oauth2client
   - pip
   - pip:
     - jupyter-server-proxy

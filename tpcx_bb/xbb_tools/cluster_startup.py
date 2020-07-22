@@ -106,6 +106,12 @@ def attach_to_cluster(config, create_blazing_context=False):
             initial_pool_size=os.environ.get("BLAZING_INITIAL_POOL_SIZE", None)
         )
 
+    
+    #upload sentiment txt files to all nodes
+    client.upload_file('sentiment_files/negativeSentiment.txt')
+    client.upload_file('sentiment_files/positiveSentiment.txt')
+    print('Uploaded sentiment files to all workers')
+
     return client, bc
 
 

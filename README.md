@@ -37,16 +37,10 @@ Note that this Conda environment needs to be replicated or installed manually on
 
 ## NLP Query Setup
 
-Queries 10, 18, and 19 depend on two static (negativeSentiment.txt, positiveSentiment.txt) files. As we cannot redistribute those files, you should [download the tpcx-bb toolkit](http://www.tpc.org/tpc_documents_current_versions/download_programs/tools-download-request5.asp?bm_type=TPCX-BB&bm_vers=1.3.1&mode=CURRENT-ONLY) and extract them:
+Queries 10, 18, and 19 depend on two static (negativeSentiment.txt, positiveSentiment.txt) files. As we cannot redistribute those files, you should [download the tpcx-bb toolkit](http://www.tpc.org/tpc_documents_current_versions/download_programs/tools-download-request5.asp?bm_type=TPCX-BB&bm_vers=1.3.1&mode=CURRENT-ONLY) and extract them to $TPCX_BB_HOME/tpcx_bb:
 ```
 jar xf bigbenchqueriesmr.jar
-cp tpcx-bb1.3.1/distributions/Resources/io/bigdatabenchmark/v1/queries/q10/negativeSentiment.txt $TPCX_BB_HOME/tpcx_bb/queries/q10
-cp tpcx-bb1.3.1/distributions/Resources/io/bigdatabenchmark/v1/queries/q10/negativeSentiment.txt $TPCX_BB_HOME/tpcx_bb/queries/q18
-cp tpcx-bb1.3.1/distributions/Resources/io/bigdatabenchmark/v1/queries/q10/negativeSentiment.txt $TPCX_BB_HOME/tpcx_bb/queries/q19
-
-cp tpcx-bb1.3.1/distributions/Resources/io/bigdatabenchmark/v1/queries/q10/positiveSentiment.txt $TPCX_BB_HOME/tpcx_bb/queries/q10
-cp tpcx-bb1.3.1/distributions/Resources/io/bigdatabenchmark/v1/queries/q10/positiveSentiment.txt $TPCX_BB_HOME/tpcx_bb/queries/q18
-cp tpcx-bb1.3.1/distributions/Resources/io/bigdatabenchmark/v1/queries/q10/positiveSentiment.txt $TPCX_BB_HOME/tpcx_bb/queries/q19
+cp tpcx-bb1.3.1/distributions/Resources/io/bigdatabenchmark/v1/queries/q10/*.txt sentiment_files/
 ```
 
 For Query 27, we rely on [spacy](https://spacy.io/). To download the necessary language model after activating the Conda environment:
@@ -97,11 +91,11 @@ python tpcx_bb_query_07.py --config_file=../../benchmark_runner/benchmark_config
 
 ## Performance Tracking
 
-This repository contains support for performance-tracking automation using Google Sheets. To enable logging query runtimes:
+This repository includes optional performance-tracking automation using Google Sheets. To enable logging query runtimes, on the client node:
 ```
-conda install -c conda-forge gspread oauth2client
+export GOOGLE_SHEETS_CREDENTIALS_PATH=<path to creds.json>
 ```
-Then configre the `--sheet` and `--tab` arguments in benchmark_config.yaml. You must provide a path to a Google Sheets API credentials file as an environment variable called `GOOGLE_SHEETS_CREDENTIALS_PATH` on the node running the client. If you do not have these libraries installed, you will see `Please install gspread and oauth2client to use Google Sheets automation` after running a query. It's fine to ignore this output if you don't care about logging to Google Sheets.
+Then configre the `--sheet` and `--tab` arguments in benchmark_config.yaml.
 
 ### Running all of the Queries
 

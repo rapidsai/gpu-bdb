@@ -281,7 +281,7 @@ def main(client, config):
 
     # This file comes from the official TPCx-BB kit
     # We extracted it from bigbenchqueriesmr.jar
-    with open("negativeSentiment.txt") as fh:
+    with open("sentiment_files/negativeSentiment.txt") as fh:
         negativeSentiment = list(map(str.strip, fh.readlines()))
         # dedupe for one extra record in the source file
         negativeSentiment = list(set(negativeSentiment))
