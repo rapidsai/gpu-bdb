@@ -120,7 +120,7 @@ We include BlazingSQL implementations of several queries. As we continue scale t
 BlazingSQL currently supports clusters using TCP. Please follow the instructions above, making sure to use the InfiniBand interface as the `INTERFACE` variable. Then, start the cluster with:
 
 ```bash
-bash cluster_configuration/cluster-startup.sh TCP
+bash cluster_configuration/bsql-cluster-startup.sh TCP
 ```
 
 ## Data Generation
