@@ -112,7 +112,10 @@ def main(data_dir, client, bc, config):
         ON sentence_idx_global_pos = sentence_tokenized_global_pos
         ORDER BY review_idx_global_pos, item_sk, word, sentence
     """
+
     recombined = bc.sql(query)
+    recombined = recombined.persist()
+    wait(recombined)
     return recombined
 
 
