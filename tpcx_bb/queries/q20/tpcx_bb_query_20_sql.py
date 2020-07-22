@@ -129,11 +129,6 @@ def main(data_dir, client, bc, config):
     """
     final_df = bc.sql(query)
 
-    ratio_columns = ["orderRatio", "itemsRatio", "monetaryRatio"]
-    final_df = final_df.map_partitions(
-        remove_inf_and_nulls, column_names=ratio_columns, value=0.0
-    )
-
     final_df = final_df.fillna(0)
     final_df = final_df.repartition(npartitions=1).persist()
     wait(final_df)
