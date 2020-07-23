@@ -44,7 +44,7 @@ def main(data_dir, client, bc, config):
         SELECT DISTINCT wcs_user_sk
         FROM
         (
-            SELECT
+            SELECT DISTINCT
                 wcs_user_sk,
                 wcs_click_date_sk
             FROM web_clickstreams, item
@@ -55,7 +55,7 @@ def main(data_dir, client, bc, config):
             AND wcs_sales_sk IS NULL
         ) webInRange,
         (
-            SELECT
+            SELECT DISTINCT
                 ss_customer_sk,
                 ss_sold_date_sk
             FROM store_sales, item
