@@ -71,21 +71,21 @@ def main(data_dir, client, bc, config):
     query = f"""
         SELECT
             ss.ss_customer_sk AS cid,
-            count(CASE WHEN i.i_class_id=1  THEN 1 ELSE NULL END) AS id1,
-            count(CASE WHEN i.i_class_id=2  THEN 1 ELSE NULL END) AS id2,
-            count(CASE WHEN i.i_class_id=3  THEN 1 ELSE NULL END) AS id3,
-            count(CASE WHEN i.i_class_id=4  THEN 1 ELSE NULL END) AS id4,
-            count(CASE WHEN i.i_class_id=5  THEN 1 ELSE NULL END) AS id5,
-            count(CASE WHEN i.i_class_id=6  THEN 1 ELSE NULL END) AS id6,
-            count(CASE WHEN i.i_class_id=7  THEN 1 ELSE NULL END) AS id7,
-            count(CASE WHEN i.i_class_id=8  THEN 1 ELSE NULL END) AS id8,
-            count(CASE WHEN i.i_class_id=9  THEN 1 ELSE NULL END) AS id9,
-            count(CASE WHEN i.i_class_id=10 THEN 1 ELSE NULL END) AS id10,
-            count(CASE WHEN i.i_class_id=11 THEN 1 ELSE NULL END) AS id11,
-            count(CASE WHEN i.i_class_id=12 THEN 1 ELSE NULL END) AS id12,
-            count(CASE WHEN i.i_class_id=13 THEN 1 ELSE NULL END) AS id13,
-            count(CASE WHEN i.i_class_id=14 THEN 1 ELSE NULL END) AS id14,
-            count(CASE WHEN i.i_class_id=15 THEN 1 ELSE NULL END) AS id15
+            CAST( count(CASE WHEN i.i_class_id=1  THEN 1 ELSE NULL END) AS DOUBLE ) AS id1,
+			CAST( count(CASE WHEN i.i_class_id=2  THEN 1 ELSE NULL END) AS DOUBLE ) AS id2,
+			CAST( count(CASE WHEN i.i_class_id=3  THEN 1 ELSE NULL END) AS DOUBLE ) AS id3,
+			CAST( count(CASE WHEN i.i_class_id=4  THEN 1 ELSE NULL END) AS DOUBLE ) AS id4,
+			CAST( count(CASE WHEN i.i_class_id=5  THEN 1 ELSE NULL END) AS DOUBLE ) AS id5,
+			CAST( count(CASE WHEN i.i_class_id=6  THEN 1 ELSE NULL END) AS DOUBLE ) AS id6,
+			CAST( count(CASE WHEN i.i_class_id=7  THEN 1 ELSE NULL END) AS DOUBLE ) AS id7,
+			CAST( count(CASE WHEN i.i_class_id=8  THEN 1 ELSE NULL END) AS DOUBLE ) AS id8,
+			CAST( count(CASE WHEN i.i_class_id=9  THEN 1 ELSE NULL END) AS DOUBLE ) AS id9,
+			CAST( count(CASE WHEN i.i_class_id=10 THEN 1 ELSE NULL END) AS DOUBLE ) AS id10,
+			CAST( count(CASE WHEN i.i_class_id=11 THEN 1 ELSE NULL END) AS DOUBLE ) AS id11,
+			CAST( count(CASE WHEN i.i_class_id=12 THEN 1 ELSE NULL END) AS DOUBLE ) AS id12,
+			CAST( count(CASE WHEN i.i_class_id=13 THEN 1 ELSE NULL END) AS DOUBLE ) AS id13,
+			CAST( count(CASE WHEN i.i_class_id=14 THEN 1 ELSE NULL END) AS DOUBLE ) AS id14,
+			CAST( count(CASE WHEN i.i_class_id=15 THEN 1 ELSE NULL END) AS DOUBLE ) AS id15
         FROM store_sales ss
         INNER JOIN item i
         ON
@@ -100,13 +100,8 @@ def main(data_dir, client, bc, config):
     """
     result = bc.sql(query)
     result = result.repartition(npartitions=1)
-
-    # Prepare data for KMeans clustering
-    result = result.astype("float64")
-    result_ml = result.persist()
+    result_ml = result.set_index('cid')
     ml_result_dict = get_clusters(client=client, kmeans_input_df=result_ml)
-    ml_result_dict['cid_labels'].columns = ["ss_customer_sk", "label"]
-
     return ml_result_dict
 
 
