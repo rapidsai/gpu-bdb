@@ -105,14 +105,14 @@ def main(data_dir, client, bc, config):
         GROUP BY cid
         ORDER BY cid
     """
-    result = bc.sql(query)
+    cluster_input_ddf = bc.sql(query)
 
     # Prepare df for KMeans clustering
-    cluster_input_ddf = result.set_index('cid')
     cluster_input_ddf["recency"] = cluster_input_ddf["recency"].astype("int64")
 
     cluster_input_ddf = cluster_input_ddf.repartition(npartitions=1)
     cluster_input_ddf = cluster_input_ddf.persist()
+    cluster_input_ddf = cluster_input_ddf.set_index('cid')
     results_dict = get_clusters(client=client, ml_input_df=cluster_input_ddf)
 
     return results_dict
