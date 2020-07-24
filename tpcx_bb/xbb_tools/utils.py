@@ -871,7 +871,7 @@ def generate_library_information():
 
 
 def push_payload_to_googlesheet(config):
-    if os.environ.get("GOOGLE_SHEETS_CREDENTIALS_PATH", None) != None:
+    if os.environ.get("GOOGLE_SHEETS_CREDENTIALS_PATH", None):
       if not config.get("tab") or not config.get("sheet"):
           print("Must pass a sheet and tab name to use Google Sheets automation")
           return 1
