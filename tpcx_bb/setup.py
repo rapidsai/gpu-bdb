@@ -8,7 +8,6 @@ setup(
     version="0.2",
     author="RAPIDS",
     packages=["benchmark_runner", "xbb_tools", "xbb_tools/text_vectorizers"],
-    #+ [f"queries/q{qnum}" for qnum in qnums],
     package_data={"benchmark_runner": ["benchmark_config.yaml"]},
     include_package_data=True,
 )
