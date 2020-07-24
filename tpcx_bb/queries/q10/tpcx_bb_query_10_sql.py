@@ -78,18 +78,18 @@ def main(data_dir, client, bc, config):
         global_position_column="sentence_tokenized_global_pos",
     )
 
-    resources_dir = os.getcwd()
     bc.create_table('product_reviews_df', product_reviews_df)
     bc.create_table('sentences', sentences)
 
     # These files come from the official TPCx-BB kit
     # We extracted them from bigbenchqueriesmr.jar
     # Need to pass the absolute path for these txt files
+    sentiment_dir = "/".join(config["data_dir"].split("/")[:-3] + ["sentiment_files"])
     bc.create_table('negative_sentiment',
-                    resources_dir + "/negativeSentiment.txt",
+                    sentiment_dir + "/negativeSentiment.txt",
                     names="sentiment_word")
     bc.create_table('positive_sentiment',
-                    resources_dir + "/positiveSentiment.txt",
+                    sentiment_dir + "/positiveSentiment.txt",
                     names="sentiment_word")
     bc.create_table('word_df', word_df)
 

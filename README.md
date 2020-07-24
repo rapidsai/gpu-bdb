@@ -37,10 +37,10 @@ Note that this Conda environment needs to be replicated or installed manually on
 
 ## NLP Query Setup
 
-Queries 10, 18, and 19 depend on two static (negativeSentiment.txt, positiveSentiment.txt) files. As we cannot redistribute those files, you should [download the tpcx-bb toolkit](http://www.tpc.org/tpc_documents_current_versions/download_programs/tools-download-request5.asp?bm_type=TPCX-BB&bm_vers=1.3.1&mode=CURRENT-ONLY) and extract them to $TPCX_BB_HOME/tpcx_bb:
+Queries 10, 18, and 19 depend on two static (negativeSentiment.txt, positiveSentiment.txt) files. As we cannot redistribute those files, you should [download the tpcx-bb toolkit](http://www.tpc.org/tpc_documents_current_versions/download_programs/tools-download-request5.asp?bm_type=TPCX-BB&bm_vers=1.3.1&mode=CURRENT-ONLY) and extract them to your shared filesystem:
 ```
 jar xf bigbenchqueriesmr.jar
-cp tpcx-bb1.3.1/distributions/Resources/io/bigdatabenchmark/v1/queries/q10/*.txt sentiment_files/
+cp tpcx-bb1.3.1/distributions/Resources/io/bigdatabenchmark/v1/queries/q10/*.txt ${DATA_DIR}/tpcx-bb/sentiment_files/
 ```
 
 For Query 27, we rely on [spacy](https://spacy.io/). To download the necessary language model after activating the Conda environment:

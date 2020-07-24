@@ -17,20 +17,25 @@ dask_qnums = [str(i).zfill(2) for i in range(1, 31)]
 bsql_query_files = sorted(glob.glob("./queries/q*/t*_sql.py"))
 bsql_qnums = [get_qnum_from_filename(x.split("/")[-1]) for x in bsql_query_files]
 
+def load_query(qnum, fn):
+    import importlib, types
+    loader = importlib.machinery.SourceFileLoader(qnum, f"queries/q{qnum}/tpcx_bb_query_{qnum}.py")
+    mod = types.ModuleType(loader.name)
+    loader.exec_module(mod)
+    return mod.main
+
 if __name__ == "__main__":
     from xbb_tools.cluster_startup import attach_to_cluster, import_query_libs
     from xbb_tools.utils import run_query, tpcxbb_argparser
-    import importlib
 
     import_query_libs()
-
     dask_queries = {
-        qnum: importlib.import_module(f"queries.q{qnum}.tpcx_bb_query_{qnum}").main
+        qnum: load_query(qnum, f"queries/q{qnum}/tpcx_bb_query_{qnum}.py")
         for qnum in dask_qnums
     }
 
     bsql_queries = {
-        qnum: importlib.import_module(f"queries.q{qnum}.tpcx_bb_query_{qnum}_sql").main
+        qnum: load_query(qnum, f"queries/q{qnum}/tpcx_bb_query_{qnum}_sql.py")
         for qnum in bsql_qnums
     }
 
