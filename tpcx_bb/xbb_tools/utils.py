@@ -42,6 +42,8 @@ from dask.distributed import Client, wait, performance_report, SSHCluster
 
 import json
 
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
 
 #################################
 # Benchmark Timing
@@ -292,9 +294,6 @@ def run_dask_cudf_query(config, client, query_func, write_func=write_result):
             result_verified = verify_results(config["verify_dir"])
         config["result_verified"] = result_verified
 
-        if os.environ.get("tpcxbb_benchmark_sweep_run") != "True":
-            client.close()
-
     except:
         config["query_status"] = "Failed"
         print("Encountered Exception while running query")
@@ -339,8 +338,6 @@ def run_bsql_query(
             result_verified = verify_results(config["verify_dir"])
         config["result_verified"] = result_verified
 
-        if os.environ.get("tpcxbb_benchmark_sweep_run") != "True":
-            client.close()
     except:
         config["query_status"] = "Failed"
         print("Encountered Exception while running query")
@@ -409,15 +406,8 @@ def get_query_number():
         - q01
         - q02
         ...
-    and that it is being executed in one of the sub-directories.
     """
-    ### when running  tpcxbb_benchmark_sweep_run we dont call it from query structure
-    ### we write it to a loaction instead
-    if os.environ.get("tpcxbb_benchmark_sweep_run") == "True":
-        with open("current_query_num.txt", "r") as file:
-            QUERY_NUM = file.read()
-    else:
-        QUERY_NUM = os.getcwd().split("/")[-1].strip("q")
+    QUERY_NUM = os.getcwd().split("/")[-1].strip("q")
     return QUERY_NUM
 
 
@@ -881,34 +871,25 @@ def generate_library_information():
 
 
 def push_payload_to_googlesheet(config):
-    try:
-        import gspread
-        from oauth2client.service_account import ServiceAccountCredentials
-    except ImportError:
-        print(
-            "Please install gspread and oauth2client \
-              to use Google Sheets automation"
-        )
-        return 1
+    if os.environ.get("GOOGLE_SHEETS_CREDENTIALS_PATH", None):
+      if not config.get("tab") or not config.get("sheet"):
+          print("Must pass a sheet and tab name to use Google Sheets automation")
+          return 1
 
-    if not config.get("tab") or not config.get("sheet"):
-        print("Must pass a sheet and tab name to use Google Sheets automation")
-        return 1
+      scope = [
+          "https://spreadsheets.google.com/feeds",
+          "https://www.googleapis.com/auth/drive",
+      ]
+      credentials_path = os.environ["GOOGLE_SHEETS_CREDENTIALS_PATH"]
 
-    scope = [
-        "https://spreadsheets.google.com/feeds",
-        "https://www.googleapis.com/auth/drive",
-    ]
-    credentials_path = os.environ["GOOGLE_SHEETS_CREDENTIALS_PATH"]
-
-    credentials = ServiceAccountCredentials.from_json_keyfile_name(
-        credentials_path, scope
-    )
-    gc = gspread.authorize(credentials)
-    payload = build_benchmark_googlesheet_payload(config)
-    s = gc.open(config["sheet"])
-    tab = s.worksheet(config["tab"])
-    tab.append_row(payload)
+      credentials = ServiceAccountCredentials.from_json_keyfile_name(
+          credentials_path, scope
+      )
+      gc = gspread.authorize(credentials)
+      payload = build_benchmark_googlesheet_payload(config)
+      s = gc.open(config["sheet"])
+      tab = s.worksheet(config["tab"])
+      tab.append_row(payload)
 
 
 #################################
