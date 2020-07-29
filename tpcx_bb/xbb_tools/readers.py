@@ -15,6 +15,7 @@
 #
 
 from abc import ABC, abstractmethod
+import os
 
 
 TABLE_NAMES = [
@@ -90,7 +91,7 @@ class ParquetReader(Reader):
         self, basepath, split_row_groups=False,
     ):
         self.table_path_mapping = {
-            table: f"{basepath}{table}/*.parquet" for table in TABLE_NAMES
+            table: os.path.join(basepath, table, "*.parquet") for table in TABLE_NAMES
         }
         self.split_row_groups = split_row_groups
 
