@@ -17,26 +17,16 @@
 
 import sys
 
-
-from blazingsql import BlazingContext
 from xbb_tools.cluster_startup import attach_to_cluster
-from dask_cuda import LocalCUDACluster
-from dask.distributed import Client
-import os
 
 from xbb_tools.utils import (
     benchmark,
     tpcxbb_argparser,
-    run_bsql_query,
+    run_query,
 )
 
-cli_args = tpcxbb_argparser()
 
-
-@benchmark(
-    compute_result=cli_args["get_read_time"], dask_profile=cli_args["dask_profile"]
-)
-def read_tables(data_dir):
+def read_tables(data_dir, bc):
     bc.create_table("store_sales", data_dir + "/store_sales/*.parquet")
     bc.create_table("date_dim", data_dir + "/date_dim/*.parquet")
     bc.create_table("item", data_dir + "/item/*.parquet")
@@ -45,9 +35,8 @@ def read_tables(data_dir):
     bc.create_table("store", data_dir + "/store/*.parquet")
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
-def main(data_dir, client):
-    read_tables(data_dir)
+def main(data_dir, client, bc, config):
+    benchmark(read_tables, data_dir, bc, dask_profile=config["dask_profile"])
 
     query = """
 		SELECT
@@ -128,20 +117,12 @@ def main(data_dir, client):
 			part_s.s_store_name
 		LIMIT 100
 	"""
-
     result = bc.sql(query)
+    result['i_item_desc'] = result['i_item_desc'].str.strip()
     return result
 
 
 if __name__ == "__main__":
-    client = attach_to_cluster(cli_args)
-
-    bc = BlazingContext(
-        dask_client=client,
-        pool=True,
-        network_interface=os.environ.get("INTERFACE", "eth0"),
-    )
-    
-    run_bsql_query(
-        cli_args=cli_args, client=client, query_func=main
-    )
+    config = tpcxbb_argparser()
+    client, bc = attach_to_cluster(config, create_blazing_context=True)
+    run_query(config=config, client=client, query_func=main, blazing_context=bc)

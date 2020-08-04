@@ -19,7 +19,7 @@ import sys
 from xbb_tools.utils import (
     benchmark,
     tpcxbb_argparser,
-    run_dask_cudf_query,
+    run_query,
 )
 from xbb_tools.readers import build_reader
 from xbb_tools.utils import benchmark
@@ -40,17 +40,14 @@ from distributed import wait
 # * The ws_item_join table after distincts has `48M` rows, can cause problems on bigger scale factors
 
 
-cli_args = tpcxbb_argparser()
-
 # -------- Q29 -----------
 q29_limit = 100
 q29_session_timeout_inSec = 3600
 
 
-@benchmark(compute_result=cli_args.get("get_read_time"))
-def read_tables():
+def read_tables(config):
     table_reader = build_reader(
-        data_format=cli_args["file_format"], basepath=cli_args["data_dir"],
+        data_format=config["file_format"], basepath=config["data_dir"],
     )
     item_cols = ["i_item_sk", "i_category_id"]
     item_df = table_reader.read("item", relevant_cols=item_cols)
@@ -95,10 +92,14 @@ def get_pairs(
     return pair_df
 
 
-@benchmark(dask_profile=cli_args["dask_profile"])
-def main(client):
+def main(client, config):
 
-    item_df, ws_df = read_tables()
+    item_df, ws_df = benchmark(
+        read_tables,
+        config=config,
+        compute_result=config["get_read_time"],
+        dask_profile=config["dask_profile"],
+    )
     ### setting index on ws_order_number
     ws_df = ws_df.repartition(columns=["ws_order_number"])
     ### at sf-100k we will have max of 17M rows and 17 M rows with 2 columns, 1 part is very reasonable
@@ -151,6 +152,6 @@ if __name__ == "__main__":
     import cudf
     import dask_cudf
 
-    client = attach_to_cluster(cli_args)
-
-    run_dask_cudf_query(cli_args=cli_args, client=client, query_func=main)
+    config = tpcxbb_argparser()
+    client, bc = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main)

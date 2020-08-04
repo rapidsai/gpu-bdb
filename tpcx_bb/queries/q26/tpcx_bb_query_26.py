@@ -23,15 +23,11 @@ from xbb_tools.utils import (
     benchmark,
     tpcxbb_argparser,
     train_clustering_model,
-    run_dask_cudf_query,
+    run_query,
 )
 from xbb_tools.readers import build_reader
 from dask import delayed
 
-try:
-    cli_args = tpcxbb_argparser()
-except:
-    cli_args = {}
 
 # q26 parameters
 Q26_CATEGORY = "Books"
@@ -41,12 +37,11 @@ CLUSTER_ITERATIONS = 20
 N_ITER = 5
 
 
-@benchmark(compute_result=cli_args.get("get_read_time"))
-def read_tables():
+def read_tables(config):
     table_reader = build_reader(
-        data_format=cli_args["file_format"],
-        basepath=cli_args["data_dir"],
-        split_row_groups=cli_args["split_row_groups"],
+        data_format=config["file_format"],
+        basepath=config["data_dir"],
+        split_row_groups=config["split_row_groups"],
     )
 
     ss_cols = ["ss_customer_sk", "ss_item_sk"]
@@ -91,11 +86,15 @@ def get_clusters(client, kmeans_input_df):
     return results_dict
 
 
-@benchmark(dask_profile=cli_args.get("dask_profile"))
-def main(client):
+def main(client, config):
     import cudf
 
-    ss_ddf, items_ddf = read_tables()
+    ss_ddf, items_ddf = benchmark(
+        read_tables,
+        config=config,
+        compute_result=config["get_read_time"],
+        dask_profile=config["dask_profile"],
+    )
 
     items_filtered = items_ddf[items_ddf.i_category == Q26_CATEGORY].reset_index(
         drop=True
@@ -140,6 +139,6 @@ if __name__ == "__main__":
     import cudf
     import dask_cudf
 
-    client = attach_to_cluster(cli_args)
-
-    run_dask_cudf_query(cli_args=cli_args, client=client, query_func=main)
+    config = tpcxbb_argparser()
+    client, bc = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main)
