@@ -20,6 +20,7 @@ import cupy as cp
 import numpy as np
 import distributed
 from numba import cuda
+import logging
 
 from xbb_tools.utils import (
     benchmark,
@@ -49,7 +50,6 @@ def get_stride(seq_len):
     max_len = seq_len-2
     stride = int(max_len*0.5)
     return stride
-
 
 
 def read_tables(config):
@@ -123,9 +123,9 @@ def get_df_partitioned_by_seq(df,sequence_len_ls):
     
     return sq_part_d
 
-def tokenize_text_series(text_ser,seq_len,stride=None,vocab_file='/raid/vjawa/torch_ner_q27/tpcx-bb-2/tpcx_bb/queries/q27/vocab-hash.txt'):
+def tokenize_text_series(text_ser,seq_len,stride=None,vocab_file='/mnt/weka/vjawa/nlp_model/distilbert-base-en-cased/vocab-hash.txt'):
     """
-        This function tokenizes a text series using the bert subword_tokenizer and vo
+        This function tokenizes a text series using the bert subword_tokenizer and vocab-hash
     """
     if len(text_ser)==0:
         return {'token_tensor':None,'masks':None,'metadata':None}
@@ -189,19 +189,17 @@ def run_inference_on_tensor(model,token_tensor,attention_tensor,batchsize):
             if batch_end==batch_st:
                 break
 
-            # for batch_end in range(batchsize
             batch_f_st = time.time()
             current_batch_tensor = token_tensor[batch_st:batch_end]
             current_batch_attention = attention_tensor[batch_st:batch_end]
             batch_f_et = time.time()
             
-            #print('batch fetch took = {0:.2f} s'.format(batch_f_et-batch_f_st))
 
             outputs = model(current_batch_tensor,current_batch_attention)
             prediction_ls.append(outputs[0])
 
-            if batch_index%20==0:
-                 print(f"batch_index = {batch_index}/{total_batches} took = {time.time()-batch_st_time}")
+            #if batch_index%20==0:
+            #     print(f"batch_index = {batch_index}/{total_batches} took = {time.time()-batch_st_time}")
                 
     return torch.cat(prediction_ls).argmax(dim=2)
 
@@ -227,14 +225,12 @@ def run_inference_on_df(df,model,batchsize=64, sequence_len_th_ls=[512,256,128,6
     total_st = time.time()
     prediction_d = {}
     for seqlen,batch_d in token_d.items():
-        print(f"Started batch of sequence = {seqlen}")
         st = time.time()
         prediction_d[seqlen]= run_inference_on_tensor(model,batch_d['token_tensor'],batch_d['masks'],batchsize)
         et = time.time()
-        print(f"Inference for sequence of len {seqlen} took {et-st}")
     total_et = time.time()
-    print("Total time taken = {}".format(total_et-total_st))
-
+    
+    logging.warning("Infrerence took = {}".format(total_et-total_st))
     return token_d,prediction_d
 
 #### Gathering Sentence Utils:
@@ -314,25 +310,26 @@ def get_org_sentences(sentence_boundary_df,org_df):
     merged_df['right_loc']=merged_df['flat_loc_fs']-merged_df['flat_loc_org']
     
     ### Better way to get the closeset row/col maybe 
-    valid_right_loc = merged_df[merged_df['right_loc']>0].sort_values(by=['flat_loc_org','right_loc']).groupby('flat_loc_org').nth(0)
     valid_left_loc = merged_df[merged_df['left_loc']>0].sort_values(by=['flat_loc_org','left_loc']).groupby('flat_loc_org').nth(0)
     
     cols_2_keep = ['input_text_index','fs_seq_row','fs_seq_col','org_seq_row','org_seq_col']
     valid_left_loc = valid_left_loc[cols_2_keep]
     valid_left_loc.rename(columns = {'fs_seq_row':'l_fs_seq_row', 
                            'fs_seq_col':'l_fs_seq_col'},inplace=True)
+    valid_left_loc = valid_left_loc.reset_index(drop=False)
     
     
+    ### Better way to get the closeset row/col maybe
+    valid_right_loc = merged_df[merged_df['right_loc']>0].sort_values(by=['flat_loc_org','right_loc']).groupby('flat_loc_org').nth(0)
     valid_right_loc.rename(columns = {'fs_seq_row':'r_fs_seq_row', 
                            'fs_seq_col':'r_fs_seq_col'},inplace=True)
     
-    valid_right_loc = valid_right_loc[['r_fs_seq_row','r_fs_seq_col']]
+    valid_right_loc = valid_right_loc[['r_fs_seq_row','r_fs_seq_col']].reset_index(drop=False)
     
-    valid_left_loc['r_fs_seq_row']=valid_right_loc['r_fs_seq_row']
-    valid_left_loc['r_fs_seq_col']=valid_right_loc['r_fs_seq_col']
+    valid_df = valid_left_loc.merge(valid_right_loc)
+    valid_df = valid_df.set_index(['flat_loc_org'])
     
-    
-    return valid_left_loc
+    return valid_df
 
 
 @cuda.jit
@@ -486,19 +483,18 @@ def get_review_sentence(tokenized_d,predicted_label_t,vocab2id,id2vocab,org_labe
     ### CPU logic to gather sentences begins here
     sen_ls = []
     target_ls = []
-    st = time.time()
     for row,tnum in zip(output_mat,label_ar):
         s,t = convert_to_sentence(row,tnum,id2vocab)
         sen_ls.append(s)
         target_ls.append(t)
-    et = time.time()
-    print(f"Creating sentence took = {et-st} for sq = {seq_len}")
 
 
     df = cudf.DataFrame()
-    df['sentence'] = sen_ls
-    df['company'] = target_ls
+    df['sentence'] = cudf.Series(sen_ls, dtype='str')
+    df['company'] = cudf.Series(target_ls, dtype='str')
     df['input_text_index']= org_senten_df['input_text_index']
+    ## The model is outputting `.` as org for very few  4% of cases 
+    ## df = df[df['company']!='.']
     return df
 
 def create_vocab_table(vocabpath):
@@ -515,7 +511,7 @@ def create_vocab_table(vocabpath):
     return np.array(id2vocab),vocab2id
 
 
-def run_single_part_workflow(df,model_path,vocab2id,id2vocab):
+def run_single_part_workflow(df,model_path):
     """
     This function runs the workflow end2end on a single GPU
     """
@@ -523,9 +519,11 @@ def run_single_part_workflow(df,model_path,vocab2id,id2vocab):
     model =  AutoModelForTokenClassification.from_pretrained(model_path)
     model.cuda()
     model.eval()
+    id2vocab,vocab2id = create_vocab_table(f'{model_path}/vocab.txt')
 
     token_d,prediction_d= run_inference_on_df(df,model)
     output_d = {}
+    st = time.time()
     for seq,pred_label in prediction_d.items():
         if len(pred_label)!=0:
             sen_df = get_review_sentence(token_d[seq],prediction_d[seq],vocab2id,id2vocab)
@@ -533,7 +531,8 @@ def run_single_part_workflow(df,model_path,vocab2id,id2vocab):
             review_df = review_df.reset_index(drop=False)
             review_df.rename(columns={'index':'input_text_index'},inplace=True)
             output_d[seq] = sen_df.merge(review_df)[['sentence','company','pr_review_sk','pr_item_sk']]
-
+    et = time.time()
+    logging.warning("Single Part took = {}".format(et-st))
     
     output_df = cudf.concat([o_df for o_df in  output_d.values()])
     return output_df.drop_duplicates()
@@ -545,15 +544,11 @@ def main(client, config):
         config=config,
         compute_result=config["get_read_time"],
         dask_profile=config["dask_profile"],
-    )
-    product_reviews_df = product_reviews_df[
-        product_reviews_df.pr_item_sk == q27_pr_item_sk
-    ]
-    product_reviews_df = product_reviews_df.repartition(npartitions=16).persist()
-    #wait(product_reviews_df)
+    )        
+    product_reviews_df = product_reviews_df[product_reviews_df.pr_item_sk == q27_pr_item_sk]
 
-    path = './distilbert-base-en-cased'
-    id2vocab,vocab2id = create_vocab_table(f'{path}/vocab.txt')
+    path = '/mnt/weka/vjawa/nlp_model/distilbert-base-en-cased'
+    
     meta_d = {
         'sentence':'',
         'company':'',
@@ -561,15 +556,12 @@ def main(client, config):
         'pr_item_sk': np.ones(1, dtype=np.int64),
     }
     meta_df = cudf.DataFrame(meta_d)
-        ### Serializng a pytorch model seems to be taking forever
+    ### Serializng a pytorch model is slow
     ### Reading from disk write now
-    model_path = '/raid/vjawa/torch_ner_q27/tpcx-bb-2/tpcx_bb/queries/q27/distilbert-base-en-cased'
-    st = time.time()
-    output_df = product_reviews_df.map_partitions(run_single_part_workflow,model_path,vocab2id,id2vocab,meta=meta_df)
+    model_path = '/mnt/weka/vjawa/nlp_model/distilbert-base-en-cased'
+    output_df = product_reviews_df.map_partitions(run_single_part_workflow,model_path,meta=meta_df)
     output_df = output_df.persist()
     wait(output_df)
-    et = time.time()
-    print("workflow took = {}s".format(et-st))
     return output_df
 
 
@@ -580,4 +572,11 @@ if __name__ == "__main__":
 
     config = tpcxbb_argparser()
     client, bc = attach_to_cluster(config)
-    run_query(config=config, client=client, query_func=main)
+    #client.run(rmm.reinitialize,pool_allocator=True,initial_pool_size=10e+9)
+    for i in range(5):
+        st = time.time()
+        run_query(config=config, client=client, query_func=main)
+        et = time.time()
+        print("Time taken = {}".format(et-st))
+    #client.run(rmm.reinitialize,pool_allocator=True,initial_pool_size=30e+9)
+
