@@ -123,11 +123,11 @@ BlazingSQL currently supports clusters using TCP. Please follow the instructions
 bash cluster_configuration/bsql-cluster-startup.sh TCP
 ```
 
-### Additional useful parameters.
+### Additional useful parameters
 
-BlazingSQL supports some useful parameters which you can set it up manually, it could achieve better performance in some cases. These parameters are by default defined in the `cluster_startup.py` file.
+BlazingSQL supports some useful parameters which you can set it up manually, it could achieve better performance in some cases. These parameters are by default defined in the `tpcx_bb/xbb_tools/cluster_startup.py` file.
 
-For more context about this check it out [config options](https://docs.blazingdb.com/docs/config_options) .
+For more context about this check it out [config options](https://docs.blazingdb.com/docs/config_options).
 
 ## Data Generation
 

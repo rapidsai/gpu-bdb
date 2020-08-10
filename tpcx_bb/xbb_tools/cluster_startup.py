@@ -30,7 +30,7 @@ def get_config_options():
     In case it is not previously set, returns a default value for each one.
 
     Returns a dictionary object.
-    more info: https://docs.blazingdb.com/docs/config_options
+    For more info: https://docs.blazingdb.com/docs/config_options
     """
     config_options = {}
     config_options['JOIN_PARTITION_SIZE_THRESHOLD'] = os.environ.get("JOIN_PARTITION_SIZE_THRESHOLD", 300000000)
