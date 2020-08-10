@@ -18,27 +18,22 @@
 ### We dont do model based sentence boundary disambiguation
 ### We get empty sentence in 0.04% of the cases because of it
 
-import time
 import rmm
 import cupy as cp
-import os
 import numpy as np
-import gc
-import distributed
-import logging
 import os
-from dask.distributed import get_worker
+import gc
+import logging
+import time
 
 from xbb_tools.utils import (
     benchmark,
     tpcxbb_argparser,
-    left_semi_join,
     run_query,
 )
 
-from xbb_tools.text import create_sentences_from_reviews, create_words_from_sentences
 from xbb_tools.readers import build_reader
-from dask.distributed import Client, wait
+from dask.distributed import Client, wait,get_worker
 
 ### Query Specific Utils
 from xbb_tools.q27_bert_utils import run_inference_on_df
