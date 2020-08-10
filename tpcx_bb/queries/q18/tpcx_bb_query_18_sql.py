@@ -106,7 +106,7 @@ def find_relevant_reviews(df, targets_host, str_col_name="pr_review_content"):
     import cudf
 
     targets = cudf.Series(targets_host)
-    targets_lower_cpu = targets.str.lower().tolist()
+    targets_lower_cpu = targets.str.lower().to_arrow().to_pylist()
     reviews_found = find_targets_in_reviews_helper(df, targets_lower_cpu)[
         ["word", "pr_review_sk"]
     ]
@@ -182,7 +182,7 @@ def main(data_dir, client, bc, config):
     )
 
     targets = (
-        stores_with_regression.s_store_name.str.lower().unique().compute().tolist()
+        stores_with_regression.s_store_name.str.lower().unique().compute().to_arrow().to_pylist()
     )
 
     # perssiting because no_nulls is used twice
