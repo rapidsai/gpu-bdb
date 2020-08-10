@@ -26,8 +26,8 @@ import numpy as np
 import gc
 import distributed
 import logging
+import os
 from dask.distributed import get_worker
-
 
 from xbb_tools.utils import (
     benchmark,
@@ -39,15 +39,17 @@ from xbb_tools.utils import (
 from xbb_tools.text import create_sentences_from_reviews, create_words_from_sentences
 from xbb_tools.readers import build_reader
 from dask.distributed import Client, wait
+
+### Query Specific Utils
 from xbb_tools.q27_bert_utils import run_inference_on_df
 from xbb_tools.q27_get_review_sentence_utils import get_review_sentence
-import torch
 
-#Pytorch/HF imports
+# HF imports
 from transformers import AutoModelForTokenClassification
 
 # -------- Q27 -----------
-q27_pr_item_sk = 10002 
+q27_pr_item_sk = 10002
+
 
 def read_tables(config):
     ### splitting by row groups for better parallelism
@@ -65,7 +67,16 @@ def read_tables(config):
 
 def create_vocab_table(vocabpath):
     """
-        Create Vocabulary tables 
+        Create Vocabulary tables from the vocab.txt file
+        
+        Parameters:
+        ___________
+        vocabpath: Path of vocablary file
+
+        Returns:
+        ___________
+        id2vocab: np.array, dtype=<U5
+        vocab2id: dict that maps strings to int
     """
     id2vocab = []
     vocab2id = {}
@@ -74,88 +85,100 @@ def create_vocab_table(vocabpath):
             token = line.split()[0]
             id2vocab.append(token)
             vocab2id[token] = index
-    return np.array(id2vocab),vocab2id
+    return np.array(id2vocab), vocab2id
 
 
 def load_model(model_path):
-    model =  AutoModelForTokenClassification.from_pretrained(model_path)
+    """
+        Loads and returns modle from the given model path
+    """
+    model = AutoModelForTokenClassification.from_pretrained(model_path)
     model.cuda()
     model.eval()
     return model
 
+
 def del_model_attribute():
     """
-    deletes model attribute
+        Deletes model attribute, freeing up memory
     """
     worker = get_worker()
-    if hasattr(worker, 'q27_model'):
+    if hasattr(worker, "q27_model"):
         del worker.q27_model
-    return   
+    return
 
-def run_single_part_workflow(df,model_path):
+
+def run_single_part_workflow(df, model_path):
     """
-    This function runs the workflow end2end on a single GPU
+    This function runs the entire ner workflow end2end on a single GPU
     """
-       
+
     w_st = time.time()
     st = time.time()
     worker = get_worker()
-    if hasattr(worker, 'q27_model'):
+    if hasattr(worker, "q27_model"):
         model = worker.q27_model
     else:
         model = load_model(model_path)
-        worker.q27_model=model
+        worker.q27_model = model
 
     et = time.time()
-    logging.warning("Model loading took = {}".format(et-st))
+    logging.warning("Model loading took = {}".format(et - st))
 
-    id2vocab,vocab2id = create_vocab_table(os.path.join(model_path,'vocab.txt'))
-    vocab_hash_file = os.path.join(model_path,'vocab-hash.txt')
+    id2vocab, vocab2id = create_vocab_table(os.path.join(model_path, "vocab.txt"))
+    vocab_hash_file = os.path.join(model_path, "vocab-hash.txt")
+
     st = time.time()
-    token_d,prediction_d= run_inference_on_df(df,model,vocab_hash_file)
+    token_d, prediction_d = run_inference_on_df(df, model, vocab_hash_file)
     et = time.time()
-    logging.warning("Inference-E2E took = {}".format(et-st))
+
+    logging.warning("Inference-E2E took = {}".format(et - st))
     output_d = {}
+
     st = time.time()
-    for seq,pred_label in prediction_d.items():
-        if len(pred_label)!=0:
-            sen_df = get_review_sentence(token_d[seq],prediction_d[seq],vocab2id,id2vocab)
-            review_df = token_d[seq]['df'][['pr_review_sk','pr_item_sk']]
+    for seq, pred_label in prediction_d.items():
+        if len(pred_label) != 0:
+            sen_df = get_review_sentence(
+                token_d[seq], prediction_d[seq], vocab2id, id2vocab
+            )
+            review_df = token_d[seq]["df"][["pr_review_sk", "pr_item_sk"]]
             review_df = review_df.reset_index(drop=False)
-            review_df.rename(columns={'index':'input_text_index'},inplace=True)
-            output_d[seq] = sen_df.merge(review_df)[['sentence','company','pr_review_sk','pr_item_sk']]
+            review_df.rename(columns={"index": "input_text_index"}, inplace=True)
+            output_d[seq] = sen_df.merge(review_df)[
+                ["sentence", "company", "pr_review_sk", "pr_item_sk"]
+            ]
     et = time.time()
-    logging.warning("Post Prediction took = {}".format(et-st))
-    
-    output_df = cudf.concat([o_df for o_df in  output_d.values()])
+    logging.warning("Post Prediction took = {}".format(et - st))
+
+    output_df = cudf.concat([o_df for o_df in output_d.values()])
     w_et = time.time()
-    logging.warning("Single part took = {}".format(w_et-w_st))
+    logging.warning("Single part took = {}".format(w_et - w_st))
     return output_df.drop_duplicates()
 
 
 def main(client, config):
 
-    ### Serializing a pytorch model is slow
-    ### Reading from disk write now
-    #model_path = '/mnt/weka/vjawa/nlp_model/distilbert-base-en-cased'
-    model_path = '/raid/vjawa/torch_ner_q27/transformers/examples/token-classification/distilbert-base-en-cased/'
+    model_path = os.path.join(config["data_dir"], "../distilbert-base-en-cased")
     product_reviews_df = benchmark(
         read_tables,
         config=config,
         compute_result=config["get_read_time"],
         dask_profile=config["dask_profile"],
-    )        
-    product_reviews_df = product_reviews_df[product_reviews_df.pr_item_sk == q27_pr_item_sk].persist()
+    )
+    product_reviews_df = product_reviews_df[
+        product_reviews_df.pr_item_sk == q27_pr_item_sk
+    ].persist()
 
-    
     meta_d = {
-        'sentence':'',
-        'company':'',
-        'pr_review_sk': np.ones(1, dtype=np.int64),
-        'pr_item_sk': np.ones(1, dtype=np.int64),
+        "sentence": "",
+        "company": "",
+        "pr_review_sk": np.ones(1, dtype=np.int64),
+        "pr_item_sk": np.ones(1, dtype=np.int64),
     }
     meta_df = cudf.DataFrame(meta_d)
-    output_df = product_reviews_df.map_partitions(run_single_part_workflow,model_path,meta=meta_df)
+    output_df = product_reviews_df.map_partitions(
+        run_single_part_workflow, model_path, meta=meta_df
+    )
     output_df = output_df.persist()
     wait(output_df)
     client.run(del_model_attribute)
@@ -169,14 +192,12 @@ if __name__ == "__main__":
 
     config = tpcxbb_argparser()
     client, bc = attach_to_cluster(config)
-    #client.run(rmm.reinitialize,pool_allocator=True,initial_pool_size=10e+9)
+    # client.run(rmm.reinitialize,pool_allocator=True,initial_pool_size=10e+9)
     for i in range(3):
         st = time.time()
         run_query(config=config, client=client, query_func=main)
         et = time.time()
-        print("Time taken = {}".format(et-st))
-        #break
-    
-   
-    #client.run(rmm.reinitialize,pool_allocator=True,initial_pool_size=30e+9)
+        print("Time taken = {}".format(et - st))
+        # break
 
+    # client.run(rmm.reinitialize,pool_allocator=True,initial_pool_size=30e+9)
