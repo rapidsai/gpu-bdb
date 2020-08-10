@@ -14,8 +14,15 @@
 # limitations under the License.
 #
 
+# Implimentation Details
+# In this query we do NER(Named Entity Resolution) to find  competeter mentions in the review
+### The ner model is used is based on Hugging Face's AutoModelForTokenClassification transformer model
+### The inference part of workflow to get the token labels are in  q27_bert_utils.run_inference_on_df
+### The sentences are gathered using EOL char as `.`
+### The details for sentence gathering are at q27_get_review_sentence_utils.get_review_sentence
+
 # Current limitation
-### We dont do model based sentence boundary disambiguation
+### We don't do model based sentence boundary disambiguation
 ### We get empty sentence in 0.04% of the cases because of it
 
 import rmm
@@ -33,7 +40,7 @@ from xbb_tools.utils import (
 )
 
 from xbb_tools.readers import build_reader
-from dask.distributed import Client, wait,get_worker
+from dask.distributed import Client, wait, get_worker
 
 ### Query Specific Utils
 from xbb_tools.q27_bert_utils import run_inference_on_df
