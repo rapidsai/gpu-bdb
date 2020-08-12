@@ -46,9 +46,6 @@ from dask.distributed import Client, wait, get_worker
 from xbb_tools.q27_bert_utils import run_inference_on_df
 from xbb_tools.q27_get_review_sentence_utils import get_review_sentence
 
-# HF imports
-from transformers import AutoModelForTokenClassification
-
 # -------- Q27 -----------
 q27_pr_item_sk = 10002
 
@@ -94,7 +91,10 @@ def load_model(model_path):
     """
         Loads and returns modle from the given model path
     """
+    from transformers import AutoModelForTokenClassification
+
     model = AutoModelForTokenClassification.from_pretrained(model_path)
+    model.half()
     model.cuda()
     model.eval()
     return model
@@ -114,7 +114,7 @@ def run_single_part_workflow(df, model_path):
     """
     This function runs the entire ner workflow end2end on a single GPU
     """
-
+    import cudf
     w_st = time.time()
     st = time.time()
     worker = get_worker()
@@ -139,7 +139,7 @@ def run_single_part_workflow(df, model_path):
 
     st = time.time()
     for seq, pred_label in prediction_d.items():
-        if len(pred_label) != 0:
+        if  pred_label is not None:
             sen_df = get_review_sentence(
                 token_d[seq], prediction_d[seq], vocab2id, id2vocab
             )
@@ -147,18 +147,22 @@ def run_single_part_workflow(df, model_path):
             review_df = review_df.reset_index(drop=False)
             review_df.rename(columns={"index": "input_text_index"}, inplace=True)
             output_d[seq] = sen_df.merge(review_df)[
-                ["sentence", "company", "pr_review_sk", "pr_item_sk"]
+                ["pr_review_sk", "pr_item_sk","company_name","review_sentence"]
             ]
+            
     et = time.time()
     logging.warning("Post Prediction took = {}".format(et - st))
 
     output_df = cudf.concat([o_df for o_df in output_d.values()])
+    output_df.rename(columns={'pr_review_sk':'review_sk','pr_item_sk':'item_sk'},inplace=True)
     w_et = time.time()
     logging.warning("Single part took = {}".format(w_et - w_st))
     return output_df.drop_duplicates()
 
 
 def main(client, config):
+    
+    import cudf
 
     model_path = os.path.join(config["data_dir"], "../distilbert-base-en-cased")
     product_reviews_df = benchmark(
@@ -172,10 +176,10 @@ def main(client, config):
     ].persist()
 
     meta_d = {
-        "sentence": "",
-        "company": "",
-        "pr_review_sk": np.ones(1, dtype=np.int64),
-        "pr_item_sk": np.ones(1, dtype=np.int64),
+        "review_sk": np.ones(1, dtype=np.int64),
+        "item_sk": np.ones(1, dtype=np.int64),
+        "company_name": "",
+        "review_sentence": "",
     }
     meta_df = cudf.DataFrame(meta_d)
     output_df = product_reviews_df.map_partitions(
@@ -194,12 +198,5 @@ if __name__ == "__main__":
 
     config = tpcxbb_argparser()
     client, bc = attach_to_cluster(config)
-    # client.run(rmm.reinitialize,pool_allocator=True,initial_pool_size=10e+9)
-    for i in range(3):
-        st = time.time()
-        run_query(config=config, client=client, query_func=main)
-        et = time.time()
-        print("Time taken = {}".format(et - st))
-        # break
-
-    # client.run(rmm.reinitialize,pool_allocator=True,initial_pool_size=30e+9)
+    client.run(rmm.reinitialize,pool_allocator=True,initial_pool_size=10e+9)
+    run_query(config=config, client=client, query_func=main)

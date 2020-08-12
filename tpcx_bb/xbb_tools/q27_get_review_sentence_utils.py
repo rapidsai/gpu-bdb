@@ -127,8 +127,8 @@ def get_review_sentence(
         target_ls.append(t)
 
     df = cudf.DataFrame()
-    df["sentence"] = cudf.Series(sen_ls, dtype="str")
-    df["company"] = cudf.Series(target_ls, dtype="str")
+    df["review_sentence"] = cudf.Series(sen_ls, dtype="str")
+    df["company_name"] = cudf.Series(target_ls, dtype="str")
     df["input_text_index"] = org_senten_df["input_text_index"]
 
     return df
@@ -317,14 +317,15 @@ def convert_to_sentence(row, target_index, id2vocab):
     for t_num, token in enumerate(row):
         if t_num == target_index:
             tr_index = len(output_ls) - 1
-
-        if token.startswith("##"):
-            output_ls[-1] += token[2:]
-
+        ## We anyways skip the first full-stop and we dont want to combine that
+        ### eg: test. new sen ---tokenized-> test ##. new sen
+        ### we only will want to capture "new sen"
+        if token.startswith("##") and token!='##.':
+                output_ls[-1] += token[2:]
         else:
             output_ls.append(token)
 
-    if output_ls[0] == ".":
+    if output_ls[0] in [".",'##.']:
         output_sen = " ".join(output_ls[1:])
     else:
         output_sen = " ".join(output_ls)

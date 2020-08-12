@@ -173,7 +173,7 @@ def tokenize_text_series(text_ser, seq_len, stride, vocab_hash_file):
 
     """
     if len(text_ser) == 0:
-        return {"token_tensor": None, "masks": None, "metadata": None}
+        return {"token_ar": None, "attention_ar": None, "metadata": None}
 
     max_num_chars = text_ser.str.len().sum() + 1
     max_rows_tensor = len(text_ser) * 2
