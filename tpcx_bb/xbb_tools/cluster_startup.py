@@ -41,7 +41,9 @@ def get_config_options():
     config_options['MAX_NUM_ORDER_BY_PARTITIONS_PER_NODE'] = os.environ.get("MAX_NUM_ORDER_BY_PARTITIONS_PER_NODE", 8)
     config_options['ORDER_BY_SAMPLES_RATIO'] = os.environ.get("ORDER_BY_SAMPLES_RATIO", 0.1)
     config_options['NUM_BYTES_PER_ORDER_BY_PARTITION'] = os.environ.get("NUM_BYTES_PER_ORDER_BY_PARTITION", 400000000)
-    config_options['BLAZING_CACHE_DIRECTORY'] = os.environ.get("BLAZING_CACHE_DIRECTORY", '/tmp/')
+    config_options['BLAZING_CACHE_DIRECTORY'] = os.environ.get("BLAZING_CACHE_DIRECTORY", 0.75)
+    config_options['BLAZ_HOST_MEM_CONSUMPTION_THRESHOLD'] = os.environ.get("BLAZ_HOST_MEM_CONSUMPTION_THRESHOLD", '/tmp/')
+    config_options['MEMORY_MONITOR_PERIOD'] = os.environ.get("MEMORY_MONITOR_PERIOD", 50)
 
     return config_options
 
@@ -64,6 +66,7 @@ def attach_to_cluster(config, create_blazing_context=False):
             url = content.split("Scheduler ")[1].split(":" + str(port))[0]
             client = Client(address=f"{url}:{port}")
             print(f"Connected to {url}:{port}")
+            config["protocol"] = str(url)[0:3]
         except requests.exceptions.ConnectionError as e:
             sys.exit(
                 f"Unable to connect to existing dask scheduler dashboard to determine cluster type: {e}"
