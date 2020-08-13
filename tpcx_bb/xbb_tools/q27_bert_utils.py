@@ -18,10 +18,10 @@
 import cupy as cp
 import numpy as np
 import torch
-import logging
 import cudf
 import time
 from torch.utils.dlpack import from_dlpack
+from dask.distributed import get_worker
 
 
 def run_inference_on_df(
@@ -267,3 +267,53 @@ def get_stride(seq_len):
     max_len = seq_len - 2
     stride = int(max_len * 0.5)
     return stride
+
+### Model loading utils
+def create_vocab_table(vocabpath):
+    """
+        Create Vocabulary tables from the vocab.txt file
+        
+        Parameters:
+        ___________
+        vocabpath: Path of vocablary file
+        Returns:
+        ___________
+        id2vocab: np.array, dtype=<U5
+        vocab2id: dict that maps strings to int
+    """
+    id2vocab = []
+    vocab2id = {}
+    with open(vocabpath) as f:
+        for index, line in enumerate(f):
+            token = line.split()[0]
+            id2vocab.append(token)
+            vocab2id[token] = index
+    return np.array(id2vocab), vocab2id
+
+
+def load_model(model_path):
+    """
+        Loads and returns modle from the given model path
+    """
+    from transformers import AutoModelForTokenClassification
+
+    model = AutoModelForTokenClassification.from_pretrained(model_path)
+    model.half()
+    model.cuda()
+    model.eval()
+    return model
+
+def del_model_attribute():
+    """
+        Deletes model attribute, freeing up memory
+    """
+    import torch
+    import gc
+    worker = get_worker()
+    if hasattr(worker, "q27_model"):
+        del worker.q27_model
+        
+    torch.cuda.empty_cache()
+    gc.collect()
+    
+    return

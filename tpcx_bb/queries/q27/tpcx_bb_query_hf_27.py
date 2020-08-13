@@ -43,7 +43,7 @@ from xbb_tools.readers import build_reader
 from dask.distributed import Client, wait, get_worker
 
 ### Query Specific Utils
-from xbb_tools.q27_bert_utils import run_inference_on_df
+from xbb_tools.q27_bert_utils import run_inference_on_df,load_model,create_vocab_table,del_model_attribute
 from xbb_tools.q27_get_review_sentence_utils import get_review_sentence
 
 # -------- Q27 -----------
@@ -64,50 +64,6 @@ def read_tables(config):
     return product_reviews_df
 
 
-def create_vocab_table(vocabpath):
-    """
-        Create Vocabulary tables from the vocab.txt file
-        
-        Parameters:
-        ___________
-        vocabpath: Path of vocablary file
-
-        Returns:
-        ___________
-        id2vocab: np.array, dtype=<U5
-        vocab2id: dict that maps strings to int
-    """
-    id2vocab = []
-    vocab2id = {}
-    with open(vocabpath) as f:
-        for index, line in enumerate(f):
-            token = line.split()[0]
-            id2vocab.append(token)
-            vocab2id[token] = index
-    return np.array(id2vocab), vocab2id
-
-
-def load_model(model_path):
-    """
-        Loads and returns modle from the given model path
-    """
-    from transformers import AutoModelForTokenClassification
-
-    model = AutoModelForTokenClassification.from_pretrained(model_path)
-    model.half()
-    model.cuda()
-    model.eval()
-    return model
-
-
-def del_model_attribute():
-    """
-        Deletes model attribute, freeing up memory
-    """
-    worker = get_worker()
-    if hasattr(worker, "q27_model"):
-        del worker.q27_model
-    return
 
 
 def run_single_part_workflow(df, model_path):
@@ -116,7 +72,7 @@ def run_single_part_workflow(df, model_path):
     """
     import cudf
     w_st = time.time()
-    st = time.time()
+
     worker = get_worker()
     if hasattr(worker, "q27_model"):
         model = worker.q27_model
@@ -124,20 +80,13 @@ def run_single_part_workflow(df, model_path):
         model = load_model(model_path)
         worker.q27_model = model
 
-    et = time.time()
-    logging.warning("Model loading took = {}".format(et - st))
-
     id2vocab, vocab2id = create_vocab_table(os.path.join(model_path, "vocab.txt"))
     vocab_hash_file = os.path.join(model_path, "vocab-hash.txt")
 
-    st = time.time()
     token_d, prediction_d = run_inference_on_df(df, model, vocab_hash_file)
-    et = time.time()
 
-    logging.warning("Inference-E2E took = {}".format(et - st))
     output_d = {}
 
-    st = time.time()
     for seq, pred_label in prediction_d.items():
         if  pred_label is not None:
             sen_df = get_review_sentence(
@@ -150,11 +99,10 @@ def run_single_part_workflow(df, model_path):
                 ["pr_review_sk", "pr_item_sk","company_name","review_sentence"]
             ]
             
-    et = time.time()
-    logging.warning("Post Prediction took = {}".format(et - st))
 
     output_df = cudf.concat([o_df for o_df in output_d.values()])
     output_df.rename(columns={'pr_review_sk':'review_sk','pr_item_sk':'item_sk'},inplace=True)
+    
     w_et = time.time()
     logging.warning("Single part took = {}".format(w_et - w_st))
     return output_df.drop_duplicates()

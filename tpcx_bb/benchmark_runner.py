@@ -4,7 +4,7 @@ import os
 import gc
 import time
 
-N_REPEATS = 5
+N_REPEATS = 10
 
 
 def get_qnum_from_filename(name):
@@ -13,7 +13,6 @@ def get_qnum_from_filename(name):
 
 
 dask_qnums = [str(i).zfill(2) for i in range(1, 31)]
-dask_qnums = ['27']
 # Not all queries are implemented with BSQL
 bsql_query_files = sorted(glob.glob("./queries/q*/t*_sql.py"))
 bsql_qnums = [get_qnum_from_filename(x.split("/")[-1]) for x in bsql_query_files]
@@ -64,8 +63,9 @@ if __name__ == "__main__":
     # Run Pure Dask Queries
     if len(dask_qnums) > 0:
         print("Pure Dask Queries")
-        for qnum, q_func in dask_queries.items():
+        for qnum in sorted(dask_queries.keys()):
             print(qnum)
+            q_func = dask_queries[qnum]
 
             qpath = f"{base_path}/queries/q{qnum}/"
             os.chdir(qpath)
@@ -77,8 +77,11 @@ if __name__ == "__main__":
             if qnum=='27':
                 ## We have to reinitalize pool for the query
                 ## Unsure if below should be part of query code or not
-                client.run(rmm_intialization,initial_pool_size=20e+9)
+                client.run(rmm_intialization,initial_pool_size=5e+9)
+                client.run(import_query_libs)
+                print("Rmm reinitalized")
             for r in range(N_REPEATS):                    
+                print(f"run {r} query {qnum}")
                 run_query(config=config, client=client, query_func=q_func)
                 client.run(gc.collect)
                 client.run_on_scheduler(gc.collect)
@@ -86,13 +89,11 @@ if __name__ == "__main__":
                 time.sleep(3)
             
             if qnum=='27':
-                ## Unsure if below should be part of query code or not
                 ## We have to reinitalize pool back to 30GB
                 ## Pytorch has some context that does not get cleared
-                ## TODO: Triage
                 client.restart()
-                client.run(rmm_intialization,initial_pool_size=29e+9)
-               
+                client.run(rmm_intialization,initial_pool_size=30e+9)
+                
 
     # Run BSQL Queries
     if include_blazing and len(bsql_qnums) > 0:
