@@ -45,6 +45,8 @@ import json
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
+from xbb_tools.cluster_startup import get_config_options
+
 #################################
 # Benchmark Timing
 #################################
@@ -768,6 +770,7 @@ def build_benchmark_googlesheet_payload(config):
     library_info = generate_library_information()
     data.update(library_info)
 
+    import blazingsql
     payload = OrderedDict(
         {
             "Query Number": QUERY_NUM,
@@ -806,6 +809,9 @@ def build_benchmark_googlesheet_payload(config):
             "Num 16GB workers": data.get("16GB_workers"),
             "Num 32GB workers": data.get("32GB_workers"),
             "Query Status": data.get("query_status", "Unknown"),
+            "BlazingSQL version":  blazingsql.__version__  if is_blazing_query() else "",
+            "allocator": os.environ.get("BLAZING_ALLOCATOR_MODE", "managed") if is_blazing_query() else "",
+            "config_options": str(get_config_options()) if is_blazing_query() else "",
         }
     )
     payload = list(payload.values())
@@ -814,15 +820,9 @@ def build_benchmark_googlesheet_payload(config):
 
 def is_blazing_query():
     """
-    Method that returns true if caller of the utility is a blazing query, returns false otherwise
-    Assumes that caller is 3 levels above the stack
-    query_of_interest -> utils.push_to_google_sheet -> utils.build_payload -> utils.is_blazing_query
-
-    Another potential solution is checking sys.modules.get("blazing") to check blazing is imported
+    Method that returns true if `blazingsql` is imported returns false otherwise
     """
-    query_filename = inspect.stack()[3].filename
-    return "sql" in os.path.basename(query_filename)
-
+    return "blazingsql" in sys.modules
 
 def _get_benchmarked_method_time(
     filename, field="elapsed_time_seconds", query_start_time=None
