@@ -45,9 +45,6 @@ def get_config_options():
     config_options['BLAZING_CACHE_DIRECTORY'] = os.environ.get("BLAZING_CACHE_DIRECTORY", 0.75)
     config_options['LOGGING_LEVEL'] = os.environ.get("LOGGING_LEVEL", "warn")
 
-
-    LOGGING_LEVEL
-
     return config_options
 
 def attach_to_cluster(config, create_blazing_context=False):
