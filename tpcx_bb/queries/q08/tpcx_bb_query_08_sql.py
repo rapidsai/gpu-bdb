@@ -142,10 +142,7 @@ def read_tables(data_dir, bc):
     bc.create_table("web_clickstreams", data_dir + "/web_clickstreams/*.parquet")
     bc.create_table("web_sales", data_dir + "/web_sales/*.parquet")
     bc.create_table("web_page", data_dir + "/web_page/*.parquet")
-    bc.create_table("web_returns", data_dir + "/web_returns/*.parquet")
     bc.create_table("date_dim", data_dir + "/date_dim/*.parquet")
-    bc.create_table("item", data_dir + "/item/*.parquet")
-    bc.create_table("warehouse", data_dir + "/warehouse/*.parquet")
 
 
 def main(data_dir, client, bc, config):
