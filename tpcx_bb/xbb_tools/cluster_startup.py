@@ -148,6 +148,8 @@ def import_query_libs():
         "cudf",
         "cuml",
         "cupy",
+        "torch",
+        "transformers",
         "sklearn",
         "dask_cudf",
         "pandas",
