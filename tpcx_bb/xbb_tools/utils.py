@@ -811,6 +811,7 @@ def build_benchmark_googlesheet_payload(config):
             "Query Status": data.get("query_status", "Unknown"),
             "BlazingSQL version":  blazingsql.__version__  if is_blazing_query() else "",
             "allocator": os.environ.get("BLAZING_ALLOCATOR_MODE", "managed") if is_blazing_query() else "",
+            "network_interface": os.environ.get("INTERFACE", "ib0") if is_blazing_query() else "",
             "config_options": str(get_config_options()) if is_blazing_query() else "",
         }
     )
