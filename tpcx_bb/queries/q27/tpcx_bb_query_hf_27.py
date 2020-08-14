@@ -83,7 +83,7 @@ def run_single_part_workflow(df, model_path):
     id2vocab, vocab2id = create_vocab_table(os.path.join(model_path, "vocab.txt"))
     vocab_hash_file = os.path.join(model_path, "vocab-hash.txt")
 
-    token_d, prediction_d = run_inference_on_df(df, model, vocab_hash_file)
+    token_d, prediction_d = run_inference_on_df(df, model, vocab_hash_file,batchsize=128)
 
     output_d = {}
 
@@ -146,5 +146,6 @@ if __name__ == "__main__":
 
     config = tpcxbb_argparser()
     client, bc = attach_to_cluster(config)
-    client.run(rmm.reinitialize,pool_allocator=True,initial_pool_size=10e+9)
-    run_query(config=config, client=client, query_func=main)
+    client.run(rmm.reinitialize,pool_allocator=True,initial_pool_size=14e+9)
+    for i in range(0,10):
+      run_query(config=config, client=client, query_func=main)
