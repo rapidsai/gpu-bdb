@@ -773,7 +773,7 @@ def build_benchmark_googlesheet_payload(config):
     import blazingsql
     payload = OrderedDict(
         {
-            "Query Number": QUERY_NUM,
+            "Query Number": int(QUERY_NUM),
             "Protocol": data.get("protocol"),
             "NVLINK": data.get("nvlink", "NA"),
             "Infiniband": data.get("infiniband", "NA"),
