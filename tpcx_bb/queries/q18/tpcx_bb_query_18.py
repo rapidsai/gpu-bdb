@@ -228,7 +228,11 @@ def main(client, config):
 
     # known to be small. very few relevant stores (169) at SF1000
     targets = (
-        stores_with_regression.s_store_name.str.lower().unique().compute().to_arrow().to_pylist()
+        stores_with_regression.s_store_name.str.lower()
+        .unique()
+        .compute()
+        .to_arrow()
+        .to_pylist()
     )
     n_targets = len(targets)
 

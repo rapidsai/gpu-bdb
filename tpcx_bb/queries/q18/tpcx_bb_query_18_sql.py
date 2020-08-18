@@ -22,10 +22,7 @@ import os
 import numpy as np
 import cupy as cp
 
-from xbb_tools.text import (
-    create_sentences_from_reviews,
-    create_words_from_sentences
-)
+from xbb_tools.text import create_sentences_from_reviews, create_words_from_sentences
 
 from xbb_tools.utils import (
     benchmark,
@@ -118,10 +115,10 @@ def find_relevant_reviews(df, targets, str_col_name="pr_review_content"):
 
 
 def read_tables(data_dir, bc):
-    bc.create_table('store', data_dir + "store/*.parquet")
-    bc.create_table('store_sales', data_dir + "store_sales/*.parquet")
-    bc.create_table('date_dim', data_dir + "date_dim/*.parquet")
-    bc.create_table('product_reviews', data_dir + "product_reviews/*.parquet")
+    bc.create_table("store", data_dir + "store/*.parquet")
+    bc.create_table("store_sales", data_dir + "store_sales/*.parquet")
+    bc.create_table("date_dim", data_dir + "date_dim/*.parquet")
+    bc.create_table("product_reviews", data_dir + "product_reviews/*.parquet")
 
 
 def main(data_dir, client, bc, config):
@@ -181,13 +178,18 @@ def main(data_dir, client, bc, config):
     )
 
     targets = (
-        stores_with_regression.s_store_name.str.lower().unique().compute().to_arrow().to_pylist()
+        stores_with_regression.s_store_name.str.lower()
+        .unique()
+        .compute()
+        .to_arrow()
+        .to_pylist()
     )
 
     # perssiting because no_nulls is used twice
     no_nulls = no_nulls.persist()
 
     import cudf
+
     temp_table2_meta_empty_df = cudf.DataFrame(
         {
             "word": ["a"],
@@ -205,8 +207,7 @@ def main(data_dir, client, bc, config):
         [". ", "? ", "! "], [EOL_CHAR], regex=False
     )
 
-    stores_with_regression[
-        "store_ID"] = stores_with_regression.s_store_sk.astype(
+    stores_with_regression["store_ID"] = stores_with_regression.s_store_sk.astype(
         "str"
     ).str.cat(stores_with_regression.s_store_name, sep="_")
 
@@ -214,8 +215,8 @@ def main(data_dir, client, bc, config):
         "s_store_name"
     ] = stores_with_regression.s_store_name.str.lower()
 
-    bc.create_table('stores_with_regression', stores_with_regression)
-    bc.create_table('combined', combined)
+    bc.create_table("stores_with_regression", stores_with_regression)
+    bc.create_table("combined", combined)
 
     query_3 = """
         SELECT store_ID,
@@ -242,13 +243,16 @@ def main(data_dir, client, bc, config):
     # This txt file comes from the official TPCx-BB kit
     # We extracted it from bigbenchqueriesmr.jar
     # Need to pass the absolute path for this txt file
-    sentiment_dir = "/".join(
-        config["data_dir"].split("/")[:-3] + ["sentiment_files"])
-    bc.create_table('sent_df', sentiment_dir + "/negativeSentiment.txt",
-                    names=['sentiment_word'], dtype=['str'])
-    bc.create_table('word_df', word_df)
-    bc.create_table('sentences', sentences)
-    bc.create_table('temp_table2', temp_table2)
+    sentiment_dir = "/".join(config["data_dir"].split("/")[:-3] + ["sentiment_files"])
+    bc.create_table(
+        "sent_df",
+        sentiment_dir + "/negativeSentiment.txt",
+        names=["sentiment_word"],
+        dtype=["str"],
+    )
+    bc.create_table("word_df", word_df)
+    bc.create_table("sentences", sentences)
+    bc.create_table("temp_table2", temp_table2)
 
     query_4 = """
         WITH sentences_table AS
