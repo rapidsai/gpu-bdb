@@ -68,21 +68,20 @@ def create_found_reshaped_with_global_pos(found, targets):
     return found_reshaped
 
 
-def find_targets_in_reviews_helper(ddf, targets_host, str_col_name="pr_review_content"):
+def find_targets_in_reviews_helper(ddf, targets, str_col_name="pr_review_content"):
     """returns a N x K matrix, where N is the number of rows in ddf that
     contain one of the target words and K is the number of words in targets.
-
+    
     If a target word is found in a review, the value in that row, column
     is non-zero.
-
+    
     At the end, any row with non-zero values is returned.
-
+    
     """
     import cudf
     from cudf._lib.strings import find_multiple
 
     lowered = ddf[str_col_name].str.lower()
-    targets = cudf.Series(targets_host)
 
     ## TODO: Do the replace/any in cupy land before going to cuDF
     resdf = cudf.DataFrame.from_gpu_matrix(
@@ -95,19 +94,19 @@ def find_targets_in_reviews_helper(ddf, targets_host, str_col_name="pr_review_co
     found_mask = resdf.any(axis=1)
     resdf["pr_review_sk"] = ddf["pr_review_sk"]
     found = resdf.loc[found_mask]
-    return create_found_reshaped_with_global_pos(found, targets_host)
+    return create_found_reshaped_with_global_pos(found, targets)
 
 
-def find_relevant_reviews(df, targets_host, str_col_name="pr_review_content"):
+def find_relevant_reviews(df, targets, str_col_name="pr_review_content"):
     """
-     This function finds the  reviews containg target stores and returns the
+     This function finds the  reviews containg target stores and returns the 
      relevant reviews
     """
     import cudf
 
-    targets = cudf.Series(targets_host)
-    targets_lower_cpu = targets.str.lower().to_arrow().to_pylist()
-    reviews_found = find_targets_in_reviews_helper(df, targets_lower_cpu)[
+    targets = cudf.Series(targets)
+    targets_lower = targets.str.lower()
+    reviews_found = find_targets_in_reviews_helper(df, targets_lower)[
         ["word", "pr_review_sk"]
     ]
 
