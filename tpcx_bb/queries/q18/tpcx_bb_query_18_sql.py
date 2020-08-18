@@ -22,10 +22,7 @@ import os
 import numpy as np
 import cupy as cp
 
-from xbb_tools.text import (
-    create_sentences_from_reviews,
-    create_words_from_sentences
-)
+from xbb_tools.text import create_sentences_from_reviews, create_words_from_sentences
 
 from xbb_tools.utils import (
     benchmark,
@@ -68,21 +65,20 @@ def create_found_reshaped_with_global_pos(found, targets):
     return found_reshaped
 
 
-def find_targets_in_reviews_helper(ddf, targets_host, str_col_name="pr_review_content"):
+def find_targets_in_reviews_helper(ddf, targets, str_col_name="pr_review_content"):
     """returns a N x K matrix, where N is the number of rows in ddf that
     contain one of the target words and K is the number of words in targets.
-
+    
     If a target word is found in a review, the value in that row, column
     is non-zero.
-
+    
     At the end, any row with non-zero values is returned.
-
+    
     """
     import cudf
     from cudf._lib.strings import find_multiple
 
     lowered = ddf[str_col_name].str.lower()
-    targets = cudf.Series(targets_host)
 
     ## TODO: Do the replace/any in cupy land before going to cuDF
     resdf = cudf.DataFrame.from_gpu_matrix(
@@ -95,19 +91,19 @@ def find_targets_in_reviews_helper(ddf, targets_host, str_col_name="pr_review_co
     found_mask = resdf.any(axis=1)
     resdf["pr_review_sk"] = ddf["pr_review_sk"]
     found = resdf.loc[found_mask]
-    return create_found_reshaped_with_global_pos(found, targets_host)
+    return create_found_reshaped_with_global_pos(found, targets)
 
 
-def find_relevant_reviews(df, targets_host, str_col_name="pr_review_content"):
+def find_relevant_reviews(df, targets, str_col_name="pr_review_content"):
     """
-     This function finds the  reviews containg target stores and returns the
+     This function finds the  reviews containg target stores and returns the 
      relevant reviews
     """
     import cudf
 
-    targets = cudf.Series(targets_host)
-    targets_lower_cpu = targets.str.lower().to_arrow().to_pylist()
-    reviews_found = find_targets_in_reviews_helper(df, targets_lower_cpu)[
+    targets = cudf.Series(targets)
+    targets_lower = targets.str.lower()
+    reviews_found = find_targets_in_reviews_helper(df, targets_lower)[
         ["word", "pr_review_sk"]
     ]
 
@@ -119,10 +115,10 @@ def find_relevant_reviews(df, targets_host, str_col_name="pr_review_content"):
 
 
 def read_tables(data_dir, bc):
-    bc.create_table('store', data_dir + "store/*.parquet")
-    bc.create_table('store_sales', data_dir + "store_sales/*.parquet")
-    bc.create_table('date_dim', data_dir + "date_dim/*.parquet")
-    bc.create_table('product_reviews', data_dir + "product_reviews/*.parquet")
+    bc.create_table("store", data_dir + "store/*.parquet")
+    bc.create_table("store_sales", data_dir + "store_sales/*.parquet")
+    bc.create_table("date_dim", data_dir + "date_dim/*.parquet")
+    bc.create_table("product_reviews", data_dir + "product_reviews/*.parquet")
 
 
 def main(data_dir, client, bc, config):
@@ -182,13 +178,18 @@ def main(data_dir, client, bc, config):
     )
 
     targets = (
-        stores_with_regression.s_store_name.str.lower().unique().compute().to_arrow().to_pylist()
+        stores_with_regression.s_store_name.str.lower()
+        .unique()
+        .compute()
+        .to_arrow()
+        .to_pylist()
     )
 
     # perssiting because no_nulls is used twice
     no_nulls = no_nulls.persist()
 
     import cudf
+
     temp_table2_meta_empty_df = cudf.DataFrame(
         {
             "word": ["a"],
@@ -206,8 +207,7 @@ def main(data_dir, client, bc, config):
         [". ", "? ", "! "], [EOL_CHAR], regex=False
     )
 
-    stores_with_regression[
-        "store_ID"] = stores_with_regression.s_store_sk.astype(
+    stores_with_regression["store_ID"] = stores_with_regression.s_store_sk.astype(
         "str"
     ).str.cat(stores_with_regression.s_store_name, sep="_")
 
@@ -215,8 +215,8 @@ def main(data_dir, client, bc, config):
         "s_store_name"
     ] = stores_with_regression.s_store_name.str.lower()
 
-    bc.create_table('stores_with_regression', stores_with_regression)
-    bc.create_table('combined', combined)
+    bc.create_table("stores_with_regression", stores_with_regression)
+    bc.create_table("combined", combined)
 
     query_3 = """
         SELECT store_ID,
@@ -243,13 +243,16 @@ def main(data_dir, client, bc, config):
     # This txt file comes from the official TPCx-BB kit
     # We extracted it from bigbenchqueriesmr.jar
     # Need to pass the absolute path for this txt file
-    sentiment_dir = "/".join(
-        config["data_dir"].split("/")[:-3] + ["sentiment_files"])
-    bc.create_table('sent_df', sentiment_dir + "/negativeSentiment.txt",
-                    names=['sentiment_word'], dtype=['str'])
-    bc.create_table('word_df', word_df)
-    bc.create_table('sentences', sentences)
-    bc.create_table('temp_table2', temp_table2)
+    sentiment_dir = "/".join(config["data_dir"].split("/")[:-3] + ["sentiment_files"])
+    bc.create_table(
+        "sent_df",
+        sentiment_dir + "/negativeSentiment.txt",
+        names=["sentiment_word"],
+        dtype=["str"],
+    )
+    bc.create_table("word_df", word_df)
+    bc.create_table("sentences", sentences)
+    bc.create_table("temp_table2", temp_table2)
 
     query_4 = """
         WITH sentences_table AS
