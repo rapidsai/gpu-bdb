@@ -199,6 +199,8 @@ def main(data_dir, client, bc, config):
         INNER JOIN web_page_2 ON wcs_web_page_sk = wp_web_page_sk
         WHERE wcs_user_sk IS NOT NULL
         AND wcs_click_date_sk BETWEEN {q08_start_dt} AND {q08_end_dt}
+        --in the future we want to remove this ORDER BY
+        ORDER BY wcs_user_sk
     """
     merged_df = bc.sql(query_2)
 
