@@ -30,12 +30,17 @@ def get_config_options():
     In case it is not previously set, returns a default value for each one.
 
     Returns a dictionary object.
+    For more info: https://docs.blazingdb.com/docs/config_options
     """
     config_options = {}
     config_options['JOIN_PARTITION_SIZE_THRESHOLD'] = os.environ.get("JOIN_PARTITION_SIZE_THRESHOLD", 300000000)
     config_options['BLAZING_DEVICE_MEM_CONSUMPTION_THRESHOLD'] = os.environ.get("BLAZING_DEVICE_MEM_CONSUMPTION_THRESHOLD", 0.8)
     config_options['BLAZING_LOGGING_DIRECTORY'] = os.environ.get("BLAZING_LOGGING_DIRECTORY", 'blazing_log')
     config_options['MAX_DATA_LOAD_CONCAT_CACHE_BYTE_SIZE'] =  os.environ.get("MAX_DATA_LOAD_CONCAT_CACHE_BYTE_SIZE", 300000000)
+    config_options['MAX_KERNEL_RUN_THREADS'] = os.environ.get("MAX_KERNEL_RUN_THREADS", 16)
+    config_options['MAX_NUM_ORDER_BY_PARTITIONS_PER_NODE'] = os.environ.get("MAX_NUM_ORDER_BY_PARTITIONS_PER_NODE", 8)
+    config_options['ORDER_BY_SAMPLES_RATIO'] = os.environ.get("ORDER_BY_SAMPLES_RATIO", 0.1)
+    config_options['NUM_BYTES_PER_ORDER_BY_PARTITION'] = os.environ.get("NUM_BYTES_PER_ORDER_BY_PARTITION", 400000000)
     config_options['BLAZING_CACHE_DIRECTORY'] = os.environ.get("BLAZING_CACHE_DIRECTORY", '/tmp/')
 
     return config_options
@@ -148,8 +153,6 @@ def import_query_libs():
         "cudf",
         "cuml",
         "cupy",
-        "torch",
-        "transformers",
         "sklearn",
         "dask_cudf",
         "pandas",

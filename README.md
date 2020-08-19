@@ -123,6 +123,12 @@ BlazingSQL currently supports clusters using TCP. Please follow the instructions
 bash cluster_configuration/bsql-cluster-startup.sh TCP
 ```
 
+### Additional useful parameters
+
+BlazingSQL supports some useful parameters which you can set it up manually, it could achieve better performance in some cases. These parameters are by default defined in the `tpcx_bb/xbb_tools/cluster_startup.py` file.
+
+For more context about this check it out [config options](https://docs.blazingdb.com/docs/config_options).
+
 ## Data Generation
 
 The RAPIDS queries expect [Apache Parquet](http://parquet.apache.org/) formatted data. We provide a [script](tpcx_bb/queries/load_test/tpcx_bb_load_test.py) which can be used to convert bigBench dataGen's raw CSV files to optimally sized Parquet partitions.

@@ -43,7 +43,12 @@ from xbb_tools.readers import build_reader
 from dask.distributed import Client, wait, get_worker
 
 ### Query Specific Utils
-from xbb_tools.q27_bert_utils import run_inference_on_df,load_model,create_vocab_table,del_model_attribute
+from xbb_tools.q27_bert_utils import (
+    run_inference_on_df,
+    load_model,
+    create_vocab_table,
+    del_model_attribute,
+)
 from xbb_tools.q27_get_review_sentence_utils import get_review_sentence
 
 # -------- Q27 -----------
@@ -64,13 +69,12 @@ def read_tables(config):
     return product_reviews_df
 
 
-
-
 def run_single_part_workflow(df, model_path):
     """
     This function runs the entire ner workflow end2end on a single GPU
     """
     import cudf
+
     w_st = time.time()
 
     worker = get_worker()
@@ -83,12 +87,14 @@ def run_single_part_workflow(df, model_path):
     id2vocab, vocab2id = create_vocab_table(os.path.join(model_path, "vocab.txt"))
     vocab_hash_file = os.path.join(model_path, "vocab-hash.txt")
 
-    token_d, prediction_d = run_inference_on_df(df, model, vocab_hash_file,batchsize=128)
+    token_d, prediction_d = run_inference_on_df(
+        df, model, vocab_hash_file, batchsize=128
+    )
 
     output_d = {}
 
     for seq, pred_label in prediction_d.items():
-        if  pred_label is not None:
+        if pred_label is not None:
             sen_df = get_review_sentence(
                 token_d[seq], prediction_d[seq], vocab2id, id2vocab
             )
@@ -96,20 +102,23 @@ def run_single_part_workflow(df, model_path):
             review_df = review_df.reset_index(drop=False)
             review_df.rename(columns={"index": "input_text_index"}, inplace=True)
             output_d[seq] = sen_df.merge(review_df)[
-                ["pr_review_sk", "pr_item_sk","company_name","review_sentence"]
+                ["pr_review_sk", "pr_item_sk", "company_name", "review_sentence"]
             ]
-            
+
+    del token_d, prediction_d
 
     output_df = cudf.concat([o_df for o_df in output_d.values()])
-    output_df.rename(columns={'pr_review_sk':'review_sk','pr_item_sk':'item_sk'},inplace=True)
-    
+    output_df.rename(
+        columns={"pr_review_sk": "review_sk", "pr_item_sk": "item_sk"}, inplace=True
+    )
+
     w_et = time.time()
     logging.warning("Single part took = {}".format(w_et - w_st))
     return output_df.drop_duplicates()
 
 
 def main(client, config):
-    
+
     import cudf
 
     model_path = os.path.join(config["data_dir"], "../distilbert-base-en-cased")
@@ -146,6 +155,6 @@ if __name__ == "__main__":
 
     config = tpcxbb_argparser()
     client, bc = attach_to_cluster(config)
-    client.run(rmm.reinitialize,pool_allocator=True,initial_pool_size=14e+9)
-    for i in range(0,10):
-      run_query(config=config, client=client, query_func=main)
+    client.run(rmm.reinitialize, pool_allocator=True, initial_pool_size=14e9)
+    for i in range(0, 10):
+        run_query(config=config, client=client, query_func=main)

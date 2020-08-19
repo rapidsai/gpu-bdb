@@ -255,6 +255,11 @@ def run_inference_on_tensor(model, token_ar, attention_ar, batchsize):
             outputs = model(current_batch_tensor, current_batch_attention)
             prediction_ls.append(outputs[0])
 
+            del current_batch_tensor
+            del current_batch_attention
+
+        del token_tensor, attention_tensor
+
     return torch.cat(prediction_ls).argmax(dim=2)
 
 
@@ -267,6 +272,7 @@ def get_stride(seq_len):
     max_len = seq_len - 2
     stride = int(max_len * 0.5)
     return stride
+
 
 ### Model loading utils
 def create_vocab_table(vocabpath):
@@ -303,17 +309,19 @@ def load_model(model_path):
     model.eval()
     return model
 
+
 def del_model_attribute():
     """
         Deletes model attribute, freeing up memory
     """
     import torch
     import gc
+
     worker = get_worker()
     if hasattr(worker, "q27_model"):
         del worker.q27_model
-        
+
     torch.cuda.empty_cache()
     gc.collect()
-    
+
     return
