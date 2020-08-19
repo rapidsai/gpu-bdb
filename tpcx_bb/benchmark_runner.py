@@ -1,12 +1,10 @@
 import glob
 import re
 import os
-import cupy as cp
 import gc
 import time
-import rmm
 
-N_REPEATS = 5
+N_REPEATS = 1
 
 
 def get_qnum_from_filename(name):
@@ -15,15 +13,13 @@ def get_qnum_from_filename(name):
 
 
 dask_qnums = [str(i).zfill(2) for i in range(1, 31)]
-dask_qnums = ['27']
 # Not all queries are implemented with BSQL
 bsql_query_files = sorted(glob.glob("./queries/q*/t*_sql.py"))
 bsql_qnums = [get_qnum_from_filename(x.split("/")[-1]) for x in bsql_query_files]
 
-    
 def load_query(qnum, fn):
     import importlib, types
-    loader = importlib.machinery.SourceFileLoader(qnum, fn)
+    loader = importlib.machinery.SourceFileLoader(qnum, f"queries/q{qnum}/tpcx_bb_query_{qnum}.py")
     mod = types.ModuleType(loader.name)
     loader.exec_module(mod)
     return mod.main
@@ -33,15 +29,10 @@ if __name__ == "__main__":
     from xbb_tools.utils import run_query, tpcxbb_argparser
 
     import_query_libs()
-    
     dask_queries = {
         qnum: load_query(qnum, f"queries/q{qnum}/tpcx_bb_query_{qnum}.py")
         for qnum in dask_qnums
-        if qnum!='27'
     }
-    
-    if '27' in dask_qnums:
-        dask_queries['27']=load_query('27',f"queries/q27/tpcx_bb_query_hf_27.py")
 
     bsql_queries = {
         qnum: load_query(qnum, f"queries/q{qnum}/tpcx_bb_query_{qnum}_sql.py")
@@ -61,9 +52,8 @@ if __name__ == "__main__":
     # Run Pure Dask Queries
     if len(dask_qnums) > 0:
         print("Pure Dask Queries")
-        for qnum in sorted(dask_queries.keys()):
+        for qnum, q_func in dask_queries.items():
             print(qnum)
-            q_func = dask_queries[qnum]
 
             qpath = f"{base_path}/queries/q{qnum}/"
             os.chdir(qpath)
@@ -72,24 +62,12 @@ if __name__ == "__main__":
             with open("current_query_num.txt", "w") as fp:
                 fp.write(qnum)
 
-            if qnum=='27':
-                ## We have to reinitalize pool for the query
-                ## Unsure if below should be part of query code or not
-                client.run(rmm.reinitialize,pool_allocator=True,initial_pool_size=15e+9)
-                client.run(import_query_libs)
-                print("Rmm reinitalized")
-            for r in range(N_REPEATS):                    
-                print(f"run {r} query {qnum}")
+            for r in range(N_REPEATS):
                 run_query(config=config, client=client, query_func=q_func)
                 client.run(gc.collect)
                 client.run_on_scheduler(gc.collect)
                 gc.collect()
                 time.sleep(3)
-            
-            if qnum=='27':
-                ## We have to reinitalize pool back to 30GB
-                client.run(rmm.reinitialize,pool_allocator=True,initial_pool_size=30e+9)
-                
 
     # Run BSQL Queries
     if include_blazing and len(bsql_qnums) > 0:
