@@ -320,12 +320,12 @@ def convert_to_sentence(row, target_index, id2vocab):
         ## We anyways skip the first full-stop and we dont want to combine that
         ### eg: test. new sen ---tokenized-> test ##. new sen
         ### we only will want to capture "new sen"
-        if token.startswith("##") and token!='##.':
-                output_ls[-1] += token[2:]
+        if len(output_ls) > 0 and token.startswith("##"):
+            output_ls[-1] += token[2:]
         else:
             output_ls.append(token)
 
-    if output_ls[0] in [".",'##.']:
+    if output_ls[0] in [".", "##."]:
         output_sen = " ".join(output_ls[1:])
     else:
         output_sen = " ".join(output_ls)

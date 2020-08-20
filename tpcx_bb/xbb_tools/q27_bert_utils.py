@@ -190,28 +190,40 @@ def tokenize_text_series(text_ser, seq_len, stride, vocab_hash_file):
         do_truncate=False,
     )
     del text_ser
+    ### reshape metadata into a matrix
+    metadata = metadata.reshape(-1, 3)
 
     tokens = tokens.reshape(-1, max_length)
     output_rows = tokens.shape[0]
     padded_tokens = cp.zeros(shape=(output_rows, seq_len), dtype=np.uint32)
-    padded_tokens[:, 1:-1] = tokens
-    # Pad first token with [CLS] token to mark start of sequence
-    padded_tokens[:, 0] = 101
-    # Pad last token with [SEP] token to mark end of sequence
-    padded_tokens[:, -1] = 102
 
+    # Mark sequence start with [CLS] token to mark start of sequence
+    padded_tokens[:, 1:-1] = tokens
+    padded_tokens[:, 0] = 101
+
+    # Mark end of sequence [SEP]
+    seq_end_col = padded_tokens.shape[1] - (padded_tokens[:, ::-1] != 0).argmax(1)
+    padded_tokens[cp.arange(padded_tokens.shape[0]), seq_end_col] = 102
     del tokens
+
+    ## Attention mask
     attention_masks = attention_masks.reshape(-1, max_length)
     padded_attention_mask = cp.zeros(shape=(output_rows, seq_len), dtype=np.uint32)
     padded_attention_mask[:, 1:-1] = attention_masks
+
+    # Mark sequence start with 1
     padded_attention_mask[:, 0] = 1
-    padded_attention_mask[:, -1] = 1
+
+    # Mark sequence end with 1
+    padded_attention_mask[cp.arange(padded_attention_mask.shape[0]), seq_end_col] = 1
+
+    del seq_end_col
     del attention_masks
 
     return {
         "token_ar": padded_tokens,
         "attention_ar": padded_attention_mask,
-        "metadata": metadata.reshape(-1, 3),
+        "metadata": metadata,
     }
 
 
