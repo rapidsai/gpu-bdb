@@ -169,7 +169,7 @@ def tokenize_text_series(text_ser, seq_len, stride, vocab_hash_file):
 
         Returns
         _______
-         A dictionary with these keys {'token_tensor':,'masks':,'metadata':}
+         A dictionary with these keys {'token_ar':,'attention_ar':,'metadata':}
 
     """
     if len(text_ser) == 0:
