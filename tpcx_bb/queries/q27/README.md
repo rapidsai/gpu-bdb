@@ -8,10 +8,10 @@ The final output is  review id, product id, "competitor’s" company name and th
 
 We have two implimentations for this query: 
 
-#### 1. [HuggingFace Implimentation](tpcx_bb_query_hf_27.py) 
+#### 1. [HuggingFace Implementation](tpcx_bb_query_hf_27.py) 
 
 
-This implimentation uses [HuggingFace's](https://huggingface.co/) [distilbert-base-cased](https://huggingface.co/distilbert-base-cased) model fine tuned for ner token-classification on [conll-2003](https://www.clips.uantwerpen.be/conll2003/ner/). 
+This implementation uses [HuggingFace's](https://huggingface.co/) [distilbert-base-cased](https://huggingface.co/distilbert-base-cased) model fine tuned for ner token-classification on [conll-2003](https://www.clips.uantwerpen.be/conll2003/ner/). 
 
 To fine tune the model please follow HuggingFace's example.  https://huggingface.co/transformers/v2.4.0/examples.html#named-entity-recognition .
 
@@ -38,7 +38,7 @@ To fine tune the model please follow HuggingFace's example.  https://huggingface
 
 
 ```
-**Accuracy Stats**
+**Evaluation Metric Statistics**
 ```
 eval_loss = 0.15505129464577716
 eval_precision = 0.8869037294015611
@@ -47,14 +47,14 @@ eval_f1 = 0.8963099307564203
 ```
 
 
-Advantages of this implimentation are:
+Advantages of this implementation are:
 
 - This uses the full context of reviews for ner prediction
 - Avoids host->device->host round trips and is 2.6x times faster 
 
-**Implimentation Details:**
+**Implementation Details:**
 
-This uses [subword_tokenize](https://docs.rapids.ai/api/cudf/nightly/api.html?highlight=subword_tokenize#cudf.core.column.string.StringMethods.subword_tokenize) on a cudf_series which gives you tokenized tensors
+This uses [subword_tokenize](https://docs.rapids.ai/api/cudf/nightly/api.html?highlight=subword_tokenize#cudf.core.column.string.StringMethods.subword_tokenize) on a cuDF.Series which gives you tokenized tensors
 
 These tensors with appropiate padding are fed into the model for inference 
 
@@ -62,11 +62,11 @@ These tensors with appropiate padding are fed into the model for inference
 This runs in `10.5 s` on sf-10k on 136 GPU's.
 
 
-#### 2. [SPACY Implimentation](tpcx_bb_query_27.py)
+#### 2. [spaCy Implementation](tpcx_bb_query_27.py)
 
 
 
-This implimentation relies on SPACY's [entityrecognizer](https://spacy.io/api/entityrecognizer ) model. 
+This implementation relies on SPACY's [entityrecognizer](https://spacy.io/api/entityrecognizer ) model. 
 
 Spacy's `entityrecognizer` model requires inputs to be on host so requires a copy to host->device which slows this implimentation down.  
 
