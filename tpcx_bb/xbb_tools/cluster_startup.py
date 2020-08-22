@@ -44,7 +44,8 @@ def get_config_options():
     config_options['BLAZING_CACHE_DIRECTORY'] = os.environ.get("BLAZING_CACHE_DIRECTORY", '/tmp/')
     config_options['BLAZ_HOST_MEM_CONSUMPTION_THRESHOLD'] = os.environ.get("BLAZ_HOST_MEM_CONSUMPTION_THRESHOLD", 0.75)
     config_options['MEMORY_MONITOR_PERIOD'] = os.environ.get("MEMORY_MONITOR_PERIOD", 50)
-    config_options['LOGGING_LEVEL'] = os.environ.get("LOGGING_LEVEL", "warn")
+    config_options['LOGGING_LEVEL'] = os.environ.get("LOGGING_LEVEL", "trace")
+    config_options['MAX_SEND_MESSAGE_THREADS'] = os.environ.get("MAX_SEND_MESSAGE_THREADS", 20)
 
     return config_options
 
