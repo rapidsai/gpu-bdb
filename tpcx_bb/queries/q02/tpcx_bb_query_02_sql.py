@@ -44,8 +44,8 @@ def main(data_dir, client, bc, config):
 
     query_1 = """
         SELECT
-            wcs_user_sk,
-            wcs_item_sk,
+            CAST( wcs_user_sk AS INTEGER) AS wcs_user_sk,
+            CAST( wcs_item_sk AS INTEGER) AS wcs_item_sk,
             (wcs_click_date_sk * 86400 + wcs_click_time_sk) AS tstamp_inSec
         FROM web_clickstreams
         WHERE wcs_item_sk IS NOT NULL
