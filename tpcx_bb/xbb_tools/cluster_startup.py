@@ -22,7 +22,7 @@ import importlib
 import dask
 from dask.distributed import Client
 from dask.utils import parse_bytes
-from blazingsql import BlazingContext
+#from blazingsql import BlazingContext
 
 
 def get_config_options():
@@ -53,10 +53,20 @@ def attach_to_cluster(config, create_blazing_context=False):
 
     Optionally, this will also create a BlazingContext.
     """
+    scheduler_file = config.get("scheduler_file")
     host = config.get("cluster_host")
     port = config.get("cluster_port", "8786")
+    
+    if scheduler_file is not None:
+        try:
+            with open(scheduler_file) as fp:
+                print(fp.read())
+            client = Client(scheduler_file=scheduler_file)
+            print('Connected!')
+        except OSError as e:
+            sys.exit(f"Unable to create a Dask Client connection: {e}")
 
-    if host is not None:
+    elif host is not None:
         try:
             content = requests.get(
                 "http://" + host + ":8787/info/main/workers.html"
@@ -72,7 +82,7 @@ def attach_to_cluster(config, create_blazing_context=False):
             sys.exit(f"Unable to create a Dask Client connection: {e}")
 
     else:
-        raise ValueError("Must pass a cluster address to the host argument.")
+        raise ValueError("Must pass a scheduler file or cluster address to the host argument.")
 
     def maybe_create_worker_directories(dask_worker):
         worker_dir = dask_worker.local_directory
@@ -101,6 +111,7 @@ def attach_to_cluster(config, create_blazing_context=False):
     config["40GB_workers"] = worker_counts["40GB"]
 
     bc = None
+    create_blazing_context = False
     if create_blazing_context:
         bc = BlazingContext(
             dask_client=client,

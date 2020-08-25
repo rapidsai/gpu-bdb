@@ -1,25 +1,22 @@
 #IB, NVLINK, or TCP
-CLUSTER_MODE=$1
+ROLE=$1
+CLUSTER_MODE="NVLINK"
 USERNAME=$(whoami)
+TPCX_BB_HOME=$HOME/tpcx-bb/tpcx_bb
 
 MAX_SYSTEM_MEMORY=$(free -m | awk '/^Mem:/{print $2}')M
 DEVICE_MEMORY_LIMIT="25GB"
 POOL_SIZE="30GB"
 
-# Fill in your environment name and conda path on each node
-TPCX_BB_HOME="/home/$USERNAME/shared/tpcx-bb"
 CONDA_ENV_NAME="rapids-tpcx-bb"
-CONDA_ENV_PATH="/home/$USERNAME/conda/etc/profile.d/conda.sh"
-
-# TODO: Unify interface/IP setting/getting for cluster startup
-# and scheduler file
-INTERFACE="ib0"
+CONDA_ENV_PATH="/conda/etc/profile.d/conda.sh"
 
 # TODO: Remove hard-coding of scheduler
-SCHEDULER=$(hostname)
-SCHEDULER_FILE=$TPCX_BB_HOME/tpcx_bb/cluster_configuration/example-cluster-scheduler.json
-LOGDIR="/tmp/tpcx-bb-dask-logs/"
-WORKER_DIR="/tmp/tpcx-bb-dask-workers/"
+#SCHEDULER_FILE=$TPCX_BB_HOME/tpcx_bb/cluster_configuration/example-cluster-scheduler.json
+LOCAL_DIRECTORY=$HOME/dask-local-directory
+SCHEDULER_FILE=$LOCAL_DIRECTORY/scheduler.json
+LOGDIR="$LOCAL_DIRECTORY/logs/"
+WORKER_DIR="/rapids"
 
 # Purge Dask worker and log directories
 rm -rf $LOGDIR/*
@@ -31,8 +28,12 @@ mkdir -p $WORKER_DIR
 rm -rf ~/.config/dask
 
 # Activate conda environment
+
 source $CONDA_ENV_PATH
 conda activate $CONDA_ENV_NAME
+
+cd $TPCX_BB_HOME
+python -m pip install .
 
 # Dask/distributed configuration
 export DASK_DISTRIBUTED__COMM__TIMEOUTS__CONNECT="100s"
@@ -42,13 +43,13 @@ export DASK_DISTRIBUTED__COMM__RETRY__DELAY__MAX="60s"
 
 
 # Setup scheduler
-if [ "$HOSTNAME" = $SCHEDULER ]; then
+if [ "$ROLE" = "SCHEDULER" ]; then
   if [ "$CLUSTER_MODE" = "NVLINK" ]; then
-     CUDA_VISIBLE_DEVICES='0' DASK_UCX__CUDA_COPY=True DASK_UCX__TCP=True DASK_UCX__NVLINK=True DASK_UCX__INFINIBAND=False DASK_UCX__RDMACM=False nohup dask-scheduler --dashboard-address 8787 --interface $INTERFACE --protocol ucx > $LOGDIR/scheduler.log 2>&1 &
+     CUDA_VISIBLE_DEVICES='0' DASK_UCX__CUDA_COPY=True DASK_UCX__TCP=True DASK_UCX__NVLINK=True DASK_UCX__INFINIBAND=False DASK_UCX__RDMACM=False nohup dask-scheduler --dashboard-address 8787 --protocol ucx --scheduler-file $SCHEDULER_FILE > $LOGDIR/scheduler.log 2>&1 &
   fi
   
   if [ "$CLUSTER_MODE" = "TCP" ]; then
-     CUDA_VISIBLE_DEVICES='0' nohup dask-scheduler --dashboard-address 8787 --interface $INTERFACE --protocol tcp > $LOGDIR/scheduler.log 2>&1 &
+     CUDA_VISIBLE_DEVICES='0' nohup dask-scheduler --dashboard-address 8787 --protocol tcp --scheduler-file $SCHEDULER_FILE > $LOGDIR/scheduler.log 2>&1 &
   fi
 fi
 

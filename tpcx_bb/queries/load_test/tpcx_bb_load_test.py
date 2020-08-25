@@ -3,9 +3,11 @@ from xbb_tools.readers import build_reader
 import os, subprocess, math, time
 
 
+config = tpcxbb_argparser()
 config["data_dir"] = "/".join(config["data_dir"].rstrip("/").split("/")[:-1])
+config["data_dir"] = '/tpcx-bb/sf30000/'
 
-spark_schema_dir = f"{os.getcwd()}/../../spark_table_schemas/"
+spark_schema_dir = f"{os.getcwd()}/spark_table_schemas/"
 
 # these tables have extra data produced by bigbench dataGen
 refresh_tables = [

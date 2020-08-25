@@ -1,6 +1,6 @@
 # benchmark config yaml
 ### Please fill these accordingly
-data_dir: 
+data_dir: /tpcx-bb/sf30000/
 output_dir: ./
 file_format: parquet
 output_filetype: parquet
@@ -8,15 +8,14 @@ split_row_groups: False
 repartition_small_table: True
 benchmark_runner_include_bsql: False
 
-cluster_host: 
-cluster_port: 8786
+scheduler_file: /root/dask-local-directory/dask-scheduler.json
 dask_profile: False
 dask_dir: ./
-32GB_workers: 16
+32GB_workers: 8
 
 verify_results: False
 verify_dir: 
 
 sheet: TPCx-BB
-tab: SF1000 Benchmarking Matrix
+tab: SF30000 Benchmarking Matrix
 get_read_time: False
