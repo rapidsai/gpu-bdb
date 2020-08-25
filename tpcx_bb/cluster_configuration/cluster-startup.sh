@@ -15,7 +15,7 @@ CONDA_ENV_PATH="/conda/etc/profile.d/conda.sh"
 #SCHEDULER_FILE=$TPCX_BB_HOME/tpcx_bb/cluster_configuration/example-cluster-scheduler.json
 LOCAL_DIRECTORY=$HOME/dask-local-directory
 SCHEDULER_FILE=$LOCAL_DIRECTORY/scheduler.json
-LOGDIR="$LOCAL_DIRECTORY/logs/"
+LOGDIR="$LOCAL_DIRECTORY/logs"
 WORKER_DIR="/rapids"
 
 # Purge Dask worker and log directories
@@ -31,7 +31,7 @@ rm -rf ~/.config/dask
 
 source $CONDA_ENV_PATH
 conda activate $CONDA_ENV_NAME
-
+ 
 cd $TPCX_BB_HOME
 python -m pip install .
 
@@ -53,12 +53,11 @@ if [ "$ROLE" = "SCHEDULER" ]; then
   fi
 fi
 
-
 # Setup workers
 if [ "$CLUSTER_MODE" = "NVLINK" ]; then
-        dask-cuda-worker --device-memory-limit $DEVICE_MEMORY_LIMIT --local-directory $WORKER_DIR  --rmm-pool-size=$POOL_SIZE --memory-limit=$MAX_SYSTEM_MEMORY --enable-tcp-over-ucx --enable-nvlink  --disable-infiniband --scheduler-file $SCHEDULER_FILE >> $LOGDIR/worker.log 2>&1 &
+    dask-cuda-worker --device-memory-limit $DEVICE_MEMORY_LIMIT --local-directory $WORKER_DIR  --rmm-pool-size=$POOL_SIZE --memory-limit=$MAX_SYSTEM_MEMORY --enable-tcp-over-ucx --enable-nvlink  --disable-infiniband --scheduler-file $SCHEDULER_FILE >> $LOGDIR/worker.log 2>&1
 fi
 
 if [ "$CLUSTER_MODE" = "TCP" ]; then
-    dask-cuda-worker --device-memory-limit $DEVICE_MEMORY_LIMIT --local-directory $WORKER_DIR  --rmm-pool-size=$POOL_SIZE --memory-limit=$MAX_SYSTEM_MEMORY --scheduler-file $SCHEDULER_FILE >> $LOGDIR/worker.log 2>&1 &
+    dask-cuda-worker --device-memory-limit $DEVICE_MEMORY_LIMIT --local-directory $WORKER_DIR  --rmm-pool-size=$POOL_SIZE --memory-limit=$MAX_SYSTEM_MEMORY --scheduler-file $SCHEDULER_FILE >> $LOGDIR/worker.log 2>&1
 fi

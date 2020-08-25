@@ -4,8 +4,6 @@ import os, subprocess, math, time
 
 
 config = tpcxbb_argparser()
-config["data_dir"] = "/".join(config["data_dir"].rstrip("/").split("/")[:-1])
-config["data_dir"] = '/tpcx-bb/sf30000/'
 
 spark_schema_dir = f"{os.getcwd()}/spark_table_schemas/"
 
@@ -52,7 +50,7 @@ def read_csv_table(table, chunksize="256 MiB"):
     names, types = get_schema(table)
     dtype = {names[i]: types[i] for i in range(0, len(names))}
 
-    data_dir = config["data_dir"]
+    data_dir = config["data_dir"].split('parquet_')[0]
     base_path = f"{data_dir}/data/{table}"
     files = os.listdir(base_path)
     # item_marketprices has "audit" files that should be excluded
@@ -102,7 +100,7 @@ def multiplier(unit):
 
 # we use size of the CSV data on disk to determine number of Parquet partitions
 def get_size_gb(table):
-    data_dir = config["data_dir"]
+    data_dir = config["data_dir"].split('parquet_')[0]
     path = data_dir + "/data/" + table
     size = subprocess.check_output(["du", "-sh", path]).split()[0].decode("utf-8")
     unit = size[-1]
@@ -148,8 +146,8 @@ def repartition(table, outdir, npartitions=None, chunksize=None, compression="sn
 
 def main(client, config):
     # location you want to write Parquet versions of the table data
-    data_dir = "/".join(config["data_dir"].split("/")[:-1])
-    outdir = f"{data_dir}/parquet_{part_size}gb/"
+    data_dir = config["data_dir"].split('parquet_')[0]
+    outdir = f"{data_dir}/parquet_{part_size}gb_test/"
 
     total = 0
     for table in tables:
