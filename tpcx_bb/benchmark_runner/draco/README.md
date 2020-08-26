@@ -18,3 +18,8 @@ mkdir -p ~/dask-local-directory
 ```bash
 bash benchmark_runner/draco/run.sh
 ```
+
+Notes:
+Once your scheduler node is running, the client will [wait](../wait.py) for the expected number of workers to connect before starting the load test and running the queries.
+
+If you're on the VPN, you can load the Dask dashboard at the IP address in `~/dask-local-directory/scheduler.json`.
