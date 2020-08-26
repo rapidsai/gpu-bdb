@@ -11,8 +11,7 @@ TPCX_BB_HOME=$HOME/shared/tpcx-bb
 CONDA_ENV_NAME="rapids-tpcx-bb"
 CONDA_ENV_PATH="/home/$USERNAME/conda/etc/profile.d/conda.sh"
 
-# TODO: Remove hard-coding of scheduler
-#SCHEDULER_FILE=$TPCX_BB_HOME/tpcx_bb/cluster_configuration/example-cluster-scheduler.json
+# Used for writing scheduler file to shared storage
 LOCAL_DIRECTORY=$HOME/dask-local-directory
 SCHEDULER_FILE=$LOCAL_DIRECTORY/scheduler.json
 

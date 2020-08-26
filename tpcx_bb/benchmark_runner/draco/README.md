@@ -1,3 +1,7 @@
+This folder is intended for dev/testing/benchmarking our tpcx-bb queries in Slurm clusters.
+
+The Docker images used are date tagged but not intended to signify "stable" images.
+
 Setup:
 1. Somewhere you have Docker permissions, build image:
 ```bash
@@ -8,7 +12,7 @@ docker tag bb38976d03cf dockerhub_username/draco:8_24_0
 docker push dockerhub_username/draco
 ```
 
-2. In Draco, create dask-local-directory:
+2. In Draco, create a dask-local-directory. This is a network share, accessible to all nodes:
 ```bash
 mkdir -p ~/dask-local-directory
 ```
