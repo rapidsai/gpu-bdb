@@ -5,14 +5,12 @@ In this query, we find "competitor" company names in the product reviews for a g
 
 The final output is review id, product id, "competitor’s" company name and the related sentence from the online review. 
 
-
 We have two implimentations for this query: 
 
 ## 1. [HuggingFace Implimentation](tpcx_bb_query_hf_27.py) 
 
 
-This implimentation uses [HuggingFace's](https://huggingface.co/) [token-classification](https://github.com/huggingface/transformers/tree/master/examples/token-classification) to do NER. We suggest using following models for optimal speed and accuracy. 
-
+This implimentation uses [HuggingFace's](https://huggingface.co/) [token-classification](https://github.com/huggingface/transformers/tree/master/examples/token-classification) to do NER. We suggest choosing b/w following models for optimal speed and accuracy. 
 
 
 1. [distilbert-base-cased](https://huggingface.co/distilbert-base-cased) (2.5x Spacy Implimentation, `89.6 F1` on conll-2003)
@@ -25,9 +23,7 @@ To use `distil-bert-cased` model:
 
 a.  Download it from  https://huggingface.co/distilbert-base-cased 
 
-b. Fine tune the model to on [conll-2003](https://www.clips.uantwerpen.be/conll2003/ner/) by following HuggingFace's example .
-
-https://huggingface.co/transformers/v2.4.0/examples.html#named-entity-recognition 
+b. Fine tune the model to on [conll-2003](https://www.clips.uantwerpen.be/conll2003/ner/) by following HuggingFace's example at [link](https://huggingface.co/transformers/v2.4.0/examples.html#named-entity-recognition)
 
 c. Place it on your shared directory `data_dir` +`../../q27_hf_model`
 
@@ -59,18 +55,11 @@ a. Download it from https://huggingface.co/dslim/bert-base-NER
 b. Place it on your shared directory `data_dir` +`../../q27_hf_model`
 
 
+## 2. [spaCy Implementation](tpcx_bb_query_27.py)
 
-
-
-## 2. [SPACY Implimentation](tpcx_bb_query_27.py)
-
-
-
-This implimentation relies on SPACY's [entityrecognizer](https://spacy.io/api/entityrecognizer ) model. 
+This implementation relies on SPACY's [entityrecognizer](https://spacy.io/api/entityrecognizer ) model. 
 
 Download Spacy model via :
 ```
 python -m spacy download en_core_web_sm
 ```
-
-
