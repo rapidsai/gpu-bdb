@@ -26,10 +26,8 @@
 ### We get empty sentence in 0.04% of the cases because of it
 
 import rmm
-import cupy as cp
 import numpy as np
 import os
-import gc
 import logging
 import time
 
@@ -121,7 +119,7 @@ def main(client, config):
 
     import cudf
 
-    model_path = os.path.join(config["data_dir"], "../distilbert-base-en-cased")
+    model_path = os.path.join(config["data_dir"], "../../q27_model_dir")
     product_reviews_df = benchmark(
         read_tables,
         config=config,
