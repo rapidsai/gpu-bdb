@@ -13,7 +13,7 @@ We have two implementations for this query:
 This implimentation uses [HuggingFace's](https://huggingface.co/) [token-classification](https://github.com/huggingface/transformers/tree/master/examples/token-classification) to do NER. We suggest choosing b/w following models for optimal speed and accuracy. 
 
 
-1. [distilbert-base-cased](https://huggingface.co/distilbert-base-cased) (2.5x Spacy Implimentation, `89.6 F1` on conll-2003)
+1. [distilbert-base-cased](https://huggingface.co/distilbert-base-cased) (2.5x Spacy Implementation, `89.6 F1` on conll-2003)
 2. [base-base-ner](https://huggingface.co/dslim/bert-base-NER) (1.7x Spacy Implimentation, `91.95 F1` on conll-2003)
 
 ### Setup:
