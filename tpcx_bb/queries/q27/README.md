@@ -5,7 +5,7 @@ In this query, we find "competitor" company names in the product reviews for a g
 
 The final output is review id, product id, "competitor’s" company name and the related sentence from the online review. 
 
-We have two implimentations for this query: 
+We have two implementations for this query: 
 
 ## 1. [HuggingFace Implimentation](tpcx_bb_query_hf_27.py) 
 
