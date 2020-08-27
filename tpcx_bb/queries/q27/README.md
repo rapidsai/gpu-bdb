@@ -7,14 +7,14 @@ The final output is review id, product id, "competitor’s" company name and the
 
 We have two implementations for this query: 
 
-## 1. [HuggingFace Implimentation](tpcx_bb_query_hf_27.py) 
+## 1. [HuggingFace Implementation](tpcx_bb_query_hf_27.py) 
 
 
-This implimentation uses [HuggingFace's](https://huggingface.co/) [token-classification](https://github.com/huggingface/transformers/tree/master/examples/token-classification) to do NER. We suggest choosing b/w following models for optimal speed and accuracy. 
+This implementation uses [HuggingFace's](https://huggingface.co/) [token-classification](https://github.com/huggingface/transformers/tree/master/examples/token-classification) to do NER. We suggest choosing between the following models for optimal speed and accuracy. 
 
 
 1. [distilbert-base-cased](https://huggingface.co/distilbert-base-cased) (2.5x Spacy Implementation, `89.6 F1` on conll-2003)
-2. [base-base-ner](https://huggingface.co/dslim/bert-base-NER) (1.7x Spacy Implimentation, `91.95 F1` on conll-2003)
+2. [base-base-ner](https://huggingface.co/dslim/bert-base-NER) (1.7x Spacy Implementation, `91.95 F1` on conll-2003)
 
 ### Setup:
 #### 1. Distilbert-base-cased
@@ -57,7 +57,7 @@ b. Place it on your shared directory `data_dir` +`../../q27_hf_model`
 
 ## 2. [spaCy Implementation](tpcx_bb_query_27.py)
 
-This implementation relies on SPACY's [entityrecognizer](https://spacy.io/api/entityrecognizer ) model. 
+This implementation relies on spaCy's [entityrecognizer](https://spacy.io/api/entityrecognizer ) model. 
 
 Download the spaCy model via :
 ```
