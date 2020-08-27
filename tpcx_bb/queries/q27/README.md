@@ -59,7 +59,7 @@ b. Place it on your shared directory `data_dir` +`../../q27_hf_model`
 
 This implementation relies on SPACY's [entityrecognizer](https://spacy.io/api/entityrecognizer ) model. 
 
-Download Spacy model via :
+Download the spaCy model via :
 ```
 python -m spacy download en_core_web_sm
 ```
