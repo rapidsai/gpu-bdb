@@ -61,7 +61,9 @@ def main(data_dir, client, bc, config):
     )
 
     bc.create_table('session_df', session_df)
+
     del wcs_result
+    del session_df
 
     last_query = f"""
         WITH item_df AS (
