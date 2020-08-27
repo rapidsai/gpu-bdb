@@ -154,8 +154,4 @@ if __name__ == "__main__":
     config = tpcxbb_argparser()
     client, bc = attach_to_cluster(config)
     client.run(rmm.reinitialize, pool_allocator=True, initial_pool_size=14e9)
-    for i in range(0, 5):
-        st = time.time()
-        run_query(config=config, client=client, query_func=main)
-        et = time.time()
-        print(f"time taken = {et-st} s")
+    run_query(config=config, client=client, query_func=main)
