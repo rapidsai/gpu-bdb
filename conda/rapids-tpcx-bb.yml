@@ -2,9 +2,11 @@ channels:
   - blazingsql-nightly/label/cuda10.2
   - rapidsai-nightly
   - nvidia
+  - pytorch-nightly
   - conda-forge
   - blazingsql-nightly
   - defaults
+
 dependencies:
   - python=3.7
   - cudatoolkit=10.2
@@ -25,10 +27,13 @@ dependencies:
   - psutil
   - ipykernel
   - jupyterlab
+  - torchvision
+  - pytorch
   - gspread
   - oauth2client
   - pip
   - pip:
+    - transformers
     - jupyter-server-proxy
     - git+https://github.com/dask/dask.git
     - git+https://github.com/dask/distributed.git
