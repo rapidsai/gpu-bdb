@@ -19,7 +19,7 @@ bsql_qnums = [get_qnum_from_filename(x.split("/")[-1]) for x in bsql_query_files
 
 def load_query(qnum, fn):
     import importlib, types
-    loader = importlib.machinery.SourceFileLoader(qnum, f"queries/q{qnum}/tpcx_bb_query_{qnum}.py")
+    loader = importlib.machinery.SourceFileLoader(qnum, fn)
     mod = types.ModuleType(loader.name)
     loader.exec_module(mod)
     return mod.main
