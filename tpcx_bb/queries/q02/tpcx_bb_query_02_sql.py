@@ -44,8 +44,8 @@ def main(data_dir, client, bc, config):
 
     query_1 = """
         SELECT
-            wcs_user_sk,
-            wcs_item_sk,
+            CAST( wcs_user_sk AS INTEGER) AS wcs_user_sk,
+            CAST( wcs_item_sk AS INTEGER) AS wcs_item_sk,
             (wcs_click_date_sk * 86400 + wcs_click_time_sk) AS tstamp_inSec
         FROM web_clickstreams
         WHERE wcs_item_sk IS NOT NULL
@@ -62,6 +62,9 @@ def main(data_dir, client, bc, config):
 
     bc.create_table('session_df', session_df)
 
+    del wcs_result
+    del session_df
+
     last_query = f"""
         WITH item_df AS (
             SELECT wcs_user_sk, session_id
@@ -69,7 +72,6 @@ def main(data_dir, client, bc, config):
             WHERE wcs_item_sk = {q02_item_sk}
         )
         SELECT sd.wcs_item_sk as item_sk_1,
-            {q02_item_sk} as item_sk_2,
             count(sd.wcs_item_sk) as cnt
         FROM session_df sd
         INNER JOIN item_df id
@@ -81,6 +83,9 @@ def main(data_dir, client, bc, config):
         LIMIT {q02_limit}
     """
     result = bc.sql(last_query)
+    result["item_sk_2"] = q02_item_sk
+    result_order = ["item_sk_1", "item_sk_2", "cnt"]
+    result = result[result_order]
     return result
 
 
