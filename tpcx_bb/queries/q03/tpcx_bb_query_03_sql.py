@@ -167,11 +167,15 @@ def main(data_dir, client, bc, config):
     product_view_results = merged_df.map_partitions(
         apply_find_items_viewed, item_mappings=item_df_filtered
     )
-    del merged_df
-    del item_df_filtered
     
     product_view_results = product_view_results.persist()
     wait(product_view_results)
+
+    bc.drop_table("item_df")
+    del item_df
+    del merged_df
+    del item_df_filtered
+
     bc.create_table('product_result', product_view_results)
 
     last_query = f"""
@@ -185,7 +189,6 @@ def main(data_dir, client, bc, config):
     """
     result = bc.sql(last_query)
 
-    bc.drop_table("item_df")
     bc.drop_table("product_result")
     return result
 

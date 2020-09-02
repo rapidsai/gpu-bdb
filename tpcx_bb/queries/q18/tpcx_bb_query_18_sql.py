@@ -233,6 +233,12 @@ def main(data_dir, client, bc, config):
     """
     temp_table2 = bc.sql(query_3)
 
+    bc.drop_table("stores_with_regression")
+    del stores_with_regression
+
+    bc.drop_table("combined")
+    del combined
+
     # REAL QUERY
     sentences = no_nulls.map_partitions(create_sentences_from_reviews)
 
@@ -307,8 +313,6 @@ def main(data_dir, client, bc, config):
     """
     result = bc.sql(query_4)
 
-    bc.drop_table("stores_with_regression")
-    bc.drop_table("combined")
     bc.drop_table("word_df")
     bc.drop_table("sentences")
     bc.drop_table("temp_table2")

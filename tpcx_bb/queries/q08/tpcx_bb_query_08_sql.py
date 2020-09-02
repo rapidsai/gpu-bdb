@@ -207,6 +207,9 @@ def main(data_dir, client, bc, config):
     """
     merged_df = bc.sql(query_2)
 
+    bc.drop_table("web_page_2")
+    del web_page_df
+
     merged_df = merged_df.repartition(columns=["wcs_user_sk"])
     merged_df["review_flag"] = merged_df.wp_type_codes == REVIEW_CAT_CODE
 
@@ -220,6 +223,8 @@ def main(data_dir, client, bc, config):
         get_unique_sales_keys_from_sessions, review_cat_code=REVIEW_CAT_CODE
     )
 
+    del merged_df
+    
     unique_review_sales = unique_review_sales.to_frame()
 
     unique_review_sales = unique_review_sales.persist()
@@ -241,7 +246,6 @@ def main(data_dir, client, bc, config):
     """
     result = bc.sql(last_query)
 
-    bc.drop_table("web_page_2")
     bc.drop_table("reviews")
     return result
 

@@ -85,6 +85,12 @@ def main(data_dir, client, bc, config):
     """
     std_result = bc.sql(query_3)
 
+    bc.drop_table("inv_dates")
+    del inv_dates_result
+
+    bc.drop_table("mean_df")
+    del mean_result
+
     std_result = std_result.persist()
     wait(std_result)
     bc.create_table('iteration', std_result)
@@ -97,6 +103,8 @@ def main(data_dir, client, bc, config):
         WHERE (q_std / q_mean) >= {q23_coefficient}
     """
     std_result = bc.sql(query_4)
+
+    bc.drop_table("iteration")
 
     std_result = std_result.persist()
     wait(std_result)
@@ -118,9 +126,6 @@ def main(data_dir, client, bc, config):
     """
     result = bc.sql(query)
 
-    bc.drop_table("inv_dates")
-    bc.drop_table("mean_df")
-    bc.drop_table("iteration")
     bc.drop_table("temp_table")
     return result
 

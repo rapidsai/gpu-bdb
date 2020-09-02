@@ -70,6 +70,9 @@ def main(data_dir, client, bc, config):
     """
     merged_df = bc.sql(query_2)
 
+    bc.drop_table("item_df")
+    del item_df
+
     distinct_session_df = merged_df.map_partitions(get_distinct_sessions,
             keep_cols=["wcs_user_sk", "i_category_id"],
             time_out=q30_session_timeout_inSec)
@@ -97,7 +100,6 @@ def main(data_dir, client, bc, config):
     """
     result = bc.sql(last_query)
 
-    bc.drop_table("item_df")
     bc.drop_table("pair_df")
     return result
 
