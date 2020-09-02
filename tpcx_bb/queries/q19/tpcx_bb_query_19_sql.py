@@ -31,6 +31,7 @@ from xbb_tools.text import (
     create_words_from_sentences
 )
 
+from dask.distributed import wait
 
 # -------- Q19 -----------
 q19_returns_dates_IN = ["2004-03-08", "2004-08-02", "2004-11-15", "2004-12-20"]
@@ -121,8 +122,16 @@ def main(data_dir, client, bc, config):
     bc.create_table('sent_df', sentiment_dir + "/negativeSentiment.txt",
                     names=['sentiment_word'], dtype=['str'])
 
+    sentences = sentences.persist()
+    wait(sentences)
     bc.create_table('sentences_df', sentences)
+
+    word_df = word_df.persist()
+    wait(word_df)
     bc.create_table('word_df', word_df)
+
+    merged_df = merged_df.persist()
+    wait(merged_df)
     bc.create_table('merged_df', merged_df)
 
     query = """
@@ -154,6 +163,10 @@ def main(data_dir, client, bc, config):
         ORDER BY pr_item_sk, review_sentence, sentiment_word
     """
     result = bc.sql(query)
+
+    bc.drop_table("sentences_df")
+    bc.drop_table("word_df")
+    bc.drop_table("merged_df")
     return result
 
 

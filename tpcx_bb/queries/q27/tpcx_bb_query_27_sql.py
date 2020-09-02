@@ -32,6 +32,7 @@ from xbb_tools.utils import (
     run_query,
 )
 
+from dask.distributed import wait
 
 # -------- Q27 -----------
 q27_pr_item_sk = 10002
@@ -100,7 +101,12 @@ def main(data_dir, client, bc, config):
     )
 
     # recombine
+    repeated_names = repeated_names.persist()
+    wait(repeated_names)
     bc.create_table('repeated_names', repeated_names)
+
+    ner_parsed = ner_parsed.persist()
+    wait(ner_parsed)
     bc.create_table('ner_parsed', ner_parsed)
 
     query = f"""
@@ -112,10 +118,10 @@ def main(data_dir, client, bc, config):
         ON sentence_idx_global_pos = sentence_tokenized_global_pos
         ORDER BY review_idx_global_pos, item_sk, word, sentence
     """
-
     recombined = bc.sql(query)
-    recombined = recombined.persist()
-    wait(recombined)
+
+    bc.drop_table("repeated_names")
+    bc.drop_table("ner_parsed")
     return recombined
 
 

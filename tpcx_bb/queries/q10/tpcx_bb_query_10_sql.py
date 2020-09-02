@@ -31,6 +31,7 @@ from xbb_tools.text import (
     create_words_from_sentences
 )
 
+from dask.distributed import wait
 
 eol_char = "è"
 
@@ -78,7 +79,12 @@ def main(data_dir, client, bc, config):
         global_position_column="sentence_tokenized_global_pos",
     )
 
+    product_reviews_df = product_reviews_df.persist()
+    wait(product_reviews_df)
     bc.create_table('product_reviews_df', product_reviews_df)
+    
+    sentences = sentences.persist()
+    wait(sentences)
     bc.create_table('sentences', sentences)
 
     # These files come from the official TPCx-BB kit
@@ -91,6 +97,9 @@ def main(data_dir, client, bc, config):
     bc.create_table('positive_sentiment',
                     sentiment_dir + "/positiveSentiment.txt",
                     names="sentiment_word")
+
+    word_df = word_df.persist()
+    wait(word_df)
     bc.create_table('word_df', word_df)
 
     query = '''
@@ -126,6 +135,10 @@ def main(data_dir, client, bc, config):
         ORDER BY item_sk, review_sentence, sentiment, sentiment_word
     '''
     result = bc.sql(query)
+
+    bc.drop_table("product_reviews_df")
+    bc.drop_table("sentences")
+    bc.drop_table("word_df")
     return result
 
 
