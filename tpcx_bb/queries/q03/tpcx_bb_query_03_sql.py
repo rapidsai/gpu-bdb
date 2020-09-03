@@ -190,6 +190,7 @@ def main(data_dir, client, bc, config):
     result = bc.sql(last_query)
 
     bc.drop_table("product_result")
+    del product_view_results
     return result
 
 
