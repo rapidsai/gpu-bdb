@@ -222,8 +222,6 @@ def main(data_dir, client, bc, config):
     unique_review_sales = sessionized.map_partitions(
         get_unique_sales_keys_from_sessions, review_cat_code=REVIEW_CAT_CODE
     )
-
-    del merged_df
     
     unique_review_sales = unique_review_sales.to_frame()
 
