@@ -26,7 +26,7 @@ from xbb_tools.utils import (
 )
 
 from xbb_tools.sessionization import get_distinct_sessions
-
+from dask.distributed import wait
 
 # -------- Q2 -----------
 q02_item_sk = 10001
@@ -59,11 +59,11 @@ def main(data_dir, client, bc, config):
         keep_cols=["wcs_user_sk", "wcs_item_sk"],
         time_out=q02_session_timeout_inSec,
     )
-
-    bc.create_table('session_df', session_df)
-
     del wcs_result
-    del session_df
+
+    session_df = session_df.persist()
+    wait(session_df)
+    bc.create_table('session_df', session_df)
 
     last_query = f"""
         WITH item_df AS (
@@ -86,6 +86,9 @@ def main(data_dir, client, bc, config):
     result["item_sk_2"] = q02_item_sk
     result_order = ["item_sk_1", "item_sk_2", "cnt"]
     result = result[result_order]
+
+    del session_df
+    bc.drop_table("session_df")
     return result
 
 
