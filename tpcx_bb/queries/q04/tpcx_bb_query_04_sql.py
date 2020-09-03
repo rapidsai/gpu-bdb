@@ -26,6 +26,7 @@ from xbb_tools.utils import (
     run_query,
 )
 
+from dask.distributed import wait
 
 def abandonedShoppingCarts(df, DYNAMIC_CAT_CODE, ORDER_CAT_CODE):
     import cudf
@@ -111,6 +112,8 @@ def main(data_dir, client, bc, config):
     cols_2_keep = ["wp_web_page_sk", "wp_type_codes"]
     wp = wp[cols_2_keep]
 
+    wp = wp.persist()
+    wait(wp)
     bc.create_table('web_page', wp)
 
     query = """
@@ -138,6 +141,7 @@ def main(data_dir, client, bc, config):
 
     result = result.compute()
     result_df = cudf.DataFrame({"sum(pagecount)/count(*)": [result]})
+    bc.drop_table("web_page")
     return result_df
 
 

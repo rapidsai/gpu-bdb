@@ -25,6 +25,7 @@ from xbb_tools.utils import (
     run_query,
 )
 
+from dask.distributed import wait
 
 # -------- Q23 -----------
 q23_year = 2001
@@ -52,6 +53,8 @@ def main(data_dir, client, bc, config):
     """
     inv_dates_result = bc.sql(query_1)
 
+    inv_dates_result = inv_dates_result.persist()
+    wait(inv_dates_result)
     bc.create_table('inv_dates', inv_dates_result)
     query_2 = """
         SELECT inv_warehouse_sk,
@@ -63,6 +66,8 @@ def main(data_dir, client, bc, config):
     """
     mean_result = bc.sql(query_2)
 
+    mean_result = mean_result.persist()
+    wait(mean_result)
     bc.create_table('mean_df', mean_result)
     query_3 = """
         SELECT id.inv_warehouse_sk,
@@ -80,6 +85,14 @@ def main(data_dir, client, bc, config):
     """
     std_result = bc.sql(query_3)
 
+    bc.drop_table("inv_dates")
+    del inv_dates_result
+
+    bc.drop_table("mean_df")
+    del mean_result
+
+    std_result = std_result.persist()
+    wait(std_result)
     bc.create_table('iteration', std_result)
     query_4 = f"""
         SELECT inv_warehouse_sk,
@@ -91,6 +104,10 @@ def main(data_dir, client, bc, config):
     """
     std_result = bc.sql(query_4)
 
+    bc.drop_table("iteration")
+
+    std_result = std_result.persist()
+    wait(std_result)
     bc.create_table('temp_table', std_result)
     query = f"""
         SELECT inv1.inv_warehouse_sk,
@@ -108,6 +125,8 @@ def main(data_dir, client, bc, config):
             inv1.inv_item_sk
     """
     result = bc.sql(query)
+
+    bc.drop_table("temp_table")
     return result
 
 
