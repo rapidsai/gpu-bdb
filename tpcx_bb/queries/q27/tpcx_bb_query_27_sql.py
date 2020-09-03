@@ -79,9 +79,7 @@ def main(data_dir, client, bc, config):
     sentences["x"] = 1
     sentences["sentence_tokenized_global_pos"] = sentences.x.cumsum()
     del sentences["x"]
-
-    sentences = sentences.persist()
-    wait(sentences)
+    del product_reviews_df
 
     # Do the NER
     sentences = sentences.to_dask_dataframe()
@@ -99,6 +97,7 @@ def main(data_dir, client, bc, config):
         global_position_column="sentence_tokenized_global_pos",
         delimiter="é",
     )
+    del sentences
 
     # recombine
     repeated_names = repeated_names.persist()
@@ -122,6 +121,8 @@ def main(data_dir, client, bc, config):
 
     bc.drop_table("repeated_names")
     bc.drop_table("ner_parsed")
+    del ner_parsed
+    del repeated_names
     return recombined
 
 
