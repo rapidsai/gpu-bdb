@@ -49,13 +49,9 @@ def main(data_dir, client, bc, config):
             pr_review_sk
         FROM product_reviews
         where pr_review_content IS NOT NULL
+        ORDER BY pr_item_sk, pr_review_content, pr_review_sk
     """
     product_reviews_df = bc.sql(query_1)
-
-    product_reviews_df = product_reviews_df.persist()
-    wait(product_reviews_df)
-    product_reviews_df = bc.partition(product_reviews_df,
-        by=["pr_item_sk", "pr_review_content", "pr_review_sk"])
 
     product_reviews_df[
         "pr_review_content"

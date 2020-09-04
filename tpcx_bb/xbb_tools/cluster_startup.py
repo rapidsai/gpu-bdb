@@ -47,7 +47,7 @@ def get_config_options():
     config_options['TRANSPORT_BUFFER_BYTE_SIZE'] = os.environ.get("TRANSPORT_BUFFER_BYTE_SIZE", 10485760) # 10 MBs
     config_options['BLAZING_LOGGING_DIRECTORY'] = os.environ.get("BLAZING_LOGGING_DIRECTORY", 'blazing_log')
     config_options['BLAZING_CACHE_DIRECTORY'] = os.environ.get("BLAZING_CACHE_DIRECTORY", '/tmp/')
-    config_options['LOGGING_LEVEL'] = os.environ.get("LOGGING_LEVEL", "debug")
+    config_options['LOGGING_LEVEL'] = os.environ.get("LOGGING_LEVEL", "trace")
 
     return config_options
 
