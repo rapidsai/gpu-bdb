@@ -52,6 +52,8 @@ def main(data_dir, client, bc, config):
     """
     product_reviews_df = bc.sql(query_1)
 
+    product_reviews_df = product_reviews_df.persist()
+    wait(product_reviews_df)
     product_reviews_df = bc.partition(product_reviews_df,
         by=["pr_item_sk", "pr_review_content", "pr_review_sk"])
 
@@ -137,8 +139,12 @@ def main(data_dir, client, bc, config):
     result = bc.sql(query)
 
     bc.drop_table("product_reviews_df")
+    del product_reviews_df
     bc.drop_table("sentences")
+    del sentences
     bc.drop_table("word_df")
+    del word_df
+
     return result
 
 

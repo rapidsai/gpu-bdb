@@ -93,6 +93,9 @@ def main(data_dir, client, bc, config):
         SELECT * FROM extract_sentiment
     """
     merged_df = bc.sql(query)
+
+    merged_df = merged_df.persist()
+    wait(merged_df)
     merged_df = bc.partition(
         merged_df, by=["pr_item_sk", "pr_review_content", "pr_review_sk"]
     )
@@ -165,8 +168,12 @@ def main(data_dir, client, bc, config):
     result = bc.sql(query)
 
     bc.drop_table("sentences_df")
+    del sentences
     bc.drop_table("word_df")
+    del word_df
     bc.drop_table("merged_df")
+    del merged_df
+
     return result
 
 

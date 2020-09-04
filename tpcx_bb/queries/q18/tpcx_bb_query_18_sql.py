@@ -174,6 +174,9 @@ def main(data_dir, client, bc, config):
         WHERE pr_review_content IS NOT NULL
     """
     no_nulls = bc.sql(query_2)
+
+    no_nulls = no_nulls.persist()
+    wait(no_nulls)
     no_nulls = bc.partition(
         no_nulls, by=["pr_review_date", "pr_review_content", "pr_review_sk"]
     )
@@ -314,8 +317,11 @@ def main(data_dir, client, bc, config):
     result = bc.sql(query_4)
 
     bc.drop_table("word_df")
+    del word_df
     bc.drop_table("sentences")
+    del sentences
     bc.drop_table("temp_table2")
+    del temp_table2
     return result
 
 
