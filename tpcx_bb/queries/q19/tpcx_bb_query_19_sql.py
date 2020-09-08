@@ -91,11 +91,9 @@ def main(data_dir, client, bc, config):
                 ((sr_item_qty + wr_item_qty)/2) ) <= 0.1
         )
         SELECT * FROM extract_sentiment
+        ORDER BY pr_item_sk, pr_review_content, pr_review_sk
     """
     merged_df = bc.sql(query)
-    merged_df = bc.partition(
-        merged_df, by=["pr_item_sk", "pr_review_content", "pr_review_sk"]
-    )
 
     # second step -- Sentiment Word Extraction
     merged_df["pr_review_sk"] = merged_df["pr_review_sk"].astype("int32")
@@ -165,8 +163,12 @@ def main(data_dir, client, bc, config):
     result = bc.sql(query)
 
     bc.drop_table("sentences_df")
+    del sentences
     bc.drop_table("word_df")
+    del word_df
     bc.drop_table("merged_df")
+    del merged_df
+
     return result
 
 
