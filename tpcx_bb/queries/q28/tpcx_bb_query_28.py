@@ -40,8 +40,7 @@ QUERY_NUM = os.getcwd().split("/")[-1][1:]
 
 N_FEATURES = 2 ** 23  # Spark is doing 2^20
 ngram_range = (1, 2)
-lowercase = True
-preprocessor = lambda s:s
+preprocessor = lambda s:s.str.lower()
 norm = None
 alternate_sign = False
 
@@ -51,7 +50,6 @@ def gpu_hashing_vectorizer(x):
                             alternate_sign=alternate_sign,
                             ngram_range=ngram_range,
                             norm=norm,
-                            lowercase=lowercase,
                             preprocessor=preprocessor
      )
     return vec.fit_transform(x)
@@ -59,8 +57,7 @@ def gpu_hashing_vectorizer(x):
 
 def map_labels(ser):
     import cudf
-    output_ser = cudf.Series(cp.full(shape=len(ser),fill_value=2,dtype=cp.int32))
-
+    output_ser = cudf.Series(cudf.core.column.full(size=len(ser), fill_value=2, dtype=np.int32))
     zero_flag = (ser==1) | (ser==2)
     output_ser.loc[zero_flag]=0
 
