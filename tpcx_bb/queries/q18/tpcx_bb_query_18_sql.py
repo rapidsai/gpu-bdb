@@ -30,6 +30,7 @@ from xbb_tools.utils import (
     run_query,
 )
 
+from dask.distributed import wait
 
 # -------- Q18 -----------
 q18_startDate = "2001-05-02"
@@ -171,11 +172,9 @@ def main(data_dir, client, bc, config):
             CAST(pr_review_sk AS INTEGER) AS pr_review_sk
         FROM product_reviews
         WHERE pr_review_content IS NOT NULL
+        ORDER BY pr_review_date, pr_review_content, pr_review_sk
     """
     no_nulls = bc.sql(query_2)
-    no_nulls = bc.partition(
-        no_nulls, by=["pr_review_date", "pr_review_content", "pr_review_sk"]
-    )
 
     targets = (
         stores_with_regression.s_store_name.str.lower()
@@ -215,7 +214,12 @@ def main(data_dir, client, bc, config):
         "s_store_name"
     ] = stores_with_regression.s_store_name.str.lower()
 
+    stores_with_regression = stores_with_regression.persist()
+    wait(stores_with_regression)
     bc.create_table("stores_with_regression", stores_with_regression)
+    
+    combined = combined.persist()
+    wait(combined)
     bc.create_table("combined", combined)
 
     query_3 = """
@@ -226,6 +230,12 @@ def main(data_dir, client, bc, config):
         INNER JOIN combined ON s_store_name = word
     """
     temp_table2 = bc.sql(query_3)
+
+    bc.drop_table("stores_with_regression")
+    del stores_with_regression
+
+    bc.drop_table("combined")
+    del combined
 
     # REAL QUERY
     sentences = no_nulls.map_partitions(create_sentences_from_reviews)
@@ -250,8 +260,17 @@ def main(data_dir, client, bc, config):
         names=["sentiment_word"],
         dtype=["str"],
     )
+
+    word_df = word_df.persist()
+    wait(word_df)
     bc.create_table("word_df", word_df)
+    
+    sentences = sentences.persist()
+    wait(sentences)
     bc.create_table("sentences", sentences)
+    
+    temp_table2 = temp_table2.persist()
+    wait(temp_table2)
     bc.create_table("temp_table2", temp_table2)
 
     query_4 = """
@@ -291,6 +310,13 @@ def main(data_dir, client, bc, config):
         ORDER BY s_name, r_date, r_sentence, sentiment_word
     """
     result = bc.sql(query_4)
+
+    bc.drop_table("word_df")
+    del word_df
+    bc.drop_table("sentences")
+    del sentences
+    bc.drop_table("temp_table2")
+    del temp_table2
     return result
 
 

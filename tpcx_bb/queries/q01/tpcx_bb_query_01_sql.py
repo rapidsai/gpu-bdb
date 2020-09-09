@@ -27,6 +27,7 @@ from xbb_tools.utils import (
     run_query,
 )
 
+from dask.distributed import wait
 
 # -------- Q1 -----------
 q01_i_category_id_IN = "1, 2, 3"
@@ -53,6 +54,8 @@ def main(data_dir, client, bc, config):
     """
     result_distinct = bc.sql(query_distinct)
 
+    result_distinct = result_distinct.persist()
+    wait(result_distinct)
     bc.create_table("distinct_table", result_distinct)
 
     query = f"""
@@ -73,6 +76,8 @@ def main(data_dir, client, bc, config):
         LIMIT {q01_limit}
     """
     result = bc.sql(query)
+
+    bc.drop_table("distinct_table")
     return result
 
 
