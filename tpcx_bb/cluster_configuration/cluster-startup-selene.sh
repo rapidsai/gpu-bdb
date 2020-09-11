@@ -5,9 +5,9 @@ USERNAME=$(whoami)
 
 MAX_SYSTEM_MEMORY=$(free -m | awk '/^Mem:/{print $2}')M
 DEVICE_MEMORY_LIMIT="35GB"
-POOL_SIZE="38GB"
+POOL_SIZE="30GB"
 
-TPCX_BB_HOME=$HOME/shared/tpcx-bb
+TPCX_BB_HOME=$HOME/tpcx-bb
 CONDA_ENV_NAME="rapids-tpcx-bb"
 CONDA_ENV_PATH="/conda/etc/profile.d/conda.sh"
 

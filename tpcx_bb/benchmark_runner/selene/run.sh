@@ -3,11 +3,12 @@
 ACCOUNT=rapids
 PARTITION=luna
 WORKERS=0
-IMAGE=randerzander/selene:8-27_0
+# IMAGE=randerzander/selene:8-27_0
+IMAGE=randerzander/selene:9-03_0
 
 DATA_PATH="/lustre/fsw/rapids"
 MOUNT_PATH="/tpcx-bb"
-TPCX_BB_HOME="$HOME/shared/tpcx-bb"
+TPCX_BB_HOME="$HOME/tpcx-bb"
 
 rm *.out
 rm -rf $HOME/dask-local-directory/*

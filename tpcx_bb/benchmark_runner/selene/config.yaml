@@ -1,7 +1,7 @@
 # benchmark config yaml
 ### Please fill these accordingly
-data_dir: /tpcx-bb/sf1000/parquet_3gb_test/
-output_dir: /tpcx-bb/sf1000/results/
+data_dir: /tpcx-bb/sf10000/parquet_3gb/
+output_dir: /tpcx-bb/sf10000/results/
 file_format: parquet
 output_filetype: parquet
 split_row_groups: False
@@ -16,6 +16,6 @@ dask_dir: ./
 verify_results: False
 verify_dir: 
 
-sheet: TPCx-BB
-tab: SF1000 Benchmarking Matrix
+sheet: TPCxBB Draco and Selene
+tab: Draco Runs
 get_read_time: False
