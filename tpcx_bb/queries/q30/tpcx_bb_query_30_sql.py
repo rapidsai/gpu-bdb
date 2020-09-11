@@ -30,6 +30,7 @@ from xbb_tools.sessionization import (
     get_pairs
 )
 
+from dask.distributed import wait
 
 # -------- Q30 -----------
 # session timeout in secs
@@ -53,6 +54,8 @@ def main(data_dir, client, bc, config):
     """
     item_df = bc.sql(query_1)
 
+    item_df = item_df.persist()
+    wait(item_df)
     bc.create_table("item_df", item_df)
 
     query_2 = """
@@ -67,6 +70,9 @@ def main(data_dir, client, bc, config):
     """
     merged_df = bc.sql(query_2)
 
+    bc.drop_table("item_df")
+    del item_df
+
     distinct_session_df = merged_df.map_partitions(get_distinct_sessions,
             keep_cols=["wcs_user_sk", "i_category_id"],
             time_out=q30_session_timeout_inSec)
@@ -79,6 +85,8 @@ def main(data_dir, client, bc, config):
         output_col_2="category_id_2")
     del distinct_session_df
 
+    pair_df = pair_df.persist()
+    wait(pair_df)
     bc.create_table('pair_df', pair_df)
 
     last_query = f"""
@@ -91,6 +99,8 @@ def main(data_dir, client, bc, config):
         LIMIT {q30_limit}
     """
     result = bc.sql(last_query)
+
+    bc.drop_table("pair_df")
     return result
 
 

@@ -25,6 +25,7 @@ from xbb_tools.utils import (
     run_query,
 )
 
+from dask.distributed import wait
 
 # -------- Q29 -----------
 q29_limit = 100
@@ -38,7 +39,6 @@ def read_tables(data_dir, bc):
 def main(data_dir, client, bc, config):
     benchmark(read_tables, data_dir, bc, dask_profile=config["dask_profile"])
 
-
     query_distinct = """
         SELECT DISTINCT i_category_id, ws_order_number
         FROM web_sales ws, item i
@@ -47,6 +47,8 @@ def main(data_dir, client, bc, config):
     """
     result_distinct = bc.sql(query_distinct)
 
+    result_distinct = result_distinct.persist()
+    wait(result_distinct)
     bc.create_table('distinct_table', result_distinct)
 
     query = f"""
@@ -65,6 +67,8 @@ def main(data_dir, client, bc, config):
         LIMIT {q29_limit}
     """
     result = bc.sql(query)
+
+    bc.drop_table("distinct_table")
     return result
 
 

@@ -26,6 +26,7 @@ from xbb_tools.utils import (
     run_query,
 )
 
+from dask.distributed import wait
 
 # -------- Q03 -----------
 q03_days_in_sec_before_purchase = 864000
@@ -139,14 +140,15 @@ def main(data_dir, client, bc, config):
     """
     item_df = bc.sql(query_1)
 
+    item_df = item_df.persist()
+    wait(item_df)
     bc.create_table("item_df", item_df)
 
     query_2 = """
         SELECT CAST(w.wcs_user_sk AS INTEGER) as wcs_user_sk,
             wcs_click_date_sk * 86400 + wcs_click_time_sk AS tstamp,
             CAST(w.wcs_item_sk AS INTEGER) as wcs_item_sk,
-            COALESCE(w.wcs_sales_sk, 0) as wcs_sales_sk,
-            i.i_category_id
+            CAST(COALESCE(w.wcs_sales_sk, 0) AS INTEGER) as wcs_sales_sk
         FROM web_clickstreams AS w
         INNER JOIN item_df AS i ON w.wcs_item_sk = i.i_item_sk
         WHERE w.wcs_user_sk IS NOT NULL
@@ -165,7 +167,14 @@ def main(data_dir, client, bc, config):
     product_view_results = merged_df.map_partitions(
         apply_find_items_viewed, item_mappings=item_df_filtered
     )
+    
+    product_view_results = product_view_results.persist()
+    wait(product_view_results)
+
+    bc.drop_table("item_df")
+    del item_df
     del merged_df
+    del item_df_filtered
 
     bc.create_table('product_result', product_view_results)
 
@@ -179,6 +188,9 @@ def main(data_dir, client, bc, config):
         LIMIT {q03_limit}
     """
     result = bc.sql(last_query)
+
+    bc.drop_table("product_result")
+    del product_view_results
     return result
 
 

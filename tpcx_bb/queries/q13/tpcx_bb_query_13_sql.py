@@ -30,6 +30,7 @@ from xbb_tools.utils import (
     run_query,
 )
 
+from dask.distributed import wait
 
 def read_tables(data_dir, bc):
     bc.create_table("date_dim", data_dir + "/date_dim/*.parquet")
@@ -58,6 +59,8 @@ def main(data_dir, client, bc, config):
 	"""
     temp_table1 = bc.sql(query_1)
 
+    temp_table1 = temp_table1.persist()
+    wait(temp_table1)
     bc.create_table("temp_table1", temp_table1)
     query_2 = """
 		SELECT
@@ -76,6 +79,8 @@ def main(data_dir, client, bc, config):
 	"""
     temp_table2 = bc.sql(query_2)
 
+    temp_table2 = temp_table2.persist()
+    wait(temp_table2)
     bc.create_table("temp_table2", temp_table2)
     query = """
 		SELECT
@@ -96,8 +101,10 @@ def main(data_dir, client, bc, config):
 			c_last_name
 		LIMIT 100
     """
-
     result = bc.sql(query)
+
+    bc.drop_table("temp_table1")
+    bc.drop_table("temp_table2")
     return result
 
 

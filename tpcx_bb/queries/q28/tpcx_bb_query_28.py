@@ -26,8 +26,7 @@ import sys, os
 import traceback
 
 from distributed import wait
-
-from xbb_tools.text_vectorizers.dist_hashing_vectorizer import cudf_hashing_vectorizer
+from cuml.feature_extraction.text import HashingVectorizer
 
 from xbb_tools.utils import (
     benchmark,
@@ -41,35 +40,31 @@ QUERY_NUM = os.getcwd().split("/")[-1][1:]
 
 N_FEATURES = 2 ** 23  # Spark is doing 2^20
 ngram_range = (1, 2)
-lowercase = True
-preprocessor = None
+preprocessor = lambda s:s.str.lower()
 norm = None
 alternate_sign = False
 
 
 def gpu_hashing_vectorizer(x):
-    return cudf_hashing_vectorizer(
-        x,
-        n_features=N_FEATURES,
-        alternate_sign=alternate_sign,
-        ngram_range=ngram_range,
-        norm=norm,
-        preprocessor=preprocessor,
-        lowercase=lowercase,
-    )
+    vec = HashingVectorizer(n_features=N_FEATURES,
+                            alternate_sign=alternate_sign,
+                            ngram_range=ngram_range,
+                            norm=norm,
+                            preprocessor=preprocessor
+     )
+    return vec.fit_transform(x)
 
 
-def map_labels(inp):
-    # Note: This gets JIT compiled for use with
-    # cuDF's `applymap` function so dict is not
-    # used.
-    x = inp
-    if x == 1 or x == 2:
-        return 0
-    elif x == 3:
-        return 1
-    else:
-        return 2
+def map_labels(ser):
+    import cudf
+    output_ser = cudf.Series(cudf.core.column.full(size=len(ser), fill_value=2, dtype=np.int32))
+    zero_flag = (ser==1) | (ser==2)
+    output_ser.loc[zero_flag]=0
+
+    three_flag = (ser==3)
+    output_ser.loc[three_flag]=1
+
+    return output_ser
 
 
 def build_features(t):
@@ -88,7 +83,7 @@ def build_features(t):
 
 
 def build_labels(reviews_df):
-    y = reviews_df["pr_review_rating"].map_partitions(lambda x: x.applymap(map_labels))
+    y = reviews_df["pr_review_rating"].map_partitions(map_labels)
     y = y.map_partitions(lambda x: cupy.asarray(x, cupy.int32)).persist()
     y.compute_chunk_sizes()
 
