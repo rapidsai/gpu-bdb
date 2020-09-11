@@ -4,7 +4,7 @@ PROJECT=sw_rapids_testing
 PARTITION=batch_32GB_short
 # PARTITION=batch_16GB_short
 # PARTITION=batch_dgx2_singlenode
-WORKERS=0
+WORKERS=1
 IMAGE=nickb500/draco-tpcxbb:2020_09_10
 
 DATA_PATH="/fs/sjc1-gcl01/datasets/tpcx-bb"
@@ -14,7 +14,7 @@ TPCX_BB_HOME="/root/tpcx-bb"
 rm *.out
 rm -rf $HOME/dask-local-directory/*
 
-nvs run \
+nvs batch \
     --project $PROJECT \
     --partition $PARTITION \
     --gpus 8 \

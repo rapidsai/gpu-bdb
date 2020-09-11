@@ -13,17 +13,10 @@ def get_qnum_from_filename(name):
 
 
 dask_qnums = [str(i).zfill(2) for i in range(1, 31)]
-dask_qnums = [
-    "10",
-    "18",
-    "19",
-    "27",
-    "28",
-    "29",
-]
 # Not all queries are implemented with BSQL
 bsql_query_files = sorted(glob.glob("./queries/q*/t*_sql.py"))
 bsql_qnums = [get_qnum_from_filename(x.split("/")[-1]) for x in bsql_query_files]
+bsql_qnums = []
 
 def load_query(qnum, fn):
     import importlib, types

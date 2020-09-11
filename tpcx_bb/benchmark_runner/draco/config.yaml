@@ -1,7 +1,7 @@
 # benchmark config yaml
 ### Please fill these accordingly
-data_dir: /tpcx-bb-data/sf1000/parquet_3gb/
-output_dir: /tpcx-bb-data/sf1000/results/
+data_dir: /tpcx-bb-data/sf10000/parquet_3gb/
+output_dir: /tpcx-bb-data/sf10000/results/
 file_format: parquet
 output_filetype: parquet
 split_row_groups: False
@@ -11,7 +11,7 @@ benchmark_runner_include_bsql: False
 scheduler_file: /root/dask-local-directory/scheduler.json
 dask_profile: False
 dask_dir: ./
-32GB_workers: 8
+32GB_workers: 16
 # 16GB_workers: 8
 
 verify_results: False
