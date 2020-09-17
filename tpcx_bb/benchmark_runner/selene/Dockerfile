@@ -2,13 +2,16 @@ ARG CUDA_VER=11.0
 ARG LINUX_VER=ubuntu18.04
 ARG PYTHON_VER=3.8
 ARG RAPIDS_VER=0.16
-ARG FROM_IMAGE=rapidsai/rapidsai-nightly
 
 # FROM ${FROM_IMAGE}:${RAPIDS_VER}-cuda${CUDA_VER}-base-${LINUX_VER}-py${PYTHON_VER}
-#FROM rapidsai/rapidsai-nightly:cuda11.0-runtime-ubuntu18.04-py3.8
-FROM rapidsai/rapidsai-dev-nightly:0.16-cuda11.0-devel-ubuntu18.04-py3.8
+# FROM rapidsai/rapidsai-nightly:cuda11.0-runtime-ubuntu18.04-py3.8
+FROM nvidia/cuda:${CUDA_VER}-devel-${LINUX_VER}
 
-SHELL ["/bin/bash", "-c"]
+RUN apt update -y && apt upgrade -y && apt install -y git
+
+ADD https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh /miniconda.sh
+RUN bash /miniconda.sh -b -p /opt/conda
+
 
 ENV GCC_VERSION=7
 ENV CXX_VERSION=7
@@ -29,6 +32,20 @@ ENV PARALLEL_LEVEL=${PARALLEL_LEVEL}
 ENV PATH="$CONDA_HOME/bin:\
 /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:\
 $CUDA_HOME/bin"
+
+
+SHELL ["/bin/bash", "-c"]
+
+ENV CONDA_ENV=rapids
+
+COPY /rapids-tpcx-bb-cuda11.yml /rapids-tpcx-bb-cuda11.yml
+RUN conda env create --name ${CONDA_ENV} --file /rapids-tpcx-bb-cuda11.yml
+RUN conda install -n ${CONDA_ENV} -c conda-forge spacy oauth2client gspread -q -y
+RUN source activate ${CONDA_ENV} && python -m spacy download en_core_web_sm
+
+
+# need to configure tzdata otherwise (seemingly)
+ARG DEBIAN_FRONTEND=noninteractive
 
 RUN set -x \
  # Install dependencies
@@ -59,14 +76,16 @@ deb http://archive.ubuntu.com/ubuntu/ xenial-updates universe\
 ADD https://www.mellanox.com/downloads/ofed/MLNX_OFED-5.0-2.1.8.0/MLNX_OFED_LINUX-5.0-2.1.8.0-ubuntu18.04-x86_64.tgz /MLNX_OFED_LINUX-5.0-2.1.8.0-ubuntu18.04-x86_64.tgz
 
 COPY /MLNX_OFED_LINUX-5.0-2.1.8.0-ubuntu18.04-x86_64.tgz /tmp/MLNX_OFED_LINUX-5.0-2.1.8.0-ubuntu18.04-x86_64.tgz
+
+
 RUN tar -xzf /tmp/MLNX_OFED_LINUX-5.0-2.1.8.0-ubuntu18.04-x86_64.tgz && \
- cd MLNX_OFED_LINUX-5.0-2.1.8.0-* && \
+ cd MLNX_OFED_LINUX-5.0-2.1.8.0-ubuntu18.04-x86_64 && \
  apt-get update && apt-get install -y --no-install-recommends \
     ./DEBS_UPSTREAM_LIBS/libibverbs* ./DEBS_UPSTREAM_LIBS/ibverbs-providers* \
  && rm -rf /var/lib/apt/lists/* \
  && rm -rf /tmp/MLNX_OFED_LINUX*
 
-RUN /opt/conda/bin/conda install -n rapids -c conda-forge autoconf automake make libtool \
+RUN /opt/conda/bin/conda install -n rapids -c conda-forge autoconf cython automake make libtool \
                                  pkg-config m4 \
                                  --force --no-deps -y -q
 
@@ -101,20 +120,11 @@ RUN set -x \
  && source activate rapids \
  && cd /tmp/ucx-py \
  && python setup.py build_ext --inplace \
- && pip install . --no-deps --no-cache-dir -vvvv \
+ && python -m pip install . --no-deps --no-cache-dir -vvvv \
  && rm -rf /tmp/ucx-py
 
 # use login shell when exec'ing into the container
 # SHELL ["/bin/bash", "-l"]
-
-# ENV CONDA_ENV=rapids-tpcx-bb
-# # ADD https://github.com/rapidsai/tpcx-bb/raw/main/conda/rapids-tpcx-bb-cuda11.yml /rapids-tpcx-bb.yml
-# ADD rapids-tpcx-bb-cuda11.yml /rapids-tpcx-bb-cuda11.yml
-
-# RUN conda env create --name ${CONDA_ENV} --file /rapids-tpcx-bb-cuda11.yml
-
-RUN /opt/conda/bin/conda install -n rapids -c conda-forge oauth2client spacy gspread psutil asyncssh
-RUN source activate rapids && python -m spacy download en_core_web_sm
 
 WORKDIR /
 
