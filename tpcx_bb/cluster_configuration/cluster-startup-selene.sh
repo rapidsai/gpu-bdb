@@ -8,8 +8,9 @@ DEVICE_MEMORY_LIMIT="35GB"
 POOL_SIZE="30GB"
 
 TPCX_BB_HOME=$HOME/tpcx-bb
-CONDA_ENV_NAME="rapids-tpcx-bb"
-CONDA_ENV_PATH="/conda/etc/profile.d/conda.sh"
+CONDA_ENV_NAME="rapids"
+#CONDA_ENV_PATH="/conda/etc/profile.d/conda.sh"
+CONDA_ENV_PATH="/opt/conda/etc/profile.d/conda.sh"
 
 # Used for writing scheduler file to shared storage
 LOCAL_DIRECTORY=$HOME/dask-local-directory
