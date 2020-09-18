@@ -5,7 +5,8 @@ PARTITION=luna
 WORKERS=0
 #IMAGE=randerzander/selene:9-03_0
 #IMAGE=nickb500/selene-tpcxbb:2020_09_11
-IMAGE=nickb500/selene-tpcxbb:2020_09_17
+#IMAGE=nickb500/selene-tpcxbb:2020_09_17
+IMAGE=nickb500/selene-tpcxbb-small:2020_09_17
 
 DATA_PATH="/lustre/fsw/rapids"
 MOUNT_PATH="/tpcx-bb-data/"

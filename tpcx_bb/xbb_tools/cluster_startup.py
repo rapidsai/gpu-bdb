@@ -133,7 +133,7 @@ def attach_to_cluster(config, create_blazing_context=False):
     return client, bc
 
 
-def worker_count_info(client, gpu_sizes=["16GB", "32GB", "40GB"], tol="2.1GB"):
+def worker_count_info(client, gpu_sizes=["16GB", "32GB", "40GB"], tol="2.6GB"):
     """
     Method accepts the Client object, GPU sizes and tolerance limit and returns
     a dictionary containing number of workers per GPU size specified
