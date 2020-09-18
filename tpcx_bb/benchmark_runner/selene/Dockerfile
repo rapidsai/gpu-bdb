@@ -126,5 +126,8 @@ RUN set -x \
 # use login shell when exec'ing into the container
 # SHELL ["/bin/bash", "-l"]
 
+ADD creds.json /creds.json
+ENV GOOGLE_SHEETS_CREDENTIALS_PATH=/creds.json
+
 WORKDIR /
 
