@@ -85,6 +85,8 @@ RUN tar -xzf /tmp/MLNX_OFED_LINUX-5.0-2.1.8.0-ubuntu18.04-x86_64.tgz && \
  && rm -rf /var/lib/apt/lists/* \
  && rm -rf /tmp/MLNX_OFED_LINUX*
 
+RUN rm -rf /MLNX_OFED_LINUX-5.0-2.1.8.0-ubuntu18.04-x86_64*
+
 RUN /opt/conda/bin/conda install -n rapids -c conda-forge autoconf cython automake make libtool \
                                  pkg-config m4 \
                                  --force --no-deps -y -q
@@ -129,5 +131,8 @@ RUN set -x \
 ADD creds.json /creds.json
 ENV GOOGLE_SHEETS_CREDENTIALS_PATH=/creds.json
 
+RUN conda clean --all
+
 WORKDIR /
+
 
