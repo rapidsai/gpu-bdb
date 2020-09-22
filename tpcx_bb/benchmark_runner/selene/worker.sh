@@ -2,7 +2,7 @@
 
 ACCOUNT=rapids
 PARTITION=luna
-WORKERS=2
+WORKERS=15
 
 #IMAGE=nickb500/selene-tpcxbb:2020_09_17
 #IMAGE=nickb500/selene-tpcxbb-small:2020_09_17
