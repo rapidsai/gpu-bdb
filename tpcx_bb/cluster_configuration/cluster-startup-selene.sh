@@ -1,6 +1,7 @@
 #IB, NVLINK, or TCP
 ROLE=$1
-CLUSTER_MODE="NVLINK"
+#CLUSTER_MODE="NVLINK"
+CLUSTER_MODE="TCP"
 USERNAME=$(whoami)
 # HOSTNAME=$(hostname -i)
 HOSTNAME=$HOSTNAME
@@ -53,7 +54,7 @@ export DASK_DISTRIBUTED__WORKER__MEMORY__Terminate="False"
 # Setup scheduler
 if [ "$ROLE" = "SCHEDULER" ]; then
   if [ "$CLUSTER_MODE" = "NVLINK" ]; then
-     CUDA_VISIBLE_DEVICES='0' DASK_UCX__CUDA_COPY=True DASK_UCX__TCP=True DASK_UCX__NVLINK=True DASK_UCX__INFINIBAND=True DASK_UCX__RDMACM=False UCX_NET_DEVICES=mlx5_0:1 nohup dask-scheduler --dashboard-address 8787 --protocol ucx --interface ibp12s0 --scheduler-file $SCHEDULER_FILE > $LOGDIR/$HOSTNAME-scheduler.log 2>&1 &
+     DASK_RMM__POOL_SIZE=1GB CUDA_VISIBLE_DEVICES='0' DASK_UCX__CUDA_COPY=True DASK_UCX__TCP=True DASK_UCX__NVLINK=True DASK_UCX__INFINIBAND=True DASK_UCX__RDMACM=False UCX_NET_DEVICES=mlx5_0:1 nohup dask-scheduler --dashboard-address 8787 --protocol ucx --interface ibp12s0 --scheduler-file $SCHEDULER_FILE > $LOGDIR/$HOSTNAME-scheduler.log 2>&1 &
   fi
 
   if [ "$CLUSTER_MODE" = "TCP" ]; then

@@ -177,7 +177,7 @@ def import_query_libs():
         "pandas",
         "numpy",
         "spacy",
-#         "blazingsql",
+#        "blazingsql",
     ]
     for lib in library_list:
         print(lib)
