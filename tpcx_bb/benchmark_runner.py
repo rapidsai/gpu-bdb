@@ -16,14 +16,14 @@ dask_qnums = [str(i).zfill(2) for i in range(1, 31)]
 dask_qnums = [
         "01",
         "02",
-        "07",
-        "13",
-        "14",
-        "15",
-        "16",
+        #"07",
+        #"13",
+        #"14",
+        #"15",
+        #"16",
         #"17",
-        "20",
-        "21",
+        #"20",
+        #"21",
         ]
 
 # Not all queries are implemented with BSQL

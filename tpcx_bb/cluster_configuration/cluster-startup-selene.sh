@@ -1,7 +1,9 @@
 #IB, NVLINK, or TCP
 ROLE=$1
-#CLUSTER_MODE="NVLINK"
-CLUSTER_MODE="TCP"
+CLUSTER_MODE="NVLINK"
+# CLUSTER_MODE="IB"
+# CLUSTER_MODE="TCP"
+
 USERNAME=$(whoami)
 # HOSTNAME=$(hostname -i)
 HOSTNAME=$HOSTNAME
@@ -53,7 +55,12 @@ export DASK_DISTRIBUTED__WORKER__MEMORY__Terminate="False"
 
 # Setup scheduler
 if [ "$ROLE" = "SCHEDULER" ]; then
+
   if [ "$CLUSTER_MODE" = "NVLINK" ]; then
+     CUDA_VISIBLE_DEVICES='0' DASK_UCX__CUDA_COPY=True DASK_UCX__TCP=True DASK_UCX__NVLINK=True DASK_UCX__INFINIBAND=False DASK_UCX__RDMACM=False nohup dask-scheduler --dashboard-address 8787 --protocol ucx --scheduler-file $SCHEDULER_FILE > $LOGDIR/$HOSTNAME-scheduler.log 2>&1 &
+  fi
+  
+  if [ "$CLUSTER_MODE" = "IB" ]; then
      DASK_RMM__POOL_SIZE=1GB CUDA_VISIBLE_DEVICES='0' DASK_UCX__CUDA_COPY=True DASK_UCX__TCP=True DASK_UCX__NVLINK=True DASK_UCX__INFINIBAND=True DASK_UCX__RDMACM=False UCX_NET_DEVICES=mlx5_0:1 nohup dask-scheduler --dashboard-address 8787 --protocol ucx --interface ibp12s0 --scheduler-file $SCHEDULER_FILE > $LOGDIR/$HOSTNAME-scheduler.log 2>&1 &
   fi
 
@@ -62,8 +69,14 @@ if [ "$ROLE" = "SCHEDULER" ]; then
   fi
 fi
 
+
 # Setup workers
 if [ "$CLUSTER_MODE" = "NVLINK" ]; then
+    dask-cuda-worker --device-memory-limit $DEVICE_MEMORY_LIMIT --local-directory $LOCAL_DIRECTORY  --rmm-pool-size=$POOL_SIZE --memory-limit=$MAX_SYSTEM_MEMORY --enable-tcp-over-ucx --enable-nvlink  --disable-infiniband --scheduler-file $SCHEDULER_FILE >> $LOGDIR/$HOSTNAME-worker.log 2>&1
+fi
+
+
+if [ "$CLUSTER_MODE" = "IB" ]; then
     # GPU 0
     CUDA_VISIBLE_DEVICES=0 UCX_NET_DEVICES=mlx5_0:1 python -m dask_cuda.cli.dask_cuda_worker --rmm-pool-size=$POOL_SIZE --scheduler-file $SCHEDULER_FILE --local-directory $LOCAL_DIRECTORY --interface ibp12s0 --enable-tcp-over-ucx --device-memory-limit $DEVICE_MEMORY_LIMIT --enable-nvlink --enable-infiniband --disable-rdmacm 2>&1 | tee $LOGDIR/$HOSTNAME-worker-0.log &
 
