@@ -330,6 +330,7 @@ def main(data_dir, client, bc, config):
     train_data = bc.sql(query2)
 
     # in a near future we want to reuse ORDER BY instead of bc.partition()
+    train_data = train_data.persist()
     train_data = bc.partition(train_data, by=["pr_review_sk"])
 
     final_data, acc, prec, cmat = post_etl_processing(
@@ -343,7 +344,8 @@ def main(data_dir, client, bc, config):
         "cmat": cmat,
         "output_type": "supervised",
     }
-
+    del test_data
+    del train_data
     return payload
 
 
