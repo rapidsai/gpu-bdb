@@ -22,7 +22,6 @@ import importlib
 import dask
 from dask.distributed import Client
 from dask.utils import parse_bytes
-from blazingsql import BlazingContext
 
 
 def get_config_options():
@@ -110,6 +109,7 @@ def attach_to_cluster(config, create_blazing_context=False):
 
     bc = None
     if create_blazing_context:
+        from blazingsql import BlazingContext
         bc = BlazingContext(
             dask_client=client,
             pool=os.environ.get("BLAZING_POOL", False),
