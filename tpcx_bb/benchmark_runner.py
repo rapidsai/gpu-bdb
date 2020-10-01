@@ -4,7 +4,7 @@ import os
 import gc
 import time
 
-N_REPEATS = 3
+N_REPEATS = 1
 
 
 def get_qnum_from_filename(name):
@@ -13,26 +13,61 @@ def get_qnum_from_filename(name):
 
 
 dask_qnums = [str(i).zfill(2) for i in range(1, 31)]
-dask_qnums = [
-        "01",
-        "02",
+#dask_qnums = [
+        #"01",
+        #"02",
         #"07",
+        #"10",
         #"13",
         #"14",
         #"15",
         #"16",
         #"17",
+        #"18",
+        #"19",
         #"20",
         #"21",
-        ]
+        #]
+
+dask_qnums = ["01", "08"]
 
 # Not all queries are implemented with BSQL
 bsql_query_files = sorted(glob.glob("./queries/q*/t*_sql.py"))
 bsql_qnums = [get_qnum_from_filename(x.split("/")[-1]) for x in bsql_query_files]
 bsql_qnums = [
-        #"01",
-        #"07",
+        "08",
+        "01",
+        "02",
+        "03",
+        "04",
+        "05",
+        "06",
+        "07",
+        #"08",
+        "09",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14",
+        "15",
+        "16",
+        "17",
+        "18",
+        "19",
+        "20",
+        "21",
+        "22",
+        "23",
+        "24",
+        "25",
+        "26",
+        "27",
+        "29",
+        "30",
         ]
+
+bsql_qnums = []
 
 def load_query(qnum, fn):
     import importlib, types
@@ -60,7 +95,6 @@ if __name__ == "__main__":
     config = tpcxbb_argparser()
     include_blazing = config.get("benchmark_runner_include_bsql")
     client, bc = attach_to_cluster(config, create_blazing_context=include_blazing)
-
     # Preload required libraries for queries on all workers
     client.run(import_query_libs)
 

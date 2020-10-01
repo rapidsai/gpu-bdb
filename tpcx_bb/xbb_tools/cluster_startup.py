@@ -22,7 +22,7 @@ import importlib
 import dask
 from dask.distributed import Client
 from dask.utils import parse_bytes
-#from blazingsql import BlazingContext
+from blazingsql import BlazingContext
 
 
 def get_config_options():
@@ -119,7 +119,6 @@ def attach_to_cluster(config, create_blazing_context=False):
     config["40GB_workers"] = worker_counts["40GB"]
 
     bc = None
-    create_blazing_context = False
     if create_blazing_context:
         bc = BlazingContext(
             dask_client=client,
@@ -177,7 +176,7 @@ def import_query_libs():
         "pandas",
         "numpy",
         "spacy",
-#        "blazingsql",
+        "blazingsql",
     ]
     for lib in library_list:
         print(lib)

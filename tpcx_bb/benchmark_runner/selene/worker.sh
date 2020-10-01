@@ -6,7 +6,9 @@ WORKERS=15
 
 #IMAGE=nickb500/selene-tpcxbb:2020_09_17
 #IMAGE=nickb500/selene-tpcxbb-small:2020_09_17
-IMAGE=gitlab-master.nvidia.com/rapids/workflows/tpcx-bb:latest
+#IMAGE=gitlab-master.nvidia.com/rapids/workflows/tpcx-bb:latest
+#IMAGE=gitlab-master.nvidia.com/rapids/workflows/tpcx-bb:2020_09_28
+IMAGE=/lustre/fsw/rapids/tpcx-bb/containers/tpcx-bb-20200928.sqsh
 
 DATA_PATH="/lustre/fsw/rapids"
 MOUNT_PATH="/tpcx-bb-data/"
