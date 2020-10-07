@@ -269,7 +269,7 @@ def main(client, config):
     meta_df = cudf.DataFrame(meta_d)
     merged_df = dask_cudf.from_delayed(task_ls, meta=meta_df)
 
-    merged_df = merged_df.repartition(columns=["wcs_user_sk"])
+    merged_df = merged_df.shuffle(on=["wcs_user_sk"])
     reviewed_sales = merged_df.map_partitions(
         reduction_function,
         REVIEW_CAT_CODE,
