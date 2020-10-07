@@ -131,7 +131,7 @@ def worker_count_info(client, gpu_sizes=["16GB", "32GB", "40GB"], tol="2.1GB"):
     worker_info = client.scheduler_info()["workers"]
     for worker, info in worker_info.items():
         # Assumption is that a node is homogeneous (on a specific node all gpus have the same size)
-        worker_device_memory = info["gpu"]["memory-total"][0]
+        worker_device_memory = info["gpu"]["memory-total"]
         for gpu_size in gpu_sizes:
             if abs(parse_bytes(gpu_size) - worker_device_memory) < parse_bytes(tol):
                 counts_by_gpu_size[gpu_size] += 1
