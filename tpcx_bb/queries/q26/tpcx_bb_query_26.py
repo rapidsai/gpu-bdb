@@ -81,6 +81,9 @@ def get_clusters(client, kmeans_input_df):
     )
     output["label"] = labels_final.reset_index()[0]
 
+    # Sort based on CDH6.1 q25-result formatting
+    output = output.sort_values(["ss_customer_sk"])
+
     # Based on CDH6.1 q26-result formatting
     results_dict["cid_labels"] = output
     return results_dict
