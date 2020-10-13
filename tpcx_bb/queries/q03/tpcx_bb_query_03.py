@@ -252,7 +252,7 @@ def main(client, config):
 
     merged_df = dask_cudf.from_delayed(task_ls, meta=meta_df)
 
-    merged_df = merged_df.repartition(columns="wcs_user_sk")
+    merged_df = merged_df.shuffle(on="wcs_user_sk")
 
     meta_d = {
         "i_item_sk": np.ones(1, dtype=merged_df["wcs_item_sk"].dtype),

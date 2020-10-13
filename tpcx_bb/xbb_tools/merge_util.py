@@ -36,8 +36,8 @@ def hash_merge(
     if npartitions is None:
         npartitions = max(lhs.npartitions, rhs.npartitions)
 
-    lhs2 = lhs.repartition(columns=left_on, npartitions=npartitions)
-    rhs2 = rhs.repartition(columns=right_on, npartitions=npartitions)
+    lhs2 = lhs.shuffle(on=left_on, npartitions=npartitions)
+    rhs2 = rhs.shuffle(on=right_on, npartitions=npartitions)
 
     kwargs = dict(
         how=how,

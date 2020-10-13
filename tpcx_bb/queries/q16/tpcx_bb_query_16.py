@@ -236,7 +236,7 @@ def main(client, config):
     ## group by logic
     group_cols = ["w_state_code", "i_item_id_code"]
 
-    agg_df = sales_before_after_df.groupby(group_cols).agg(
+    agg_df = sales_before_after_df.groupby(group_cols, sort=True).agg(
         {"sales_before": "sum", "sales_after": "sum"}
     )
     agg_df = agg_df.reset_index(drop=False)

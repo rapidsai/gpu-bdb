@@ -133,7 +133,7 @@ def main(client, config):
     output_table = output_table[keep_columns]
 
     output_table = (
-        output_table.groupby(by=["w_warehouse_name", "i_item_id"])
+        output_table.groupby(by=["w_warehouse_name", "i_item_id"], sort=True)
         .agg({"inv_before": "sum", "inv_after": "sum"})
         .reset_index()
     )

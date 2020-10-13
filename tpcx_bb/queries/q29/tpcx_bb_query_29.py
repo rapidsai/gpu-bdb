@@ -101,7 +101,7 @@ def main(client, config):
         dask_profile=config["dask_profile"],
     )
     ### setting index on ws_order_number
-    ws_df = ws_df.repartition(columns=["ws_order_number"])
+    ws_df = ws_df.shuffle(on=["ws_order_number"])
     ### at sf-100k we will have max of 17M rows and 17 M rows with 2 columns, 1 part is very reasonable
     item_df = item_df.repartition(npartitions=1)
 

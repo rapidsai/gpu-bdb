@@ -115,7 +115,7 @@ def main(client, config):
     # AND   wcs_user_sk IS NOT NULL
 
     f_wcs_df = wcs_df.map_partitions(pre_repartition_task)
-    f_wcs_df = f_wcs_df.repartition(columns=["wcs_user_sk"])
+    f_wcs_df = f_wcs_df.shuffle(on=["wcs_user_sk"])
 
     ### Main Query
     # SELECT

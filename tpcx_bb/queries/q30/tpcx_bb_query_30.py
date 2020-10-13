@@ -128,7 +128,7 @@ def main(client, config):
     merged_df = dask_cudf.from_delayed(task_ls, meta=meta_df)
 
     ### that the click for each user ends up at the same partition
-    merged_df = merged_df.repartition(columns=["wcs_user_sk"])
+    merged_df = merged_df.shuffle(on=["wcs_user_sk"])
 
     ### Main Query
     ### sessionize logic.

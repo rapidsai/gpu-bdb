@@ -131,7 +131,7 @@ def main(client, config):
     keep_cols = ["wcs_user_sk", "tstamp_inSec", "wcs_web_page_sk"]
     f_wcs_df = f_wcs_df[keep_cols]
 
-    f_wcs_df = f_wcs_df.repartition(columns=["wcs_user_sk"])
+    f_wcs_df = f_wcs_df.shuffle(on=["wcs_user_sk"])
 
     # Convert wp_type to categorical and get cat_id of review and dynamic type
     wp["wp_type"] = wp["wp_type"].map_partitions(lambda ser: ser.astype("category"))
