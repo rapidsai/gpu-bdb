@@ -35,5 +35,5 @@ dependencies:
   - pip:
     - transformers
     - jupyter-server-proxy
-    - git+https://github.com/dask/dask.git
-    - git+https://github.com/dask/distributed.git
+    - git+https://github.com/dask/dask.git@2b45fdb9bcf4a98e54b8fa2c7c3da1410a73bea3
+    - git+https://github.com/dask/distributed.git@2b43b402c19b278a1e2fe7e1bf7718452b2fe007
