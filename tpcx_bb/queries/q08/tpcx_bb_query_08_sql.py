@@ -210,7 +210,7 @@ def main(data_dir, client, bc, config):
     bc.drop_table("web_page_2")
     del web_page_df
 
-    merged_df = merged_df.repartition(columns=["wcs_user_sk"])
+    merged_df = merged_df.shuffle(on=["wcs_user_sk"])
     merged_df["review_flag"] = merged_df.wp_type_codes == REVIEW_CAT_CODE
 
     prepped = merged_df.map_partitions(

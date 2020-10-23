@@ -15,6 +15,7 @@
 #
 
 import sys
+import os
 
 
 from xbb_tools.utils import (
@@ -43,7 +44,7 @@ def get_wcs_minima(config):
     import dask_cudf
 
     wcs_df = dask_cudf.read_parquet(
-        config["data_dir"] + "web_clickstreams/*.parquet",
+        os.path.join(config["data_dir"], "web_clickstreams/*.parquet"),
         columns=["wcs_click_date_sk", "wcs_click_time_sk"],
     )
 
@@ -234,7 +235,7 @@ def main(client, config):
     ### Below Pr has the dashboard snapshot which makes the problem clear
     ### https://github.com/rapidsai/tpcx-bb-internal/pull/496#issue-399946141
 
-    web_clickstream_flist = glob.glob(config["data_dir"] + "web_clickstreams/*.parquet")
+    web_clickstream_flist = glob.glob(os.path.join(config["data_dir"], "web_clickstreams/*.parquet"))
     task_ls = [
         delayed(pre_repartition_task)(fn, item_df.to_delayed()[0], wcs_tstamp_min)
         for fn in web_clickstream_flist
@@ -251,7 +252,7 @@ def main(client, config):
 
     merged_df = dask_cudf.from_delayed(task_ls, meta=meta_df)
 
-    merged_df = merged_df.repartition(columns="wcs_user_sk")
+    merged_df = merged_df.shuffle(on="wcs_user_sk")
 
     meta_d = {
         "i_item_sk": np.ones(1, dtype=merged_df["wcs_item_sk"].dtype),

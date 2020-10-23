@@ -121,7 +121,7 @@ def main(client, config):
     unique_sales = store_sales_df[
         ["ss_ticket_number", "ss_customer_sk"]
     ].map_partitions(lambda df: df.drop_duplicates())
-    unique_sales = unique_sales.repartition(columns=["ss_customer_sk"])
+    unique_sales = unique_sales.shuffle(on=["ss_customer_sk"])
     unique_sales = unique_sales.map_partitions(lambda df: df.drop_duplicates())
 
     unique_sales = unique_sales.persist()

@@ -71,7 +71,7 @@ def agg_count_distinct(df, group_key, counted_key, client):
     unique_df = df[[group_key, counted_key]].map_partitions(
         lambda df: df.drop_duplicates()
     )
-    unique_df = unique_df.repartition(columns=[group_key])
+    unique_df = unique_df.shuffle(on=[group_key])
     unique_df = unique_df.map_partitions(lambda df: df.drop_duplicates())
 
     return unique_df.groupby(group_key)[counted_key].count(split_every=2)
@@ -93,7 +93,9 @@ def get_clusters(client, ml_input_df):
     )
     output["label"] = labels_final.reset_index()[0]
 
-    # Based on CDH6.1 q25-result formatting
+    # Sort based on CDH6.1 q25-result formatting
+    output = output.sort_values(["cid"])
+
     results_dict["cid_labels"] = output
     return results_dict
 

@@ -455,6 +455,7 @@ def calculate_label_overlap_percent(spark_labels, rapids_labels):
     rapids_labels.columns = ["cid", "label"]
 
     # assert that we clustered the same IDs
+    rapids_labels = rapids_labels.reset_index(drop=True)
     assert spark_labels.cid.equals(rapids_labels.cid)
 
     rapids_counts_normalized = rapids_labels.label.value_counts(
