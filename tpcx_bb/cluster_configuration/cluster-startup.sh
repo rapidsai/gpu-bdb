@@ -1,11 +1,11 @@
 #IB, NVLINK, or TCP
 ROLE=$1
-CLUSTER_MODE="NVLINK"
+CLUSTER_MODE="TCP"
 USERNAME=$(whoami)
 
 MAX_SYSTEM_MEMORY=$(free -m | awk '/^Mem:/{print $2}')M
 DEVICE_MEMORY_LIMIT="25GB"
-POOL_SIZE="10GB"
+POOL_SIZE="30GB"
 
 TPCX_BB_HOME=$HOME/tpcx-bb
 CONDA_ENV_NAME="rapids-tpcx-bb"
@@ -18,7 +18,7 @@ SCHEDULER_FILE=$LOCAL_DIRECTORY/scheduler.json
 # change to $LOCAL_DIRECTORY/logs for visibility into scheduler & worker logs
 #LOGDIR="/tmp/tpcx-bb-dask-logs/"
 LOGDIR="$LOCAL_DIRECTORY/logs"
-WORKER_DIR="/tmp/tpcx-bb-dask-workers/"
+WORKER_DIR=/tmp/$USERNAME/tpcx-bb-dask-workers/
 
 # Purge Dask worker and log directories
 rm -rf $LOGDIR/*
