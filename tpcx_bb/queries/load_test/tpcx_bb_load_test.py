@@ -133,7 +133,7 @@ def repartition(table, outdir, npartitions=None, chunksize=None, compression="sn
 def main(client, config):
     # location you want to write Parquet versions of the table data
     data_dir = config["data_dir"].split('parquet_')[0]
-    outdir = f"{data_dir}/parquet_{part_size}gb_test/"
+    outdir = f"{data_dir}/parquet_{part_size}gb/"
 
     total = 0
     for table in tables:
