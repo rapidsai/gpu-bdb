@@ -107,18 +107,23 @@ def attach_to_cluster(config, create_blazing_context=False):
     config.update(ucx_config)
 
     # Save worker information
+    # Assumes all GPUs are the same size
+    expected_workers = config.get("num_workers")
     worker_counts = worker_count_info(client)
-    for size in worker_counts.keys():
-        key = size + "_workers"
-        if config.get(key) is not None and config.get(key) != worker_counts[size]:
-            print(
-                f"Expected {config.get(key)} {size} workers in your cluster, but got {worker_counts[size]}. It can take a moment for all workers to join the cluster. You may also have misconfigred hosts."
-            )
-            sys.exit(-1)
+    for gpu_size, count in worker_counts.items():
+        if count != 0:
+            current_workers = worker_counts.pop(gpu_size)
+            break
 
-    config["16GB_workers"] = worker_counts["16GB"]
-    config["32GB_workers"] = worker_counts["32GB"]
-    config["40GB_workers"] = worker_counts["40GB"]
+    if expected_workers is not None and expected_workers != current_workers:
+        print(
+            f"Expected {expected_workers} {gpu_size} workers in your cluster, but got {current_workers}. It can take a moment for all workers to join the cluster. You may also have misconfigred hosts."
+        )
+        sys.exit(-1)
+
+    config["16GB_workers"] = worker_counts.get("16GB", 0)
+    config["32GB_workers"] = worker_counts.get("32GB", 0)
+    config["40GB_workers"] = worker_counts.get("40GB", 0)
 
     bc = None
     if create_blazing_context:

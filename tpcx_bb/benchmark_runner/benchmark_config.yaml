@@ -11,7 +11,7 @@ benchmark_runner_include_bsql: False
 scheduler_file_path: /home/nicholasb/dask-local-directory/scheduler.json
 dask_profile: False
 dask_dir: ./
-32GB_workers: 8
+num_workers: 16
 
 verify_results: False
 verify_dir: 
