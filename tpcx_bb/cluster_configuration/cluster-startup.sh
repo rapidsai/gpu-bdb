@@ -1,6 +1,6 @@
 #IB, NVLINK, or TCP
 ROLE=$1
-CLUSTER_MODE="TCP"
+CLUSTER_MODE="NVLINK"
 USERNAME=$(whoami)
 
 MAX_SYSTEM_MEMORY=$(free -m | awk '/^Mem:/{print $2}')M
@@ -10,7 +10,7 @@ POOL_SIZE="30GB"
 # TPCX_BB_HOME=$HOME/tpcx-bb
 # CONDA_ENV_NAME="rapids-tpcx-bb"
 # CONDA_ENV_PATH="/home/$USERNAME/conda/etc/profile.d/conda.sh"
-TPCX_BB_HOME="/home/nicholasb/dev/tpcx-bb/"
+TPCX_BB_HOME="/home/nicholasb/dev/stable-tpcx-bb/"
 CONDA_ENV_NAME="rapids-tpcxbb-20201028"
 CONDA_ENV_PATH="/home/nicholasb/conda/etc/profile.d/conda.sh"
 
@@ -58,7 +58,7 @@ fi
 
 # Setup workers
 if [ "$CLUSTER_MODE" = "NVLINK" ]; then
-    dask-cuda-worker --device-memory-limit $DEVICE_MEMORY_LIMIT --local-directory $WORKER_DIR  --rmm-pool-size=$POOL_SIZE --memory-limit=$MAX_SYSTEM_MEMORY --enable-tcp-over-ucx --enable-nvlink  --disable-infiniband --scheduler-file $SCHEDULER_FILE >> $LOGDIR/worker.log 2>&1
+    dask-cuda-worker --device-memory-limit $DEVICE_MEMORY_LIMIT --local-directory $WORKER_DIR  --rmm-pool-size=$POOL_SIZE --memory-limit=$MAX_SYSTEM_MEMORY --enable-tcp-over-ucx --enable-nvlink  --disable-infiniband --scheduler-file $SCHEDULER_FILE >> $LOGDIR/worker.log 2>&1 &
 fi
 
 if [ "$CLUSTER_MODE" = "TCP" ]; then
