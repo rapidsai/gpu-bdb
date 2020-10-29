@@ -87,7 +87,7 @@ To run a query, starting from the repository root, go to the query specific subd
 cd tpcx_bb/queries/q07/
 ```
 
-The queries assume that they can attach to a running Dask cluster. Cluster address and other benchmark configuration lives in a yaml file.
+The queries assume that they can attach to a running Dask cluster. Cluster address and other benchmark configuration lives in a yaml file. You will need to fill this out as appropriate.
 
 ```bash
 conda activate rapids-tpcx-bb

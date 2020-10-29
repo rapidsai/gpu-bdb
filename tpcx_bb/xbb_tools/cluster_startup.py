@@ -63,7 +63,7 @@ def attach_to_cluster(config, create_blazing_context=False):
 
     Optionally, this will also create a BlazingContext.
     """
-    scheduler_file = config.get("scheduler_file")
+    scheduler_file = config.get("scheduler_file_path")
     host = config.get("cluster_host")
     port = config.get("cluster_port", "8786")
 
