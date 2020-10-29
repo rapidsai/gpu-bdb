@@ -1,6 +1,6 @@
 # benchmark config yaml
 ### Please fill these accordingly
-data_dir: /mnt/weka/tpcx-bb/sf1000/parquet_3gb/
+data_dir:
 output_dir: ./
 file_format: parquet
 output_filetype: parquet
@@ -8,7 +8,7 @@ split_row_groups: False
 repartition_small_table: True
 benchmark_runner_include_bsql: False
 
-scheduler_file_path: /home/nicholasb/dask-local-directory/scheduler.json
+scheduler_file_path:
 dask_profile: False
 dask_dir: ./
 num_workers: 16

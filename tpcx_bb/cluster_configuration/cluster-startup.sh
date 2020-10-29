@@ -7,12 +7,9 @@ MAX_SYSTEM_MEMORY=$(free -m | awk '/^Mem:/{print $2}')M
 DEVICE_MEMORY_LIMIT="25GB"
 POOL_SIZE="30GB"
 
-# TPCX_BB_HOME=$HOME/tpcx-bb
-# CONDA_ENV_NAME="rapids-tpcx-bb"
-# CONDA_ENV_PATH="/home/$USERNAME/conda/etc/profile.d/conda.sh"
-TPCX_BB_HOME="/home/nicholasb/dev/stable-tpcx-bb/"
-CONDA_ENV_NAME="rapids-tpcxbb-20201028"
-CONDA_ENV_PATH="/home/nicholasb/conda/etc/profile.d/conda.sh"
+TPCX_BB_HOME=$HOME/tpcx-bb
+CONDA_ENV_NAME="rapids-tpcx-bb"
+CONDA_ENV_PATH="/home/$USERNAME/conda/etc/profile.d/conda.sh"
 
 # Used for writing scheduler file and logs to shared storage
 LOCAL_DIRECTORY=$HOME/dask-local-directory
