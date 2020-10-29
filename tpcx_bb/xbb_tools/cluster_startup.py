@@ -119,7 +119,9 @@ def attach_to_cluster(config, create_blazing_context=False):
             network_interface=os.environ.get("INTERFACE", "ib0"),
             config_options=get_config_options(),
             allocator=os.environ.get("BLAZING_ALLOCATOR_MODE", "managed"),
-            initial_pool_size=os.environ.get("BLAZING_INITIAL_POOL_SIZE", None)
+            initial_pool_size=os.environ.get("BLAZING_INITIAL_POOL_SIZE", None),
+            maximum_pool_size=os.environ.get("BLAZING_MAXIMUN_POOL_SIZE", None),
+            enable_logging=os.environ.get("BLAZING_ENABLE_LOGGING", False)
         )
 
     return client, bc
