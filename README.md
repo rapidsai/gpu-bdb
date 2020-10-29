@@ -64,7 +64,7 @@ In `cluster_configuration/cluster-startup.sh`:
     - You may also need to change the `LOCAL_DIRECTORY` and `WORKER_DIR` depending on your filesystem. Make sure that these point to a location to which you have write access and that `LOCAL_DIRECTORY` is accessible from all nodes.
 
 
-To start up the cluster on your scheduler node, please run the following from `tpcx_bb/cluster_configuration/`.
+To start up the cluster on your scheduler node, please run the following from `tpcx_bb/cluster_configuration/`. This will spin up a scheduler and one Dask worker per GPU.
 
 ```bash
 bash cluster-startup.sh SCHEDULER
@@ -76,7 +76,7 @@ Then run the following on every other node from `tpcx_bb/cluster_configuration/`
 bash cluster-startup.sh
 ```
 
-This will spin up a scheduler and one Dask worker per GPU. If you are running on a single node, you will only need to run `bash cluster-startup.sh SCHEDULER`.
+This will spin up one Dask worker per GPU. If you are running on a single node, you will only need to run `bash cluster-startup.sh SCHEDULER`.
 
 
 ## Running the Queries
