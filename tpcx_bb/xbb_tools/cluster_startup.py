@@ -25,7 +25,7 @@ from dask.utils import parse_bytes
 from blazingsql import BlazingContext
 
 
-def get_config_options():
+def get_bsql_config_options():
     """Loads configuration environment variables.
     In case it is not previously set, returns a default value for each one.
 
@@ -126,7 +126,7 @@ def attach_to_cluster(config, create_blazing_context=False):
             dask_client=client,
             pool=os.environ.get("BLAZING_POOL", False),
             network_interface=os.environ.get("INTERFACE", "ib0"),
-            config_options=get_config_options(),
+            config_options=get_bsql_config_options(),
             allocator=os.environ.get("BLAZING_ALLOCATOR_MODE", "managed"),
             initial_pool_size=os.environ.get("BLAZING_INITIAL_POOL_SIZE", None)
         )
