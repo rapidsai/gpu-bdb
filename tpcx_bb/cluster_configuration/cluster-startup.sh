@@ -1,6 +1,6 @@
 #NVLINK or TCP
 ROLE=$1
-CLUSTER_MODE="NVLINK"
+CLUSTER_MODE="TCP"
 USERNAME=$(whoami)
 
 MAX_SYSTEM_MEMORY=$(free -m | awk '/^Mem:/{print $2}')M
