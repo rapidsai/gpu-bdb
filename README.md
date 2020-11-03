@@ -61,7 +61,7 @@ In `cluster_configuration/cluster-startup.sh`:
     - Update `CONDA_ENV_PATH=...` to refer to your conda environment path.
     - Update `CONDA_ENV_NAME=...` to refer to the name of the conda environment you created, perhaps using the `yml` files provided in this repository.
     - Update `INTERFACE=...` to refer to the relevant network interface present on your cluster.
-    - Update `CLUSTER_MODE="NVLINK"` to refer to your communication method, either "TCP" or "NVLINK".
+    - Update `CLUSTER_MODE="TCP"` to refer to your communication method, either "TCP" or "NVLINK".
     - You may also need to change the `LOCAL_DIRECTORY` and `WORKER_DIR` depending on your filesystem. Make sure that these point to a location to which you have write access and that `LOCAL_DIRECTORY` is accessible from all nodes.
 
 
