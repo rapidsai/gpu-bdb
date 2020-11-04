@@ -76,15 +76,6 @@ def attach_to_cluster(config, create_blazing_context=False):
         except OSError as e:
             sys.exit(f"Unable to create a Dask Client connection: {e}")
 
-    if scheduler_file is not None:
-        try:
-            with open(scheduler_file) as fp:
-                print(fp.read())
-            client = Client(scheduler_file=scheduler_file)
-            print('Connected!')
-        except OSError as e:
-            sys.exit(f"Unable to create a Dask Client connection: {e}")
-
     elif host is not None:
         try:
             content = requests.get(
