@@ -1,10 +1,6 @@
 ARG CUDA_VER=11.0
 ARG LINUX_VER=ubuntu18.04
-ARG PYTHON_VER=3.8
-ARG RAPIDS_VER=0.16
 
-# FROM ${FROM_IMAGE}:${RAPIDS_VER}-cuda${CUDA_VER}-base-${LINUX_VER}-py${PYTHON_VER}
-# FROM rapidsai/rapidsai-nightly:cuda11.0-runtime-ubuntu18.04-py3.8
 FROM nvidia/cuda:${CUDA_VER}-devel-${LINUX_VER}
 
 RUN apt update -y && apt upgrade -y && apt install -y git
