@@ -13,8 +13,6 @@ dependencies:
   - dask-cuda
   - dask-cudf
   - cuml
-#   - ucx-py
-#   - ucx-proc=*=gpu
   - blazingsql
   - scipy
   - scikit-learn
