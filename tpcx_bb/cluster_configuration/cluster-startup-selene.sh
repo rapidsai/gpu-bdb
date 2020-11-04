@@ -1,7 +1,5 @@
 #IB, NVLINK, or TCP
 ROLE=$1
-# CLUSTER_MODE="NVLINK"
-# CLUSTER_MODE="IB"
 CLUSTER_MODE="TCP"
 
 USERNAME=$(whoami)
@@ -13,16 +11,12 @@ DEVICE_MEMORY_LIMIT="32GB"
 POOL_SIZE="36GB"
 
 TPCX_BB_HOME=$HOME/tpcx-bb
-CONDA_ENV_NAME="rapids"
-#CONDA_ENV_PATH="/conda/etc/profile.d/conda.sh"
+CONDA_ENV_NAME="rapids-tpcx-bb"
 CONDA_ENV_PATH="/opt/conda/etc/profile.d/conda.sh"
 
 # Used for writing scheduler file to shared storage
 LOCAL_DIRECTORY=$HOME/dask-local-directory
 SCHEDULER_FILE=$LOCAL_DIRECTORY/scheduler.json
-
-# change to $LOCAL_DIRECTORY/logs for visibility into scheduler & worker logs
-#LOGDIR="/tmp/tpcx-bb-dask-logs/"
 LOGDIR="$LOCAL_DIRECTORY/logs"
 WORKER_DIR="/tmp/tpcx-bb-dask-workers/"
 
