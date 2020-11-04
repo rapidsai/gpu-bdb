@@ -190,5 +190,4 @@ def import_query_libs():
         "blazingsql",
     ]
     for lib in library_list:
-        print(lib)
         importlib.import_module(lib)
