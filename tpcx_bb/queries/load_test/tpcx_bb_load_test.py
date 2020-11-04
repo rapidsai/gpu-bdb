@@ -125,29 +125,15 @@ def repartition(table, outdir, npartitions=None, chunksize=None, compression="sn
     print(
         f"Converting {table} of {size} GB to {npartitions} parquet files, chunksize: {chunksize}"
     )
-    # web_clickstreams is particularly memory intensive
-    # we sacrifice a bit of speed for stability, converting half at a time
-    if table in ["web_clickstreams"]:
-        df = read_csv_table(table, chunksize)
-        half = int(df.npartitions / 2)
-        df.partitions[0:half].repartition(npartitions=int(npartitions / 2)).to_parquet(
-            outdir + table, compression=compression
-        )
-        print("Completed first half of web_clickstreams..")
-        df.partitions[half:].repartition(npartitions=int(npartitions / 2)).to_parquet(
-            outdir + table, compression=compression
-        )
-
-    else:
-        read_csv_table(table, chunksize).repartition(
-            npartitions=npartitions
-        ).to_parquet(outdir + table, compression=compression)
+    read_csv_table(table, chunksize).repartition(
+        npartitions=npartitions
+    ).to_parquet(outdir + table, compression=compression)
 
 
 def main(client, config):
     # location you want to write Parquet versions of the table data
     data_dir = config["data_dir"].split('parquet_')[0]
-    outdir = f"{data_dir}/parquet_{part_size}gb_test/"
+    outdir = f"{data_dir}/parquet_{part_size}gb/"
 
     total = 0
     for table in tables:

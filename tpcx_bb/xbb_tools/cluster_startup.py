@@ -25,7 +25,7 @@ from dask.utils import parse_bytes
 from blazingsql import BlazingContext
 
 
-def get_config_options():
+def get_bsql_config_options():
     """Loads configuration environment variables.
     In case it is not previously set, returns a default value for each one.
 
@@ -34,7 +34,7 @@ def get_config_options():
     """
     config_options = {}
     config_options['JOIN_PARTITION_SIZE_THRESHOLD'] = os.environ.get("JOIN_PARTITION_SIZE_THRESHOLD", 300000000)
-    config_options['MAX_DATA_LOAD_CONCAT_CACHE_BYTE_SIZE'] =  os.environ.get("MAX_DATA_LOAD_CONCAT_CACHE_BYTE_SIZE", 300000000)
+    config_options['MAX_DATA_LOAD_CONCAT_CACHE_BYTE_SIZE'] =  os.environ.get("MAX_DATA_LOAD_CONCAT_CACHE_BYTE_SIZE", 400000000)
     config_options['BLAZING_DEVICE_MEM_CONSUMPTION_THRESHOLD'] = os.environ.get("BLAZING_DEVICE_MEM_CONSUMPTION_THRESHOLD", 0.6)
     config_options['BLAZ_HOST_MEM_CONSUMPTION_THRESHOLD'] = os.environ.get("BLAZ_HOST_MEM_CONSUMPTION_THRESHOLD", 0.6)
     config_options['MAX_KERNEL_RUN_THREADS'] = os.environ.get("MAX_KERNEL_RUN_THREADS", 3)
@@ -42,12 +42,15 @@ def get_config_options():
     config_options['MAX_NUM_ORDER_BY_PARTITIONS_PER_NODE'] = os.environ.get("MAX_NUM_ORDER_BY_PARTITIONS_PER_NODE", 20)
     config_options['ORDER_BY_SAMPLES_RATIO'] = os.environ.get("ORDER_BY_SAMPLES_RATIO", 0.0002)
     config_options['NUM_BYTES_PER_ORDER_BY_PARTITION'] = os.environ.get("NUM_BYTES_PER_ORDER_BY_PARTITION", 400000000)
+    config_options['MAX_ORDER_BY_SAMPLES_PER_NODE'] = os.environ.get("MAX_ORDER_BY_SAMPLES_PER_NODE", 10000)
     config_options['MAX_SEND_MESSAGE_THREADS'] = os.environ.get("MAX_SEND_MESSAGE_THREADS", 20)
     config_options['MEMORY_MONITOR_PERIOD'] = os.environ.get("MEMORY_MONITOR_PERIOD", 50)
     config_options['TRANSPORT_BUFFER_BYTE_SIZE'] = os.environ.get("TRANSPORT_BUFFER_BYTE_SIZE", 10485760) # 10 MBs
+    config_options['TRANSPORT_POOL_NUM_BUFFERS'] = os.environ.get("TRANSPORT_POOL_NUM_BUFFERS", 100)
     config_options['BLAZING_LOGGING_DIRECTORY'] = os.environ.get("BLAZING_LOGGING_DIRECTORY", 'blazing_log')
     config_options['BLAZING_CACHE_DIRECTORY'] = os.environ.get("BLAZING_CACHE_DIRECTORY", '/tmp/')
     config_options['LOGGING_LEVEL'] = os.environ.get("LOGGING_LEVEL", "trace")
+    config_options['MAX_JOIN_SCATTER_MEM_OVERHEAD'] = os.environ.get("MAX_JOIN_SCATTER_MEM_OVERHEAD", 500000000)
 
     return config_options
 
@@ -60,10 +63,19 @@ def attach_to_cluster(config, create_blazing_context=False):
 
     Optionally, this will also create a BlazingContext.
     """
-    scheduler_file = config.get("scheduler_file")
+    scheduler_file = config.get("scheduler_file_path")
     host = config.get("cluster_host")
     port = config.get("cluster_port", "8786")
     
+    if scheduler_file is not None:
+        try:
+            with open(scheduler_file) as fp:
+                print(fp.read())
+            client = Client(scheduler_file=scheduler_file)
+            print('Connected!')
+        except OSError as e:
+            sys.exit(f"Unable to create a Dask Client connection: {e}")
+
     if scheduler_file is not None:
         try:
             with open(scheduler_file) as fp:
@@ -104,19 +116,23 @@ def attach_to_cluster(config, create_blazing_context=False):
     config.update(ucx_config)
 
     # Save worker information
-    gpu_sizes = ["16GB", "32GB", "40GB"]
-    worker_counts = worker_count_info(client, gpu_sizes=gpu_sizes)
-    for size in gpu_sizes:
-        key = size + "_workers"
-        if config.get(key) is not None and config.get(key) != worker_counts[size]:
-            print(
-                f"Expected {config.get(key)} {size} workers in your cluster, but got {worker_counts[size]}. It can take a moment for all workers to join the cluster. You may also have misconfigred hosts."
-            )
-            sys.exit(-1)
+    # Assumes all GPUs are the same size
+    expected_workers = config.get("num_workers")
+    worker_counts = worker_count_info(client)
+    for gpu_size, count in worker_counts.items():
+        if count != 0:
+            current_workers = worker_counts.pop(gpu_size)
+            break
 
-    config["16GB_workers"] = worker_counts["16GB"]
-    config["32GB_workers"] = worker_counts["32GB"]
-    config["40GB_workers"] = worker_counts["40GB"]
+    if expected_workers is not None and expected_workers != current_workers:
+        print(
+            f"Expected {expected_workers} {gpu_size} workers in your cluster, but got {current_workers}. It can take a moment for all workers to join the cluster. You may also have misconfigred hosts."
+        )
+        sys.exit(-1)
+
+    config["16GB_workers"] = worker_counts.get("16GB", 0)
+    config["32GB_workers"] = worker_counts.get("32GB", 0)
+    config["40GB_workers"] = worker_counts.get("40GB", 0)
 
     bc = None
     if create_blazing_context:
@@ -124,7 +140,7 @@ def attach_to_cluster(config, create_blazing_context=False):
             dask_client=client,
             pool=os.environ.get("BLAZING_POOL", False),
             network_interface=os.environ.get("INTERFACE", "ib0"),
-            config_options=get_config_options(),
+            config_options=get_bsql_config_options(),
             allocator=os.environ.get("BLAZING_ALLOCATOR_MODE", "managed"),
             initial_pool_size=os.environ.get("BLAZING_INITIAL_POOL_SIZE", None)
         )
@@ -132,18 +148,22 @@ def attach_to_cluster(config, create_blazing_context=False):
     return client, bc
 
 
-def worker_count_info(client, gpu_sizes=["16GB", "32GB", "40GB"], tol="2.6GB"):
+def worker_count_info(client):
     """
-    Method accepts the Client object, GPU sizes and tolerance limit and returns
-    a dictionary containing number of workers per GPU size specified
+    Method accepts the Client object and returns a dictionary
+    containing number of workers per GPU size specified
+
+    Assumes all GPUs are of the same type.
     """
+    gpu_sizes = ["16GB", "32GB", "40GB"]
     counts_by_gpu_size = dict.fromkeys(gpu_sizes, 0)
+    tolerance = "2.6GB"
+
     worker_info = client.scheduler_info()["workers"]
     for worker, info in worker_info.items():
-        # Assumption is that a node is homogeneous (on a specific node all gpus have the same size)
         worker_device_memory = info["gpu"]["memory-total"]
         for gpu_size in gpu_sizes:
-            if abs(parse_bytes(gpu_size) - worker_device_memory) < parse_bytes(tol):
+            if abs(parse_bytes(gpu_size) - worker_device_memory) < parse_bytes(tolerance):
                 counts_by_gpu_size[gpu_size] += 1
                 break
 
