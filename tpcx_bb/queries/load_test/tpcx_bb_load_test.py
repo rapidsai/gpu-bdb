@@ -25,7 +25,7 @@ tables = [table.split(".")[0] for table in os.listdir(spark_schema_dir)]
 
 scale = [x for x in config["data_dir"].split("/") if "sf" in x][0]
 part_size = 3
-chunksize = "128 MiB"
+chunksize = "1 GB"
 
 # Spark uses different names for column types, and RAPIDS doesn't yet support Decimal types.
 def get_schema(table):
