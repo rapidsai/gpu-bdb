@@ -66,7 +66,7 @@ def attach_to_cluster(config, create_blazing_context=False):
     scheduler_file = config.get("scheduler_file_path")
     host = config.get("cluster_host")
     port = config.get("cluster_port", "8786")
-    
+
     if scheduler_file is not None:
         try:
             with open(scheduler_file) as fp:
