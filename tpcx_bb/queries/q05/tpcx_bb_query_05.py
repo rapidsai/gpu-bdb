@@ -15,8 +15,7 @@
 #
 
 import sys
-
-
+import os
 import glob
 
 from xbb_tools.utils import (
@@ -31,11 +30,8 @@ from xbb_tools.cupy_metrics import cupy_conf_mat, cupy_precision_score
 import cupy as cp
 import numpy as np
 from dask import delayed
-
-
 import dask
 import pandas as pd
-
 from sklearn.metrics import roc_auc_score
 
 #
@@ -186,7 +182,7 @@ def main(client, config):
     keep_cols = ["i_item_sk", "i_category_id", "clicks_in_category"]
     item_ddf = item_ddf[keep_cols]
 
-    web_clickstream_flist = glob.glob(config["data_dir"] + "web_clickstreams/*.parquet")
+    web_clickstream_flist = glob.glob(os.path.join(config["data_dir"], "web_clickstreams/*.parquet"))
     n_workers = len(client.scheduler_info()["workers"])
     batchsize = len(web_clickstream_flist) // n_workers
     if batchsize < 1:

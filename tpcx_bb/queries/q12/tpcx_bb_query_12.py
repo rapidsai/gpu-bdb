@@ -15,6 +15,8 @@
 #
 
 import sys
+import os
+import glob
 
 from xbb_tools.utils import (
     benchmark,
@@ -25,7 +27,6 @@ from xbb_tools.readers import build_reader
 
 from distributed import wait
 import numpy as np
-import glob
 from dask import delayed
 
 ### Current Implementation Assumption
@@ -178,7 +179,7 @@ def main(client, config):
         "wcs_click_date_sk": np.ones(1, dtype=np.int64),
     }
     meta_df = cudf.DataFrame(meta_d)
-    web_clickstream_flist = glob.glob(config["data_dir"] + "web_clickstreams/*.parquet")
+    web_clickstream_flist = glob.glob(os.path.join(config["data_dir"], "web_clickstreams/*.parquet"))
     task_ls = [
         delayed(filter_wcs_table)(fn, filtered_item_df.to_delayed()[0])
         for fn in web_clickstream_flist

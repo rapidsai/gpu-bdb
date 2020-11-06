@@ -16,6 +16,8 @@
 
 # Original code /tpcx-bb/tpcx-bb1.3.1/rapids-queries/q02/tpcx-bb-query-02.py
 import sys
+import glob
+import os
 
 from xbb_tools.utils import (
     benchmark,
@@ -26,11 +28,7 @@ from xbb_tools.readers import build_reader
 from xbb_tools.sessionization import get_session_id, get_distinct_sessions, get_pairs
 
 from dask import delayed
-
-### needed for set index
-import os
 import numpy as np
-import glob
 
 ### Implementation Notes:
 
@@ -112,7 +110,7 @@ def main(client, config):
     ### Below Pr has the dashboard snapshot which makes the problem clear
     ### https://github.com/rapidsai/tpcx-bb-internal/pull/496#issue-399946141
 
-    web_clickstream_flist = glob.glob(config["data_dir"] + "web_clickstreams/*.parquet")
+    web_clickstream_flist = glob.glob(os.path.join(config["data_dir"], "web_clickstreams/*.parquet"))
     task_ls = [
         delayed(pre_repartition_task)(fn, f_item_df.to_delayed()[0])
         for fn in web_clickstream_flist

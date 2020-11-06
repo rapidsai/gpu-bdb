@@ -15,8 +15,7 @@
 #
 
 import sys
-
-
+import os
 import glob
 
 from xbb_tools.utils import (
@@ -251,7 +250,7 @@ def main(client, config):
     web_page_newcols = ["wp_web_page_sk", "wp_type_codes"]
     web_page_df = web_page_df[web_page_newcols]
 
-    web_clickstream_flist = glob.glob(config["data_dir"] + "web_clickstreams/*.parquet")
+    web_clickstream_flist = glob.glob(os.path.join(config["data_dir"], "web_clickstreams/*.parquet"))
 
     task_ls = [
         delayed(etl_wcs)(
