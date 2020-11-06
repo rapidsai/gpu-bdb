@@ -16,6 +16,7 @@
 #
 
 import sys
+import os
 
 from xbb_tools.cluster_startup import attach_to_cluster
 from numba import cuda
@@ -126,7 +127,7 @@ def apply_find_items_viewed(df, item_mappings):
 
 def read_tables(data_dir, bc):
     bc.create_table("web_clickstreams",
-                    data_dir + "web_clickstreams/*.parquet")
+                    os.path.join(data_dir, "web_clickstreams/*.parquet"))
     bc.create_table("item", os.path.join(data_dir,  "item/*.parquet"))
 
 

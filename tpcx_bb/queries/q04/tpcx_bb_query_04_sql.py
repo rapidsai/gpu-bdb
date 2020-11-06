@@ -16,6 +16,7 @@
 #
 
 import sys
+import os
 
 from xbb_tools.cluster_startup import attach_to_cluster
 from xbb_tools.sessionization import get_sessions
@@ -84,7 +85,7 @@ def reduction_function(df, keep_cols, DYNAMIC_CAT_CODE, ORDER_CAT_CODE):
 def read_tables(data_dir, bc):
     bc.create_table('web_page_wo_categorical', os.path.join(data_dir,  "web_page/*.parquet"))
     bc.create_table('web_clickstreams',
-                    data_dir + "web_clickstreams/*.parquet")
+                    os.path.join(data_dir, "web_clickstreams/*.parquet"))
 
 
 def main(data_dir, client, bc, config):
