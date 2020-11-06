@@ -37,9 +37,9 @@ q15_store_sk = 10
 
 
 def read_tables(data_dir, bc):
-    bc.create_table("store_sales", os.path.join(data_dir,  "/store_sales/*.parquet"))
-    bc.create_table("date_dim", os.path.join(data_dir,  "/date_dim/*.parquet"))
-    bc.create_table("item", os.path.join(data_dir,  "/item/*.parquet"))
+    bc.create_table("store_sales", os.path.join(data_dir, "store_sales/*.parquet"))
+    bc.create_table("date_dim", os.path.join(data_dir, "date_dim/*.parquet"))
+    bc.create_table("item", os.path.join(data_dir, "item/*.parquet"))
 
 
 def main(data_dir, client, bc, config):

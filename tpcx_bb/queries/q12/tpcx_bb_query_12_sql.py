@@ -33,10 +33,10 @@ q12_i_category_IN = "'Books', 'Electronics'"
 
 def read_tables(data_dir, bc):
     bc.create_table("web_clickstreams",
-                    os.path.join(data_dir, "/web_clickstreams/*.parquet"))
+                    os.path.join(data_dir, "web_clickstreams/*.parquet"))
     bc.create_table("store_sales",
-                    os.path.join(data_dir,  "/store_sales/*.parquet"))
-    bc.create_table("item", os.path.join(data_dir,  "/item/*.parquet"))
+                    os.path.join(data_dir, "store_sales/*.parquet"))
+    bc.create_table("item", os.path.join(data_dir, "item/*.parquet"))
 
 
 def main(data_dir, client, bc, config):

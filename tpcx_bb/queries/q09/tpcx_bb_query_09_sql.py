@@ -60,13 +60,13 @@ q09_part3_sales_price_max = 200
 
 
 def read_tables(data_dir, bc):
-    bc.create_table("store_sales", os.path.join(data_dir,  "/store_sales/*.parquet"))
-    bc.create_table("customer_address", os.path.join(data_dir,  "/customer_address/*.parquet"))
+    bc.create_table("store_sales", os.path.join(data_dir, "store_sales/*.parquet"))
+    bc.create_table("customer_address", os.path.join(data_dir, "customer_address/*.parquet"))
     bc.create_table(
-        "customer_demographics", os.path.join(data_dir,  "/customer_demographics/*.parquet"
+        "customer_demographics", os.path.join(data_dir, "customer_demographics/*.parquet"
     ))
-    bc.create_table("date_dim", os.path.join(data_dir,  "/date_dim/*.parquet"))
-    bc.create_table("store", os.path.join(data_dir,  "/store/*.parquet"))
+    bc.create_table("date_dim", os.path.join(data_dir, "date_dim/*.parquet"))
+    bc.create_table("store", os.path.join(data_dir, "store/*.parquet"))
 
 
 def main(data_dir, client, bc, config):

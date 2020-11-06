@@ -140,10 +140,10 @@ def prep_for_sessionization(df, review_cat_code):
 
 
 def read_tables(data_dir, bc):
-    bc.create_table("web_clickstreams", os.path.join(data_dir,  "/web_clickstreams/*.parquet"))
-    bc.create_table("web_sales", os.path.join(data_dir,  "/web_sales/*.parquet"))
-    bc.create_table("web_page", os.path.join(data_dir,  "/web_page/*.parquet"))
-    bc.create_table("date_dim", os.path.join(data_dir,  "/date_dim/*.parquet"))
+    bc.create_table("web_clickstreams", os.path.join(data_dir, "web_clickstreams/*.parquet"))
+    bc.create_table("web_sales", os.path.join(data_dir, "web_sales/*.parquet"))
+    bc.create_table("web_page", os.path.join(data_dir, "web_page/*.parquet"))
+    bc.create_table("date_dim", os.path.join(data_dir, "date_dim/*.parquet"))
 
 
 def main(data_dir, client, bc, config):

@@ -32,8 +32,8 @@ q29_limit = 100
 
 
 def read_tables(data_dir, bc):
-    bc.create_table('item', os.path.join(data_dir,  "item/*.parquet"))
-    bc.create_table('web_sales', os.path.join(data_dir,  "web_sales/*.parquet"))
+    bc.create_table('item', os.path.join(data_dir, "item/*.parquet"))
+    bc.create_table('web_sales', os.path.join(data_dir, "web_sales/*.parquet"))
 
 
 def main(data_dir, client, bc, config):

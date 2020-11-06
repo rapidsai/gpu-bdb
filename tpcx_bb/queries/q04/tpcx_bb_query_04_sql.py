@@ -83,7 +83,7 @@ def reduction_function(df, keep_cols, DYNAMIC_CAT_CODE, ORDER_CAT_CODE):
 
 
 def read_tables(data_dir, bc):
-    bc.create_table('web_page_wo_categorical', os.path.join(data_dir,  "web_page/*.parquet"))
+    bc.create_table('web_page_wo_categorical', os.path.join(data_dir, "web_page/*.parquet"))
     bc.create_table('web_clickstreams',
                     os.path.join(data_dir, "web_clickstreams/*.parquet"))
 

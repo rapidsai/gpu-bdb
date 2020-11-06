@@ -27,12 +27,12 @@ from xbb_tools.utils import (
 
 
 def read_tables(data_dir, bc):
-    bc.create_table("store_sales", os.path.join(data_dir,  "/store_sales/*.parquet"))
-    bc.create_table("date_dim", os.path.join(data_dir,  "/date_dim/*.parquet"))
-    bc.create_table("item", os.path.join(data_dir,  "/item/*.parquet"))
-    bc.create_table("web_sales", os.path.join(data_dir,  "/web_sales/*.parquet"))
-    bc.create_table("store_returns", os.path.join(data_dir,  "/store_returns/*.parquet"))
-    bc.create_table("store", os.path.join(data_dir,  "/store/*.parquet"))
+    bc.create_table("store_sales", os.path.join(data_dir, "store_sales/*.parquet"))
+    bc.create_table("date_dim", os.path.join(data_dir, "date_dim/*.parquet"))
+    bc.create_table("item", os.path.join(data_dir, "item/*.parquet"))
+    bc.create_table("web_sales", os.path.join(data_dir, "web_sales/*.parquet"))
+    bc.create_table("store_returns", os.path.join(data_dir, "store_returns/*.parquet"))
+    bc.create_table("store", os.path.join(data_dir, "store/*.parquet"))
 
 
 def main(data_dir, client, bc, config):

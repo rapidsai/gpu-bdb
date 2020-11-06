@@ -34,8 +34,8 @@ q23_coefficient = 1.3
 
 
 def read_tables(data_dir, bc):
-    bc.create_table('inventory', os.path.join(data_dir,  "inventory/*.parquet"))
-    bc.create_table('date_dim', os.path.join(data_dir,  "date_dim/*.parquet"))
+    bc.create_table('inventory', os.path.join(data_dir, "inventory/*.parquet"))
+    bc.create_table('date_dim', os.path.join(data_dir, "date_dim/*.parquet"))
 
 
 def main(data_dir, client, bc, config):

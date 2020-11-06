@@ -40,7 +40,7 @@ EOL_CHAR = "."
 
 
 def read_tables(data_dir, bc):
-    bc.create_table("product_reviews", os.path.join(data_dir,  "/product_reviews/*.parquet"))
+    bc.create_table("product_reviews", os.path.join(data_dir, "product_reviews/*.parquet"))
 
 
 def ner_parser(df, col_string, batch_size=256):
