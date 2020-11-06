@@ -34,11 +34,11 @@ from xbb_tools.utils import (
 
 
 def read_tables(data_dir, bc):
-    bc.create_table("web_sales", data_dir + "/web_sales/*.parquet")
-    bc.create_table("web_returns", data_dir + "/web_returns/*.parquet")
-    bc.create_table("date_dim", data_dir + "/date_dim/*.parquet")
-    bc.create_table("item", data_dir + "/item/*.parquet")
-    bc.create_table("warehouse", data_dir + "/warehouse/*.parquet")
+    bc.create_table("web_sales", os.path.join(data_dir,  "/web_sales/*.parquet"))
+    bc.create_table("web_returns", os.path.join(data_dir,  "/web_returns/*.parquet"))
+    bc.create_table("date_dim", os.path.join(data_dir,  "/date_dim/*.parquet"))
+    bc.create_table("item", os.path.join(data_dir,  "/item/*.parquet"))
+    bc.create_table("warehouse", os.path.join(data_dir,  "/warehouse/*.parquet"))
 
 
 def main(data_dir, client, bc, config):

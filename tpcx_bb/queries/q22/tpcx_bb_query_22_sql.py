@@ -33,10 +33,10 @@ q22_i_current_price_max = "1.5"
 
 
 def read_tables(data_dir, bc):
-    bc.create_table('inventory', data_dir + "inventory/*.parquet")
-    bc.create_table('item', data_dir + "item/*.parquet")
-    bc.create_table('warehouse', data_dir + "warehouse/*.parquet")
-    bc.create_table('date_dim', data_dir + "date_dim/*.parquet")
+    bc.create_table('inventory', os.path.join(data_dir,  "inventory/*.parquet"))
+    bc.create_table('item', os.path.join(data_dir,  "item/*.parquet"))
+    bc.create_table('warehouse', os.path.join(data_dir,  "warehouse/*.parquet"))
+    bc.create_table('date_dim', os.path.join(data_dir,  "date_dim/*.parquet"))
 
 
 def main(data_dir, client, bc, config):

@@ -297,7 +297,7 @@ def post_etl_processing(client, train_data, test_data):
 
 
 def read_tables(data_dir, bc):
-    bc.create_table("product_reviews", data_dir + "product_reviews/*.parquet")
+    bc.create_table("product_reviews", os.path.join(data_dir,  "product_reviews/*.parquet"))
 
 
 def main(data_dir, client, bc, config):

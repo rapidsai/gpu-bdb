@@ -127,7 +127,7 @@ def apply_find_items_viewed(df, item_mappings):
 def read_tables(data_dir, bc):
     bc.create_table("web_clickstreams",
                     data_dir + "web_clickstreams/*.parquet")
-    bc.create_table("item", data_dir + "item/*.parquet")
+    bc.create_table("item", os.path.join(data_dir,  "item/*.parquet"))
 
 
 def main(data_dir, client, bc, config):

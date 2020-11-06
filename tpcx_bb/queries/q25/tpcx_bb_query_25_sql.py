@@ -59,9 +59,9 @@ def get_clusters(client, ml_input_df):
 
 
 def read_tables(data_dir, bc):
-    bc.create_table("web_sales", data_dir + "web_sales/*.parquet")
-    bc.create_table("store_sales", data_dir + "store_sales/*.parquet")
-    bc.create_table("date_dim", data_dir + "date_dim/*.parquet")
+    bc.create_table("web_sales", os.path.join(data_dir,  "web_sales/*.parquet"))
+    bc.create_table("store_sales", os.path.join(data_dir,  "store_sales/*.parquet"))
+    bc.create_table("date_dim", os.path.join(data_dir,  "date_dim/*.parquet"))
 
 
 def main(data_dir, client, bc, config):
