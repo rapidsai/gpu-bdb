@@ -49,7 +49,7 @@ def read_tables(data_dir, bc):
     bc.create_table("item", os.path.join(data_dir,  "item/*.parquet"))
     bc.create_table(
         "customer_demographics", os.path.join(data_dir,  "customer_demographics/*.parquet"
-    )
+    ))
 
 
 def build_and_predict_model(ml_input_df):

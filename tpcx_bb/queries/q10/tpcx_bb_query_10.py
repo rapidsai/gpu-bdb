@@ -103,9 +103,9 @@ def main(client, config):
 
     # These files come from the official TPCx-BB kit
     # We extracted them from bigbenchqueriesmr.jar
-    sentiment_dir = "/".join(config["data_dir"].split("/")[:-3] + ["sentiment_files"])
-    neg_sent_df = load_sentiment_words(f"{sentiment_dir}/negativeSentiment.txt", "NEG")
-    pos_sent_df = load_sentiment_words(f"{sentiment_dir}/positiveSentiment.txt", "POS")
+    sentiment_dir = os.path.join(config["data_dir"], "sentiment_files")
+    neg_sent_df = load_sentiment_words(os.path.join(sentiment_dir, "/negativeSentiment.txt"), "NEG")
+    pos_sent_df = load_sentiment_words(os.path.join(sentiment_dir, "/positiveSentiment.txt"), "POS")
 
     sent_df = cudf.concat([pos_sent_df, neg_sent_df])
     sent_df = dask_cudf.from_cudf(sent_df, npartitions=1)

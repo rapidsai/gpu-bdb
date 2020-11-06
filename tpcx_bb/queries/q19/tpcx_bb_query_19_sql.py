@@ -116,8 +116,9 @@ def main(data_dir, client, bc, config):
     # This txt file comes from the official TPCx-BB kit
     # We extracted it from bigbenchqueriesmr.jar
     # Need to pass the absolute path for this txt file
-    sentiment_dir = "/".join(config["data_dir"].split("/")[:-3] + ["sentiment_files"])
-    bc.create_table('sent_df', sentiment_dir + "/negativeSentiment.txt",
+    sentiment_dir = os.path.join(config["data_dir"], "sentiment_files")
+    bc.create_table('sent_df',
+                    os.path.join(sentiment_dir, "negativeSentiment.txt"),
                     names=['sentiment_word'], dtype=['str'])
 
     sentences = sentences.persist()

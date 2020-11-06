@@ -88,12 +88,12 @@ def main(data_dir, client, bc, config):
     # These files come from the official TPCx-BB kit
     # We extracted them from bigbenchqueriesmr.jar
     # Need to pass the absolute path for these txt files
-    sentiment_dir = "/".join(config["data_dir"].split("/")[:-3] + ["sentiment_files"])
+    sentiment_dir = os.path.join(config["data_dir"], "sentiment_files")
     bc.create_table('negative_sentiment',
-                    sentiment_dir + "/negativeSentiment.txt",
+                    os.path.join(sentiment_dir, "/negativeSentiment.txt"),
                     names="sentiment_word")
     bc.create_table('positive_sentiment',
-                    sentiment_dir + "/positiveSentiment.txt",
+                    os.path.join(sentiment_dir, "/positiveSentiment.txt"),
                     names="sentiment_word")
 
     word_df = word_df.persist()

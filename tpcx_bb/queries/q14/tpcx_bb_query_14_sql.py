@@ -34,7 +34,7 @@ from xbb_tools.utils import (
 def read_tables(data_dir, bc):
     bc.create_table(
         "household_demographics", os.path.join(data_dir,  "/household_demographics/*.parquet"
-    )
+    ))
     bc.create_table("web_page", os.path.join(data_dir,  "/web_page/*.parquet"))
     bc.create_table("web_sales", os.path.join(data_dir,  "/web_sales/*.parquet"))
     bc.create_table("time_dim", os.path.join(data_dir,  "/time_dim/*.parquet"))

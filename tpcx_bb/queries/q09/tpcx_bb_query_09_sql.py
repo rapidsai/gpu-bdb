@@ -64,7 +64,7 @@ def read_tables(data_dir, bc):
     bc.create_table("customer_address", os.path.join(data_dir,  "/customer_address/*.parquet"))
     bc.create_table(
         "customer_demographics", os.path.join(data_dir,  "/customer_demographics/*.parquet"
-    )
+    ))
     bc.create_table("date_dim", os.path.join(data_dir,  "/date_dim/*.parquet"))
     bc.create_table("store", os.path.join(data_dir,  "/store/*.parquet"))
 
