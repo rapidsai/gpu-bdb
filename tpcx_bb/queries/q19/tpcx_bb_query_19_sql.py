@@ -16,9 +16,9 @@
 #
 
 import sys
+import os
 
 from xbb_tools.cluster_startup import attach_to_cluster
-import os
 
 from xbb_tools.utils import (
     benchmark,

@@ -16,9 +16,9 @@
 #
 
 import sys
+import os
 
 from xbb_tools.cluster_startup import attach_to_cluster
-import os
 import numpy as np
 import cupy as cp
 

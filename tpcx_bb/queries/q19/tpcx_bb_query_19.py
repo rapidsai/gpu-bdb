@@ -15,6 +15,7 @@
 #
 
 import sys
+import os
 
 from xbb_tools.utils import (
     benchmark,
