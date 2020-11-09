@@ -132,7 +132,7 @@ def attach_to_cluster(config, create_blazing_context=False):
             pool=os.environ.get("BLAZING_POOL", False),
             network_interface=os.environ.get("INTERFACE", "ib0"),
             config_options=get_bsql_config_options(),
-            allocator=os.environ.get("BLAZING_ALLOCATOR_MODE", "managed"),
+            allocator=os.environ.get("BLAZING_ALLOCATOR_MODE", "existing"),
             initial_pool_size=os.environ.get("BLAZING_INITIAL_POOL_SIZE", None)
         )
 
