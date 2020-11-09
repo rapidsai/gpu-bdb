@@ -16,6 +16,7 @@
 #
 
 import sys
+import os
 
 from xbb_tools.text import (
     create_sentences_from_reviews,

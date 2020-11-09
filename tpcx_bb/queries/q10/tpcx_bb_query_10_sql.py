@@ -16,9 +16,9 @@
 #
 
 import sys
+import os
 
 from xbb_tools.cluster_startup import attach_to_cluster
-import os
 
 from xbb_tools.utils import (
     benchmark,
@@ -90,10 +90,10 @@ def main(data_dir, client, bc, config):
     # Need to pass the absolute path for these txt files
     sentiment_dir = os.path.join(config["data_dir"], "sentiment_files")
     bc.create_table('negative_sentiment',
-                    os.path.join(sentiment_dir, "/negativeSentiment.txt"),
+                    os.path.join(sentiment_dir, "negativeSentiment.txt"),
                     names="sentiment_word")
     bc.create_table('positive_sentiment',
-                    os.path.join(sentiment_dir, "/positiveSentiment.txt"),
+                    os.path.join(sentiment_dir, "positiveSentiment.txt"),
                     names="sentiment_word")
 
     word_df = word_df.persist()
