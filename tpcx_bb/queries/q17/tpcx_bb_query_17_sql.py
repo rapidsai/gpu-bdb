@@ -16,6 +16,7 @@
 #
 
 import sys
+import os
 
 from xbb_tools.cluster_startup import attach_to_cluster
 
@@ -35,13 +36,13 @@ q17_i_category_IN = "'Books', 'Music'"
 
 
 def read_tables(data_dir, bc):
-    bc.create_table("store_sales", data_dir + "store_sales/*.parquet")
-    bc.create_table("item", data_dir + "item/*.parquet")
-    bc.create_table("customer", data_dir + "customer/*.parquet")
-    bc.create_table("store", data_dir + "store/*.parquet")
-    bc.create_table("date_dim", data_dir + "date_dim/*.parquet")
-    bc.create_table("customer_address", data_dir + "customer_address/*.parquet")
-    bc.create_table("promotion", data_dir + "promotion/*.parquet")
+    bc.create_table("store_sales", os.path.join(data_dir, "store_sales/*.parquet"))
+    bc.create_table("item", os.path.join(data_dir, "item/*.parquet"))
+    bc.create_table("customer", os.path.join(data_dir, "customer/*.parquet"))
+    bc.create_table("store", os.path.join(data_dir, "store/*.parquet"))
+    bc.create_table("date_dim", os.path.join(data_dir, "date_dim/*.parquet"))
+    bc.create_table("customer_address", os.path.join(data_dir, "customer_address/*.parquet"))
+    bc.create_table("promotion", os.path.join(data_dir, "promotion/*.parquet"))
 
 
 def main(data_dir, client, bc, config):

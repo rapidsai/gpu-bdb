@@ -16,6 +16,7 @@
 #
 
 import sys
+import os
 
 from xbb_tools.cluster_startup import attach_to_cluster
 
@@ -61,8 +62,8 @@ def get_clusters(client, kmeans_input_df):
 
 
 def read_tables(data_dir, bc):
-    bc.create_table("store_sales", data_dir + "store_sales/*.parquet")
-    bc.create_table("item", data_dir + "item/*.parquet")
+    bc.create_table("store_sales", os.path.join(data_dir, "store_sales/*.parquet"))
+    bc.create_table("item", os.path.join(data_dir, "item/*.parquet"))
 
 
 def main(data_dir, client, bc, config):

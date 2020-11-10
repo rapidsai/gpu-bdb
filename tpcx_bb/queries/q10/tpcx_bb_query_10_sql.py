@@ -16,9 +16,9 @@
 #
 
 import sys
+import os
 
 from xbb_tools.cluster_startup import attach_to_cluster
-import os
 
 from xbb_tools.utils import (
     benchmark,
@@ -37,7 +37,7 @@ eol_char = "è"
 
 
 def read_tables(data_dir, bc):
-    bc.create_table('product_reviews', data_dir + "product_reviews/*.parquet")
+    bc.create_table('product_reviews', os.path.join(data_dir, "product_reviews/*.parquet"))
 
 
 def main(data_dir, client, bc, config):
@@ -88,12 +88,12 @@ def main(data_dir, client, bc, config):
     # These files come from the official TPCx-BB kit
     # We extracted them from bigbenchqueriesmr.jar
     # Need to pass the absolute path for these txt files
-    sentiment_dir = "/".join(config["data_dir"].split("/")[:-3] + ["sentiment_files"])
+    sentiment_dir = os.path.join(config["data_dir"], "sentiment_files")
     bc.create_table('negative_sentiment',
-                    sentiment_dir + "/negativeSentiment.txt",
+                    os.path.join(sentiment_dir, "negativeSentiment.txt"),
                     names="sentiment_word")
     bc.create_table('positive_sentiment',
-                    sentiment_dir + "/positiveSentiment.txt",
+                    os.path.join(sentiment_dir, "positiveSentiment.txt"),
                     names="sentiment_word")
 
     word_df = word_df.persist()

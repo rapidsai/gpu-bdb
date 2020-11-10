@@ -16,6 +16,7 @@
 #
 
 import sys
+import os
 
 from xbb_tools.cluster_startup import attach_to_cluster
 from dask import delayed
@@ -61,8 +62,8 @@ def get_clusters(client, ml_input_df, feature_cols):
 
 
 def read_tables(data_dir, bc):
-    bc.create_table("store_sales", data_dir + "store_sales/*.parquet")
-    bc.create_table("store_returns", data_dir + "store_returns/*.parquet")
+    bc.create_table("store_sales", os.path.join(data_dir, "store_sales/*.parquet"))
+    bc.create_table("store_returns", os.path.join(data_dir, "store_returns/*.parquet"))
 
 
 def main(data_dir, client, bc, config):

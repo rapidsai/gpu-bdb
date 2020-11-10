@@ -15,6 +15,7 @@
 #
 
 import sys
+import os
 
 from xbb_tools.utils import (
     benchmark,
@@ -162,8 +163,8 @@ def main(client, config):
 
     # This file comes from the official TPCx-BB kit
     # We extracted it from bigbenchqueriesmr.jar
-    sentiment_dir = "/".join(config["data_dir"].split("/")[:-3] + ["sentiment_files"])
-    with open(f"{sentiment_dir}/negativeSentiment.txt") as fh:
+    sentiment_dir = os.path.join(config["data_dir"], "sentiment_files")
+    with open(os.path.join(sentiment_dir, "negativeSentiment.txt")) as fh:
         negativeSentiment = list(map(str.strip, fh.readlines()))
         # dedupe for one extra record in the source file
         negativeSentiment = list(set(negativeSentiment))

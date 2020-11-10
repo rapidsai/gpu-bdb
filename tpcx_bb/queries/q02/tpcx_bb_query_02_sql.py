@@ -16,6 +16,7 @@
 #
 
 import sys
+import os
 
 from xbb_tools.cluster_startup import attach_to_cluster
 
@@ -36,7 +37,7 @@ q02_session_timeout_inSec = 3600
 
 def read_tables(data_dir, bc):
     bc.create_table("web_clickstreams",
-                    data_dir + "web_clickstreams/*.parquet")
+                    os.path.join(data_dir, "web_clickstreams/*.parquet"))
 
 
 def main(data_dir, client, bc, config):
