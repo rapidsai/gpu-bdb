@@ -45,7 +45,7 @@ import json
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
-from xbb_tools.cluster_startup import get_config_options
+from xbb_tools.cluster_startup import get_bsql_config_options
 
 #################################
 # Benchmark Timing
@@ -813,7 +813,7 @@ def build_benchmark_googlesheet_payload(config):
             "BlazingSQL version":  blazingsql.__version__  if is_blazing_query() else "",
             "allocator": os.environ.get("BLAZING_ALLOCATOR_MODE", "managed") if is_blazing_query() else "",
             "network_interface": os.environ.get("INTERFACE", "ib0") if is_blazing_query() else "",
-            "config_options": str(get_config_options()) if is_blazing_query() else "",
+            "config_options": str(get_bsql_config_options()) if is_blazing_query() else "",
         }
     )
     payload = list(payload.values())
