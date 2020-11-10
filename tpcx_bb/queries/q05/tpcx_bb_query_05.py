@@ -177,7 +177,6 @@ def main(client, config):
     item_ddf["clicks_in_category"] = (
         (item_ddf["i_category"] == Q05_I_CATEGORY)
         .astype(np.int8)
-        .reset_index(drop=True)
     )
     keep_cols = ["i_item_sk", "i_category_id", "clicks_in_category"]
     item_ddf = item_ddf[keep_cols]
