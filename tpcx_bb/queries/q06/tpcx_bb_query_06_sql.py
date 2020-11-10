@@ -16,6 +16,7 @@
 #
 
 import sys
+import os
 
 from xbb_tools.cluster_startup import attach_to_cluster
 
@@ -33,10 +34,10 @@ q06_YEAR = 2001
 
 
 def read_tables(data_dir, bc):
-    bc.create_table('web_sales', data_dir + "web_sales/*.parquet")
-    bc.create_table('store_sales', data_dir + "store_sales/*.parquet")
-    bc.create_table('date_dim', data_dir + "date_dim/*.parquet")
-    bc.create_table('customer', data_dir + "customer/*.parquet")
+    bc.create_table('web_sales', os.path.join(data_dir, "web_sales/*.parquet"))
+    bc.create_table('store_sales', os.path.join(data_dir, "store_sales/*.parquet"))
+    bc.create_table('date_dim', os.path.join(data_dir, "date_dim/*.parquet"))
+    bc.create_table('customer', os.path.join(data_dir, "customer/*.parquet"))
 
 
 def main(data_dir, client, bc, config):

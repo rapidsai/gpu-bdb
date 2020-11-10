@@ -38,8 +38,8 @@ q01_limit = 100
 
 
 def read_tables(data_dir, bc):
-    bc.create_table("item", data_dir + "/item/*.parquet")
-    bc.create_table("store_sales", data_dir + "/store_sales/*.parquet")
+    bc.create_table("item", os.path.join(data_dir, "item/*.parquet"))
+    bc.create_table("store_sales", os.path.join(data_dir, "store_sales/*.parquet"))
 
 
 def main(data_dir, client, bc, config):

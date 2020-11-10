@@ -16,12 +16,13 @@
 #
 
 import sys
+import os
+import time
 
 from xbb_tools.cluster_startup import attach_to_cluster
 from cuml.feature_extraction.text import HashingVectorizer
 import cupy
 import dask
-import time
 from distributed import wait
 import cupy as cp
 import numpy as np
@@ -297,7 +298,7 @@ def post_etl_processing(client, train_data, test_data):
 
 
 def read_tables(data_dir, bc):
-    bc.create_table("product_reviews", data_dir + "product_reviews/*.parquet")
+    bc.create_table("product_reviews", os.path.join(data_dir, "product_reviews/*.parquet"))
 
 
 def main(data_dir, client, bc, config):

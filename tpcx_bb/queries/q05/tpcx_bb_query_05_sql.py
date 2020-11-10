@@ -44,12 +44,12 @@ convergence_tol = 1e-9
 
 
 def read_tables(data_dir, bc):
-    bc.create_table("web_clickstreams", data_dir + "web_clickstreams/*.parquet")
-    bc.create_table("customer", data_dir + "customer/*.parquet")
-    bc.create_table("item", data_dir + "item/*.parquet")
+    bc.create_table("web_clickstreams", os.path.join(data_dir, "web_clickstreams/*.parquet"))
+    bc.create_table("customer", os.path.join(data_dir, "customer/*.parquet"))
+    bc.create_table("item", os.path.join(data_dir, "item/*.parquet"))
     bc.create_table(
-        "customer_demographics", data_dir + "customer_demographics/*.parquet"
-    )
+        "customer_demographics", os.path.join(data_dir, "customer_demographics/*.parquet"
+    ))
 
 
 def build_and_predict_model(ml_input_df):

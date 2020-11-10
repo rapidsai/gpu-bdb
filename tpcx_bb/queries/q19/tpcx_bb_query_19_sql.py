@@ -16,9 +16,9 @@
 #
 
 import sys
+import os
 
 from xbb_tools.cluster_startup import attach_to_cluster
-import os
 
 from xbb_tools.utils import (
     benchmark,
@@ -40,10 +40,10 @@ eol_char = "è"
 
 
 def read_tables(data_dir, bc):
-    bc.create_table('web_returns', data_dir + "web_returns/*.parquet")
-    bc.create_table('date_dim', data_dir + "date_dim/*.parquet")
-    bc.create_table('product_reviews', data_dir + "product_reviews/*.parquet")
-    bc.create_table('store_returns', data_dir + "store_returns/*.parquet")
+    bc.create_table('web_returns', os.path.join(data_dir, "web_returns/*.parquet"))
+    bc.create_table('date_dim', os.path.join(data_dir, "date_dim/*.parquet"))
+    bc.create_table('product_reviews', os.path.join(data_dir, "product_reviews/*.parquet"))
+    bc.create_table('store_returns', os.path.join(data_dir, "store_returns/*.parquet"))
 
 
 def main(data_dir, client, bc, config):
@@ -116,8 +116,9 @@ def main(data_dir, client, bc, config):
     # This txt file comes from the official TPCx-BB kit
     # We extracted it from bigbenchqueriesmr.jar
     # Need to pass the absolute path for this txt file
-    sentiment_dir = "/".join(config["data_dir"].split("/")[:-3] + ["sentiment_files"])
-    bc.create_table('sent_df', sentiment_dir + "/negativeSentiment.txt",
+    sentiment_dir = os.path.join(config["data_dir"], "sentiment_files")
+    bc.create_table('sent_df',
+                    os.path.join(sentiment_dir, "negativeSentiment.txt"),
                     names=['sentiment_word'], dtype=['str'])
 
     sentences = sentences.persist()
