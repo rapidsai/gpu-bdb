@@ -1,0 +1,31 @@
+channels:
+  - blazingsql-nightly/label/cuda11.0
+  - rapidsai-nightly
+  - nvidia
+  - conda-forge
+  - defaults
+
+dependencies:
+  - python=3.8
+  - cudatoolkit=11.0
+  - cudf
+  - rmm
+  - dask-cuda
+  - dask-cudf
+  - cuml
+  - blazingsql
+  - scipy
+  - scikit-learn
+  - spacy
+  - oauth2client
+  - asyncssh
+  - psutil
+  - ipykernel
+  - jupyterlab
+  - gspread
+  - oauth2client
+  - pip
+  - pip:
+    - jupyter-server-proxy
+    - git+https://github.com/dask/dask.git
+    - git+https://github.com/dask/distributed.git
