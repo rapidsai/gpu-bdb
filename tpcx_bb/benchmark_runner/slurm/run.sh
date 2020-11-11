@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ACCOUNT=rapids
-PARTITION=luna
+PARTITION=partition
 WORKERS=1
 
 IMAGE="/path/to/container/"
@@ -18,7 +18,7 @@ srun \
     --nodes 1 \
     --container-mounts $DATA_PATH:$MOUNT_PATH,$HOME:$HOME \
     --container-image=$IMAGE \
-    bash -c "$TPCX_BB_HOME/tpcx_bb/benchmark_runner/selene/scheduler-client.sh"
+    bash -c "$TPCX_BB_HOME/tpcx_bb/benchmark_runner/slurm/scheduler-client.sh"
 
 
 if [ "$WORKERS" -gt "0" ]; then
@@ -28,5 +28,5 @@ if [ "$WORKERS" -gt "0" ]; then
         --nodes $WORKERS \
         --container-mounts $DATA_PATH:$MOUNT_PATH,$HOME:$HOME \
         --container-image $IMAGE \
-        bash -c "$TPCX_BB_HOME/tpcx_bb/cluster_configuration/cluster-startup-selene.sh"
+        bash -c "$TPCX_BB_HOME/tpcx_bb/cluster_configuration/cluster-startup-slurm.sh"
 fi

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ACCOUNT=rapids
-PARTITION=luna
+PARTITION=partition
 WORKERS=15
 
 IMAGE="/path/to/container/"
@@ -15,4 +15,4 @@ srun \
     --nodes $WORKERS \
     --container-mounts $DATA_PATH:$MOUNT_PATH,$HOME:$HOME \
     --container-image $IMAGE \
-    bash -c "$TPCX_BB_HOME/tpcx_bb/benchmark_runner/selene/spawn-workers.sh"
+    bash -c "$TPCX_BB_HOME/tpcx_bb/benchmark_runner/slurm/spawn-workers.sh"

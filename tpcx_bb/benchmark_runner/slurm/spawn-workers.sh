@@ -10,7 +10,7 @@ export BLAZING_ALLOCATOR_MODE="existing"
 
 echo $LOGDIR
 echo ls -l $LOGDIR
-bash $TPCX_BB_HOME/tpcx_bb/cluster_configuration/cluster-startup-selene.sh &
+bash $TPCX_BB_HOME/tpcx_bb/cluster_configuration/cluster-startup-slurm.sh &
 echo "STARTING WORKERS"
 sleep 10000
 

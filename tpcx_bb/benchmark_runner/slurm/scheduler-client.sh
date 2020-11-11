@@ -9,7 +9,7 @@ LOGDIR=$HOME/dask-local-directory/logs
 export INTERFACE="enp97s0f1"
 export BLAZING_ALLOCATOR_MODE="existing"
 
-bash $TPCX_BB_HOME/tpcx_bb/cluster_configuration/cluster-startup-selene.sh SCHEDULER &
+bash $TPCX_BB_HOME/tpcx_bb/cluster_configuration/cluster-startup-slurm.sh SCHEDULER &
 echo "STARTED SCHEDULER"
 sleep 10
 
