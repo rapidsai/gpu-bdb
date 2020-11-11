@@ -69,19 +69,19 @@ deb http://archive.ubuntu.com/ubuntu/ xenial-updates universe\
 
 
 # Install ibverbs from MOFED
-ADD https://www.mellanox.com/downloads/ofed/MLNX_OFED-5.0-2.1.8.0/MLNX_OFED_LINUX-5.0-2.1.8.0-ubuntu18.04-x86_64.tgz /MLNX_OFED_LINUX-5.0-2.1.8.0-ubuntu18.04-x86_64.tgz
+ADD https://www.mellanox.com/downloads/ofed/MLNX_OFED-5.1-2.5.8.0/MLNX_OFED_LINUX-5.1-2.5.8.0-ubuntu18.04-x86_64.tgz /MLNX_OFED_LINUX-5.1-2.5.8.0-ubuntu18.04-x86_64.tgz
 
-COPY /MLNX_OFED_LINUX-5.0-2.1.8.0-ubuntu18.04-x86_64.tgz /tmp/MLNX_OFED_LINUX-5.0-2.1.8.0-ubuntu18.04-x86_64.tgz
+COPY /MLNX_OFED_LINUX-5.1-2.5.8.0-ubuntu18.04-x86_64.tgz /tmp/MLNX_OFED_LINUX-5.1-2.5.8.0-ubuntu18.04-x86_64.tgz
 
 
-RUN tar -xzf /tmp/MLNX_OFED_LINUX-5.0-2.1.8.0-ubuntu18.04-x86_64.tgz && \
- cd MLNX_OFED_LINUX-5.0-2.1.8.0-ubuntu18.04-x86_64 && \
+RUN tar -xzf /tmp/MLNX_OFED_LINUX-5.1-2.5.8.0-ubuntu18.04-x86_64.tgz && \
+ cd MLNX_OFED_LINUX-5.1-2.5.8.0-ubuntu18.04-x86_64 && \
  apt-get update && apt-get install -y --no-install-recommends \
     ./DEBS_UPSTREAM_LIBS/libibverbs* ./DEBS_UPSTREAM_LIBS/ibverbs-providers* \
  && rm -rf /var/lib/apt/lists/* \
  && rm -rf /tmp/MLNX_OFED_LINUX*
 
-RUN rm -rf /MLNX_OFED_LINUX-5.0-2.1.8.0-ubuntu18.04-x86_64*
+RUN rm -rf /MLNX_OFED_LINUX-5.1-2.5.8.0-ubuntu18.04-x86_64*
 
 RUN /opt/conda/bin/conda install -n $CONDA_ENV -c conda-forge autoconf cython automake make libtool \
                                  pkg-config m4 \
