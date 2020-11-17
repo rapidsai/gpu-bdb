@@ -29,7 +29,6 @@ dependencies:
   - oauth2client
   - pip
   - pip:
-    - transformers
     - jupyter-server-proxy
     - git+https://github.com/dask/dask.git
     - git+https://github.com/dask/distributed.git
