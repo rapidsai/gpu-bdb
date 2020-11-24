@@ -1,5 +1,5 @@
 channels:
-  - blazingsql-nightly/label/cuda10.2
+  - blazingsql-nightly
   - rapidsai-nightly
   - nvidia
   - conda-forge
