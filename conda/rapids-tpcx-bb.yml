@@ -13,6 +13,8 @@ dependencies:
   - dask-cuda
   - dask-cudf
   - cuml
+  - dask
+  - distributed
   - ucx-py
   - ucx-proc=*=gpu
   - blazingsql
@@ -30,5 +32,3 @@ dependencies:
   - pip
   - pip:
     - jupyter-server-proxy
-    - git+https://github.com/dask/dask.git
-    - git+https://github.com/dask/distributed.git
