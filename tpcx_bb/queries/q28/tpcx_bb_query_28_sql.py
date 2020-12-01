@@ -313,12 +313,9 @@ def main(data_dir, client, bc, config):
         FROM product_reviews
         WHERE mod(pr_review_sk, 10) IN (0)
         AND pr_review_content IS NOT NULL
-        -- in a near future we want to use ORDER BY again
-        --ORDER BY pr_review_sk
+        ORDER BY pr_review_sk
     """
     test_data = bc.sql(query1)
-    # in a near future we want to reuse ORDER BY instead of bc.partition()
-    test_data = bc.partition(test_data, by=["pr_review_sk"])
 
     # 90 % of data
     query2 = """
@@ -332,8 +329,6 @@ def main(data_dir, client, bc, config):
         --ORDER BY pr_review_sk
     """
     train_data = bc.sql(query2)
-    # in a near future we want to reuse ORDER BY instead of bc.partition()
-    train_data = bc.partition(train_data, by=["pr_review_sk"])
 
     final_data, acc, prec, cmat = post_etl_processing(
         client=client, train_data=train_data, test_data=test_data
@@ -347,6 +342,8 @@ def main(data_dir, client, bc, config):
         "output_type": "supervised",
     }
 
+    del test_data
+    del train_data
     return payload
 
 
