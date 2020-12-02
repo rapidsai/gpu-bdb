@@ -326,7 +326,7 @@ def main(data_dir, client, bc, config):
         FROM product_reviews
         WHERE mod(pr_review_sk, 10) IN (1,2,3,4,5,6,7,8,9)
         AND pr_review_content IS NOT NULL
-        --ORDER BY pr_review_sk
+        ORDER BY pr_review_sk
     """
     train_data = bc.sql(query2)
 
