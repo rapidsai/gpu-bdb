@@ -1,0 +1,31 @@
+channels:
+  - blazingsql-nightly
+  - rapidsai-nightly
+  - nvidia
+  - conda-forge
+  - defaults
+
+dependencies:
+  - python=3.8
+  - cudatoolkit=11.0
+  - cudf
+  - rmm
+  - dask-cuda
+  - dask-cudf
+  - cuml
+  - dask
+  - distributed
+  - blazingsql
+  - scipy
+  - scikit-learn
+  - spacy
+  - oauth2client
+  - asyncssh
+  - psutil
+  - ipykernel
+  - jupyterlab
+  - gspread
+  - oauth2client
+  - pip
+  - pip:
+    - jupyter-server-proxy
