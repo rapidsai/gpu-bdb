@@ -111,7 +111,7 @@ def attach_to_cluster(config, create_blazing_context=False):
     worker_counts = worker_count_info(client)
     for gpu_size, count in worker_counts.items():
         if count != 0:
-            current_workers = worker_counts.pop(gpu_size)
+            current_workers = worker_counts[gpu_size]
             break
 
     if expected_workers is not None and expected_workers != current_workers:
