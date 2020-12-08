@@ -77,7 +77,7 @@ COPY /MLNX_OFED_LINUX-5.1-2.5.8.0-ubuntu18.04-x86_64.tgz /tmp/MLNX_OFED_LINUX-5.
 RUN tar -xzf /tmp/MLNX_OFED_LINUX-5.1-2.5.8.0-ubuntu18.04-x86_64.tgz && \
  cd MLNX_OFED_LINUX-5.1-2.5.8.0-ubuntu18.04-x86_64 && \
  apt-get update && apt-get install -y --no-install-recommends \
-    ./DEBS_UPSTREAM_LIBS/libibverbs* ./DEBS_UPSTREAM_LIBS/ibverbs-providers* \
+    ./DEBS/libibverbs* ./DEBS/ibverbs-providers* \
  && rm -rf /var/lib/apt/lists/* \
  && rm -rf /tmp/MLNX_OFED_LINUX*
 
@@ -130,5 +130,3 @@ ENV GOOGLE_SHEETS_CREDENTIALS_PATH=/creds.json
 RUN conda clean --all
 
 WORKDIR /
-
-
