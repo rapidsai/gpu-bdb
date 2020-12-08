@@ -1,7 +1,13 @@
-#NVLINK or TCP
 ROLE=$1
-CLUSTER_MODE="TCP"
 USERNAME=$(whoami)
+
+# NVLINK or TCP, based on environment variable (or manual setting)
+if [ -z "$CLUSTER_MODE" ]
+then
+    CLUSTER_MODE="TCP"
+else
+    CLUSTER_MODE=$CLUSTER_MODE
+fi
 
 MAX_SYSTEM_MEMORY=$(free -m | awk '/^Mem:/{print $2}')M
 DEVICE_MEMORY_LIMIT="25GB"
@@ -45,13 +51,16 @@ export DASK_DISTRIBUTED__COMM__RETRY__DELAY__MAX="60s"
 INTERFACE="ib0"
 
 # Setup scheduler
+SCHEDULER_PORT=8786
+DASHBOARD_ADDRESS=8787
+
 if [ "$ROLE" = "SCHEDULER" ]; then
   if [ "$CLUSTER_MODE" = "NVLINK" ]; then
-     CUDA_VISIBLE_DEVICES='0' DASK_UCX__CUDA_COPY=True DASK_UCX__TCP=True DASK_UCX__NVLINK=True DASK_UCX__INFINIBAND=False DASK_UCX__RDMACM=False nohup dask-scheduler --dashboard-address 8787 --interface $INTERFACE --protocol ucx --scheduler-file $SCHEDULER_FILE > $LOGDIR/scheduler.log 2>&1 &
+     CUDA_VISIBLE_DEVICES='0' DASK_UCX__CUDA_COPY=True DASK_UCX__TCP=True DASK_UCX__NVLINK=True DASK_UCX__INFINIBAND=False DASK_UCX__RDMACM=False nohup dask-scheduler --dashboard-address $DASHBOARD_ADDRESS --port $SCHEDULER_PORT --interface $INTERFACE --protocol ucx --scheduler-file $SCHEDULER_FILE > $LOGDIR/scheduler.log 2>&1 &
   fi
   
   if [ "$CLUSTER_MODE" = "TCP" ]; then
-     CUDA_VISIBLE_DEVICES='0' nohup dask-scheduler --dashboard-address 8787 --interface $INTERFACE --protocol tcp --scheduler-file $SCHEDULER_FILE > $LOGDIR/scheduler.log 2>&1 &
+     CUDA_VISIBLE_DEVICES='0' nohup dask-scheduler --dashboard-address $DASHBOARD_ADDRESS --port $SCHEDULER_PORT --interface $INTERFACE --protocol tcp --scheduler-file $SCHEDULER_FILE > $LOGDIR/scheduler.log 2>&1 &
   fi
 fi
 
