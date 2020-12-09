@@ -317,8 +317,9 @@ def main(data_dir, client, bc, config):
         --ORDER BY pr_review_sk
     """
     test_data = bc.sql(query1)
-    # in a near future we want to reuse ORDER BY instead of bc.partition()
-    test_data = bc.partition(test_data, by=["pr_review_sk"])
+    test_data = test_data.sort_values(
+        by=["pr_review_sk"]
+    ).reset_index(drop=True)
 
     # 90 % of data
     query2 = """
@@ -329,11 +330,13 @@ def main(data_dir, client, bc, config):
         FROM product_reviews
         WHERE mod(pr_review_sk, 10) IN (1,2,3,4,5,6,7,8,9)
         AND pr_review_content IS NOT NULL
+        -- in a near future we want to use ORDER BY again
         --ORDER BY pr_review_sk
     """
     train_data = bc.sql(query2)
-    # in a near future we want to reuse ORDER BY instead of bc.partition()
-    train_data = bc.partition(train_data, by=["pr_review_sk"])
+    train_data = train_data.sort_values(
+        by=["pr_review_sk"]
+    ).reset_index(drop=True)
 
     final_data, acc, prec, cmat = post_etl_processing(
         client=client, train_data=train_data, test_data=test_data
