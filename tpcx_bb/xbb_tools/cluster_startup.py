@@ -50,7 +50,7 @@ def get_bsql_config_options():
     config_options['BLAZING_CACHE_DIRECTORY'] = os.environ.get("BLAZING_CACHE_DIRECTORY", '/tmp/')
     config_options['LOGGING_LEVEL'] = os.environ.get("LOGGING_LEVEL", "trace")
     config_options['MAX_JOIN_SCATTER_MEM_OVERHEAD'] = os.environ.get("MAX_JOIN_SCATTER_MEM_OVERHEAD", 500000000)
-    config_options['PRTOTOCOL'] = os.environ.get("PROTOCOL", "TCP")
+    config_options['PROTOCOL'] = os.environ.get("PROTOCOL", "TCP")
 
     return config_options
 
