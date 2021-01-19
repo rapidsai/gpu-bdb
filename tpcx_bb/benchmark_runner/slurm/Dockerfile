@@ -89,8 +89,9 @@ RUN /opt/conda/bin/conda install -n $CONDA_ENV -c conda-forge autoconf cython au
 
 
 # Install UCX
-ADD https://raw.githubusercontent.com/rapidsai/ucx-split-feedstock/master/recipe/add-page-alignment.patch /tmp/add-page-alignment.patch
-ADD https://raw.githubusercontent.com/rapidsai/ucx-split-feedstock/master/recipe/ib_registration_cache.patch /tmp/ib_registration_cache.patch
+ADD https://raw.githubusercontent.com/rapidsai/ucx-split-feedstock/ea89f32eae0650de852c32ea48f99b0f3a7a608f/recipe/add-page-alignment.patch /tmp/add-page-alignment.patch
+ADD https://raw.githubusercontent.com/rapidsai/ucx-split-feedstock/ea89f32eae0650de852c32ea48f99b0f3a7a608f/recipe/ib_registration_cache.patch /tmp/ib_registration_cache.patch
+
 
 RUN git clone --recurse-submodules -b v1.8.x https://github.com/openucx/ucx /tmp/ucx \
  && cd /tmp/ucx \
@@ -114,7 +115,7 @@ RUN git clone --recurse-submodules -b v1.8.x https://github.com/openucx/ucx /tmp
 
 # Install UCX-py
 RUN set -x \
- && git clone --recurse-submodules -j${PARALLEL_LEVEL} -b branch-0.16 https://github.com/rapidsai/ucx-py.git /tmp/ucx-py \
+ && git clone --recurse-submodules -j${PARALLEL_LEVEL} -b branch-0.18 https://github.com/rapidsai/ucx-py.git /tmp/ucx-py \
  && source activate $CONDA_ENV \
  && cd /tmp/ucx-py \
  && python setup.py build_ext --inplace \
