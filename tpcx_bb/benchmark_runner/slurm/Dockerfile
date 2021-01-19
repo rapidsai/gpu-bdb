@@ -89,7 +89,6 @@ RUN /opt/conda/bin/conda install -n $CONDA_ENV -c conda-forge autoconf cython au
 
 
 # Install UCX
-ADD https://raw.githubusercontent.com/rapidsai/ucx-split-feedstock/ea89f32eae0650de852c32ea48f99b0f3a7a608f/recipe/add-page-alignment.patch /tmp/add-page-alignment.patch
 ADD https://raw.githubusercontent.com/rapidsai/ucx-split-feedstock/ea89f32eae0650de852c32ea48f99b0f3a7a608f/recipe/ib_registration_cache.patch /tmp/ib_registration_cache.patch
 
 
