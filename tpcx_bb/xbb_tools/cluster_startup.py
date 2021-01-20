@@ -123,6 +123,7 @@ def attach_to_cluster(config, create_blazing_context=False):
     config["16GB_workers"] = worker_counts.get("16GB", 0)
     config["32GB_workers"] = worker_counts.get("32GB", 0)
     config["40GB_workers"] = worker_counts.get("40GB", 0)
+    config["80GB_workers"] = worker_counts.get("80GB", 0)
 
     bc = None
     if create_blazing_context:
@@ -146,9 +147,9 @@ def worker_count_info(client):
 
     Assumes all GPUs are of the same type.
     """
-    gpu_sizes = ["16GB", "32GB", "40GB"]
+    gpu_sizes = ["16GB", "32GB", "40GB", "80GB"]
     counts_by_gpu_size = dict.fromkeys(gpu_sizes, 0)
-    tolerance = "2.6GB"
+    tolerance = "6.3GB"
 
     worker_info = client.scheduler_info()["workers"]
     for worker, info in worker_info.items():
