@@ -104,6 +104,12 @@ def attach_to_cluster(config, create_blazing_context=False):
     # Get ucx config variables
     ucx_config = client.submit(_get_ucx_config).result()
     config.update(ucx_config)
+    
+    # CuPy should use RMM on all worker and client processes
+    import cupy as cp
+    import rmm
+    cp.cuda.set_allocator(rmm.rmm_cupy_allocator)
+    client.run(cp.cuda.set_allocator, rmm.rmm_cupy_allocator)
 
     # Save worker information
     # Assumes all GPUs are the same size
