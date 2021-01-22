@@ -1,16 +1,9 @@
 ROLE=$1
 USERNAME=$(whoami)
-
-# NVLINK, IB, or TCP, based on environment variable (or manual setting)
-# Default to TCP
-if [ -z "$CLUSTER_MODE" ]
-then
-    CLUSTER_MODE="TCP"
-else
-    CLUSTER_MODE=$CLUSTER_MODE
-fi
-
 HOSTNAME=$HOSTNAME
+
+# NVLINK, IB, or TCP (default TCP)
+CLUSTER_MODE="TCP"
 
 MAX_SYSTEM_MEMORY=$(free -m | awk '/^Mem:/{print $2}')M
 DEVICE_MEMORY_LIMIT="70GB"
