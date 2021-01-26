@@ -62,7 +62,6 @@ RUN set -x \
 deb http://archive.ubuntu.com/ubuntu/ xenial universe\n\
 deb http://archive.ubuntu.com/ubuntu/ xenial-updates universe\
 '" >> /etc/apt/sources.list.d/xenial.list \
- && apt update -y || true && apt install -y libibcm-dev \
  && rm /etc/apt/sources.list.d/xenial.list \
  # cleanup
  && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
@@ -77,7 +76,8 @@ COPY /MLNX_OFED_LINUX-5.1-2.5.8.0-ubuntu18.04-x86_64.tgz /tmp/MLNX_OFED_LINUX-5.
 RUN tar -xzf /tmp/MLNX_OFED_LINUX-5.1-2.5.8.0-ubuntu18.04-x86_64.tgz && \
  cd MLNX_OFED_LINUX-5.1-2.5.8.0-ubuntu18.04-x86_64 && \
  apt-get update && apt-get install -y --no-install-recommends \
-    ./DEBS/libibverbs* ./DEBS/ibverbs-providers* \
+    ./DEBS/libibverbs* ./DEBS/ibverbs-providers* ./DEBS/librdma* \
+    ./DEBS/perftest* \
  && rm -rf /var/lib/apt/lists/* \
  && rm -rf /tmp/MLNX_OFED_LINUX*
 
@@ -89,14 +89,13 @@ RUN /opt/conda/bin/conda install -n $CONDA_ENV -c conda-forge autoconf cython au
 
 
 # Install UCX
-ADD https://raw.githubusercontent.com/rapidsai/ucx-split-feedstock/master/recipe/add-page-alignment.patch /tmp/add-page-alignment.patch
-ADD https://raw.githubusercontent.com/rapidsai/ucx-split-feedstock/master/recipe/ib_registration_cache.patch /tmp/ib_registration_cache.patch
+ADD https://raw.githubusercontent.com/rapidsai/ucx-split-feedstock/bd0377fb7363fd0ddbc3d506ae3414ef6f2e2f50/recipe/add-page-alignment.patch /tmp/add-page-alignment.patch
+ADD https://raw.githubusercontent.com/rapidsai/ucx-split-feedstock/bd0377fb7363fd0ddbc3d506ae3414ef6f2e2f50/recipe/ib_registration_cache.patch /tmp/ib_registration_cache.patch
 
-RUN git clone --recurse-submodules -b v1.8.x https://github.com/openucx/ucx /tmp/ucx \
+
+RUN git clone --recurse-submodules -b v1.9.x https://github.com/openucx/ucx /tmp/ucx \
  && cd /tmp/ucx \
  && source activate $CONDA_ENV \
- && patch -p1 < /tmp/ib_registration_cache.patch \
- && patch -p1 < /tmp/add-page-alignment.patch \
  && ./autogen.sh \
  && ./configure \
     --prefix="${CONDA_PREFIX}" \
@@ -105,7 +104,6 @@ RUN git clone --recurse-submodules -b v1.8.x https://github.com/openucx/ucx /tmp
     --enable-mt \
     --enable-numa \
     --with-gnu-ld \
-    --with-cm \
     --with-rdmacm \
     --with-verbs \
     --with-cuda="${CUDA_HOME}" \
@@ -114,12 +112,23 @@ RUN git clone --recurse-submodules -b v1.8.x https://github.com/openucx/ucx /tmp
 
 # Install UCX-py
 RUN set -x \
- && git clone --recurse-submodules -j${PARALLEL_LEVEL} -b branch-0.16 https://github.com/rapidsai/ucx-py.git /tmp/ucx-py \
+ && git clone --recurse-submodules -j${PARALLEL_LEVEL} -b branch-0.17 https://github.com/rapidsai/ucx-py.git /tmp/ucx-py \
  && source activate $CONDA_ENV \
  && cd /tmp/ucx-py \
  && python setup.py build_ext --inplace \
  && python -m pip install . --no-deps --no-cache-dir -vvvv \
  && rm -rf /tmp/ucx-py
+
+
+## Install Latest Dask/Distributed
+RUN set -x \
+    && source activate $CONDA_ENV \
+    && git clone https://github.com/dask/dask.git /tmp/dask \
+    && git clone https://github.com/dask/distributed.git /tmp/distributed \
+    && cd /tmp/dask && python -m pip install . \
+    && cd /tmp/distributed \
+    && python -m pip install -vv --no-deps --install-option="--with-cython=profile" . \
+    && rm -rf /tmp/dask /tmp/distributed
 
 # use login shell when exec'ing into the container
 # SHELL ["/bin/bash", "-l"]
