@@ -774,8 +774,8 @@ def build_benchmark_googlesheet_payload(config):
     import blazingsql
     payload = OrderedDict(
         {
-            "Query Number": int(QUERY_NUM),
-            "Protocol": data.get("protocol"),
+            "Query Number": QUERY_NUM,
+            "Protocol": "UCX" if data.get("nvlink") == True else "TCP",
             "NVLINK": data.get("nvlink", "NA"),
             "Infiniband": data.get("infiniband", "NA"),
             "Query Type": "blazing" if is_blazing_query() else "dask",
@@ -783,7 +783,7 @@ def build_benchmark_googlesheet_payload(config):
             "Time (seconds)": query_time + writing_time
             if query_time and writing_time
             else "NA",
-            "Query Time(seconds)": query_time if query_time else "NA",
+            "Query Time (seconds)": query_time if query_time else "NA",
             "Writing Results Time": writing_time if writing_time else "NA",
             # read time
             "Compute Read + Repartition small table Time(seconds)": compute_read_table_time
@@ -793,12 +793,11 @@ def build_benchmark_googlesheet_payload(config):
             if read_graph_creation_time
             else "NA",
             "Machine Setup": data.get("hostname"),
+            "Number of GPUs": data.get("num_workers"),
             "Data Location": data.get("data_dir"),
-            "Repartition_small_table": data.get("repartition_small_table"),
-            "Result verified": data.get("result_verified"),
             "Current Time": current_time,
-            "Device Memory Limit": data.get("device_memory_limit"),
             "cuDF Version": data.get("cudf"),
+            "BlazingSQL Version": data.get("blazingsql"),
             "Dask Version": data.get("dask"),
             "Distributed Version": data.get("distributed"),
             "Dask-CUDA Version": data.get("dask-cuda"),
@@ -807,8 +806,6 @@ def build_benchmark_googlesheet_payload(config):
             "RMM Version": data.get("rmm"),
             "cuML Version": data.get("cuml"),
             "CuPy Version": data.get("cupy"),
-            "Num 16GB workers": data.get("16GB_workers"),
-            "Num 32GB workers": data.get("32GB_workers"),
             "Query Status": data.get("query_status", "Unknown"),
             "BlazingSQL version":  blazingsql.__version__  if is_blazing_query() else "",
             "allocator": os.environ.get("BLAZING_ALLOCATOR_MODE", "managed") if is_blazing_query() else "",
@@ -824,7 +821,8 @@ def is_blazing_query():
     """
     Method that returns true if `blazingsql` is imported returns false otherwise
     """
-    return "blazingsql" in sys.modules
+    return "blazingsql" in sys.modules  # "bsql" in inspect.stack()[-3].function
+
 
 def _get_benchmarked_method_time(
     filename, field="elapsed_time_seconds", query_start_time=None
@@ -854,6 +852,7 @@ def generate_library_information():
         "dask-cuda",
         "rmm",
         "cupy",
+        "blazingsql",
     ]
 
     conda_list_command = (

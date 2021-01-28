@@ -39,7 +39,6 @@ def get_bsql_config_options():
     config_options['MAX_KERNEL_RUN_THREADS'] = os.environ.get("MAX_KERNEL_RUN_THREADS", 3)
     config_options['TABLE_SCAN_KERNEL_NUM_THREADS'] = os.environ.get("TABLE_SCAN_KERNEL_NUM_THREADS", 1)
     config_options['MAX_NUM_ORDER_BY_PARTITIONS_PER_NODE'] = os.environ.get("MAX_NUM_ORDER_BY_PARTITIONS_PER_NODE", 20)
-    config_options['ORDER_BY_SAMPLES_RATIO'] = os.environ.get("ORDER_BY_SAMPLES_RATIO", 0.0002)
     config_options['NUM_BYTES_PER_ORDER_BY_PARTITION'] = os.environ.get("NUM_BYTES_PER_ORDER_BY_PARTITION", 400000000)
     config_options['MAX_ORDER_BY_SAMPLES_PER_NODE'] = os.environ.get("MAX_ORDER_BY_SAMPLES_PER_NODE", 10000)
     config_options['MAX_SEND_MESSAGE_THREADS'] = os.environ.get("MAX_SEND_MESSAGE_THREADS", 20)
@@ -50,7 +49,7 @@ def get_bsql_config_options():
     config_options['BLAZING_CACHE_DIRECTORY'] = os.environ.get("BLAZING_CACHE_DIRECTORY", '/tmp/')
     config_options['LOGGING_LEVEL'] = os.environ.get("LOGGING_LEVEL", "trace")
     config_options['MAX_JOIN_SCATTER_MEM_OVERHEAD'] = os.environ.get("MAX_JOIN_SCATTER_MEM_OVERHEAD", 500000000)
-    config_options['PROTOCOL'] = os.environ.get("PROTOCOL", "TCP")
+    config_options['PROTOCOL'] = os.environ.get("PROTOCOL", "AUTO")
 
     return config_options
 
@@ -105,6 +104,12 @@ def attach_to_cluster(config, create_blazing_context=False):
     # Get ucx config variables
     ucx_config = client.submit(_get_ucx_config).result()
     config.update(ucx_config)
+    
+    # CuPy should use RMM on all worker and client processes
+    import cupy as cp
+    import rmm
+    cp.cuda.set_allocator(rmm.rmm_cupy_allocator)
+    client.run(cp.cuda.set_allocator, rmm.rmm_cupy_allocator)
 
     # Save worker information
     # Assumes all GPUs are the same size
@@ -124,6 +129,7 @@ def attach_to_cluster(config, create_blazing_context=False):
     config["16GB_workers"] = worker_counts.get("16GB", 0)
     config["32GB_workers"] = worker_counts.get("32GB", 0)
     config["40GB_workers"] = worker_counts.get("40GB", 0)
+    config["80GB_workers"] = worker_counts.get("80GB", 0)
 
     bc = None
     if create_blazing_context:
@@ -149,9 +155,9 @@ def worker_count_info(client):
 
     Assumes all GPUs are of the same type.
     """
-    gpu_sizes = ["16GB", "32GB", "40GB"]
+    gpu_sizes = ["16GB", "32GB", "40GB", "80GB"]
     counts_by_gpu_size = dict.fromkeys(gpu_sizes, 0)
-    tolerance = "2.6GB"
+    tolerance = "6.3GB"
 
     worker_info = client.scheduler_info()["workers"]
     for worker, info in worker_info.items():

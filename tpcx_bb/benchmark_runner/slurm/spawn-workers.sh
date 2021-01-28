@@ -7,6 +7,7 @@ LOGDIR=$HOME/dask-local-directory/logs
 # BSQL setup
 export INTERFACE="enp97s0f1"
 export BLAZING_ALLOCATOR_MODE="existing"
+export BLAZING_LOGGING_DIRECTORY=/tpcx-bb-data/tpcx-bb/blazing_log
 
 echo $LOGDIR
 echo ls -l $LOGDIR

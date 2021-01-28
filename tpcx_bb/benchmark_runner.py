@@ -3,6 +3,7 @@ import re
 import os
 import gc
 import time
+import uuid
 
 N_REPEATS = 1
 
@@ -40,6 +41,8 @@ if __name__ == "__main__":
     }
 
     config = tpcxbb_argparser()
+    config["run_id"] = uuid.uuid4().hex
+
     include_blazing = config.get("benchmark_runner_include_bsql")
     client, bc = attach_to_cluster(config, create_blazing_context=include_blazing)
     # Preload required libraries for queries on all workers

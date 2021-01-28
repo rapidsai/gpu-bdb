@@ -328,10 +328,7 @@ def main(data_dir, client, bc, config):
         AND pr_review_content IS NOT NULL
         ORDER BY pr_review_sk
     """
-    # we want to get more samples than the default value
-    config_options = {}
-    config_options['ORDER_BY_SAMPLES_RATIO'] = 0.002
-    train_data = bc.sql(query2, config_options=config_options)
+    train_data = bc.sql(query2)
 
     final_data, acc, prec, cmat = post_etl_processing(
         client=client, train_data=train_data, test_data=test_data
