@@ -1,10 +1,10 @@
-# RAPIDS TPCx-BB
+# RAPIDS GPU-BDB
 
 ## Overview
 
-TPCx-BB is a Big Data benchmark for enterprises that includes 30 queries representing real-world ETL & ML workflows at various "scale factors": SF1000 is 1 TB of data, SF10000 is 10TB. Each “query” is in fact a model workflow that can include SQL, user-defined functions, careful sub-setting and aggregation, and machine learning. To date, these queries have been run with [Apache Hive](http://hive.apache.org/) and [Apache Spark](http://spark.apache.org/).
+The GPU Big Data Benchmark (gpu-bdb) is a benchmark for enterprises that includes 30 queries representing real-world ETL & ML workflows at various "scale factors": SF1000 is 1 TB of data, SF10000 is 10TB. Each “query” is in fact a model workflow that can include SQL, user-defined functions, careful sub-setting and aggregation, and machine learning. To date, these queries have been run with [Apache Hive](http://hive.apache.org/) and [Apache Spark](http://spark.apache.org/).
 
-This repository provides implementations of the TPCx-BB queries using [RAPIDS](https://rapids.ai/) libraries. For more information about the TPCx-BB Benchmark, please visit the [TPCx-BB homepage](http://www.tpc.org/tpcx-bb/).
+Derived from [TPCx-BB](http://www.tpc.org/tpcx-bb/), this repository provides implementations of the TPCx-BB queries using [RAPIDS](https://rapids.ai/) libraries.
 
 
 ## Conda Environment Setup
@@ -12,16 +12,16 @@ This repository provides implementations of the TPCx-BB queries using [RAPIDS](h
 We provide a conda environment definition specifying all RAPIDS dependencies needed to run our query implementations. To install and activate it:
 
 ```bash
-CONDA_ENV="rapids-tpcx-bb"
-conda env create --name $CONDA_ENV -f tpcx-bb/conda/rapids-tpcx-bb.yml
-conda activate rapids-tpcx-bb
+CONDA_ENV="rapids-gpu-bdb"
+conda env create --name $CONDA_ENV -f gpu-bdb/conda/rapids-gpu-bdb.yml
+conda activate rapids-gpu-bdb
 ```
 
-### Installing RAPIDS TPCxBB Tools
+### Installing RAPIDS xbb Tools
 This repository includes a small local module containing utility functions for running the queries. You can install it with the following:
 
 ```bash
-cd tpcx-bb/tpcx_bb
+cd gpu-bdb/gpu_bdb
 python -m pip install .
 
 ```
@@ -57,7 +57,7 @@ Before running the script, you'll make changes specific to your environment.
 
 In `cluster_configuration/cluster-startup.sh`:
 
-    - Update `TPCX_BB_HOME=...` to location on disk of this repo
+    - Update `GPU_BDB_HOME=...` to location on disk of this repo
     - Update `CONDA_ENV_PATH=...` to refer to your conda environment path.
     - Update `CONDA_ENV_NAME=...` to refer to the name of the conda environment you created, perhaps using the `yml` files provided in this repository.
     - Update `INTERFACE=...` to refer to the relevant network interface present on your cluster.
@@ -65,13 +65,13 @@ In `cluster_configuration/cluster-startup.sh`:
     - You may also need to change the `LOCAL_DIRECTORY` and `WORKER_DIR` depending on your filesystem. Make sure that these point to a location to which you have write access and that `LOCAL_DIRECTORY` is accessible from all nodes.
 
 
-To start up the cluster on your scheduler node, please run the following from `tpcx_bb/cluster_configuration/`. This will spin up a scheduler and one Dask worker per GPU.
+To start up the cluster on your scheduler node, please run the following from `gpu_bdb/cluster_configuration/`. This will spin up a scheduler and one Dask worker per GPU.
 
 ```bash
 bash cluster-startup.sh SCHEDULER
 ```
 
-Then run the following on every other node from `tpcx_bb/cluster_configuration/`.
+Then run the following on every other node from `gpu_bdb/cluster_configuration/`.
 
 ```bash
 bash cluster-startup.sh
@@ -85,14 +85,14 @@ This will spin up one Dask worker per GPU. If you are running on a single node, 
 To run a query, starting from the repository root, go to the query specific subdirectory. For example, to run q07:
 
 ```bash
-cd tpcx_bb/queries/q07/
+cd gpu_bdb/queries/q07/
 ```
 
 The queries assume that they can attach to a running Dask cluster. Cluster address and other benchmark configuration lives in a yaml file. You will need to fill this out as appropriate.
 
 ```bash
-conda activate rapids-tpcx-bb
-python tpcx_bb_query_07.py --config_file=../../benchmark_runner/benchmark_config.yaml
+conda activate rapids-gpu-bdb
+python gpu_bdb_query_07.py --config_file=../../benchmark_runner/benchmark_config.yaml
 ```
 
 ## Performance Tracking
@@ -107,7 +107,7 @@ Then configure the `--sheet` and `--tab` arguments in benchmark_config.yaml.
 
 The included `benchmark_runner.py` script will run all queries sequentially. Configuration for this type of end-to-end run is specified in `benchmark_runner/benchmark_config.yaml`.
 
-To run all queries, cd to `tpcx_bb/` and:
+To run all queries, cd to `gpu_bdb/` and:
 
 ```python
 python benchmark_runner.py --config_file benchmark_runner/benchmark_config.yaml
@@ -123,4 +123,4 @@ BlazingSQL implementations of all queries are included. BlazingSQL currently sup
 
 ## Data Generation
 
-The RAPIDS queries expect [Apache Parquet](http://parquet.apache.org/) formatted data. We provide a [script](tpcx_bb/queries/load_test/tpcx_bb_load_test.py) which can be used to convert bigBench dataGen's raw CSV files to optimally sized Parquet partitions.
+The RAPIDS queries expect [Apache Parquet](http://parquet.apache.org/) formatted data. We provide a [script](gpu_bdb/queries/load_test/gpu_bdb_load_test.py) which can be used to convert bigBench dataGen's raw CSV files to optimally sized Parquet partitions.
