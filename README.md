@@ -2,7 +2,7 @@
 
 ## Disclaimer
 
-gpu-bdb is derived from [TPCx-BB](http://www.tpc.org/tpcx-bb/). While this repository implements logic included in TPCx-BB adapted to run on GPUs, it has not been reviewed by the [TPC](http://www.tpc.org/) and cannot be considered an official submission. gpu-bdb benchmark results are **NOT** comparable to TPCx-BB benchmark results.
+gpu-bdb is derived from [TPCx-BB](http://www.tpc.org/tpcx-bb/). Any results based on gpu-bdb are considered unofficial results, and per [TPC](http://www.tpc.org/) policy, cannot be compared against official TPCx-BB results.
 
 ## Overview
 
