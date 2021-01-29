@@ -1,11 +1,12 @@
 # RAPIDS GPU-BDB
 
+## Disclaimer
+
+gpu-bdb is derived from [TPCx-BB](http://www.tpc.org/tpcx-bb/), this repository provides implementations of the TPCx-BB queries using [RAPIDS](https://rapids.ai/) libraries. gpu-bdb benchmark results are *NOT* comparable to official tpcx-bb results.
+
 ## Overview
 
 The GPU Big Data Benchmark (gpu-bdb) is a benchmark for enterprises that includes 30 queries representing real-world ETL & ML workflows at various "scale factors": SF1000 is 1 TB of data, SF10000 is 10TB. Each “query” is in fact a model workflow that can include SQL, user-defined functions, careful sub-setting and aggregation, and machine learning. To date, these queries have been run with [Apache Hive](http://hive.apache.org/) and [Apache Spark](http://spark.apache.org/).
-
-Derived from [TPCx-BB](http://www.tpc.org/tpcx-bb/), this repository provides implementations of the TPCx-BB queries using [RAPIDS](https://rapids.ai/) libraries.
-
 
 ## Conda Environment Setup
 
