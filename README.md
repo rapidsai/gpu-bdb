@@ -18,7 +18,7 @@ conda env create --name $CONDA_ENV -f gpu-bdb/conda/rapids-gpu-bdb.yml
 conda activate rapids-gpu-bdb
 ```
 
-### Installing RAPIDS xbb Tools
+### Installing RAPIDS bdb Tools
 This repository includes a small local module containing utility functions for running the queries. You can install it with the following:
 
 ```bash
@@ -27,11 +27,11 @@ python -m pip install .
 
 ```
 
-This will install a package named `xbb-tools` into your Conda environment. It should look like this:
+This will install a package named `bdb-tools` into your Conda environment. It should look like this:
 
 ```bash
-conda list | grep xbb
-xbb-tools                 0.2                      pypi_0    pypi
+conda list | grep bdb
+bdb-tools                 0.2                      pypi_0    pypi
 ```
 
 Note that this Conda environment needs to be replicated or installed manually on all nodes, which will allow starting one dask-cuda-worker per node.
