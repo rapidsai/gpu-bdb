@@ -2,7 +2,7 @@
 
 ## Disclaimer
 
-gpu-bdb is derived from [TPCx-BB](http://www.tpc.org/tpcx-bb/), this repository provides [RAPIDS](https://rapids.ai) library based implementations of TPCx-BB query logic using. gpu-bdb benchmark results are **NOT** comparable to official tpcx-bb results.
+gpu-bdb is derived from [TPCx-BB](http://www.tpc.org/tpcx-bb/), this repository provides [RAPIDS](https://rapids.ai) library based implementations of TPCx-BB query logic using GPUs. gpu-bdb benchmark results are **NOT** comparable to official tpcx-bb results.
 
 ## Overview
 
