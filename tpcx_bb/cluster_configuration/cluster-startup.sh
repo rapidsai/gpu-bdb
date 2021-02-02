@@ -10,21 +10,22 @@ else
 fi
 
 MAX_SYSTEM_MEMORY=$(free -m | awk '/^Mem:/{print $2}')M
-DEVICE_MEMORY_LIMIT="25GB"
+DEVICE_MEMORY_LIMIT="15GB"
 POOL_SIZE="30GB"
 
-TPCX_BB_HOME=$HOME/tpcx-bb
-CONDA_ENV_NAME="rapids-tpcx-bb"
+GPU_BDB_HOME=$HOME/gpu-bdb
+CONDA_ENV_NAME="rapids-gpu-bdb"
 CONDA_ENV_PATH="/home/$USERNAME/conda/etc/profile.d/conda.sh"
 
 # Used for writing scheduler file and logs to shared storage
 LOCAL_DIRECTORY=$HOME/dask-local-directory
 SCHEDULER_FILE=$LOCAL_DIRECTORY/scheduler.json
 LOGDIR="$LOCAL_DIRECTORY/logs"
-WORKER_DIR=/tmp/$USERNAME/tpcx-bb-dask-workers/
+WORKER_DIR=/tmp/$USERNAME/gpu-bdb-dask-workers/
 
 # Purge Dask worker and log directories
 if [ "$ROLE" = "SCHEDULER" ]; then
+    echo "purging.."
     rm -rf $LOGDIR/*
     mkdir -p $LOGDIR
     rm -rf $WORKER_DIR/*
@@ -38,7 +39,7 @@ rm -rf ~/.config/dask
 source $CONDA_ENV_PATH
 conda activate $CONDA_ENV_NAME
  
-cd $TPCX_BB_HOME/tpcx_bb
+cd $GPU_BDB_HOME/tpcx_bb
 python -m pip install .
 
 # Dask/distributed configuration
@@ -55,7 +56,9 @@ SCHEDULER_PORT=8786
 DASHBOARD_ADDRESS=8787
 
 if [ "$ROLE" = "SCHEDULER" ]; then
+  echo "I'm scheduler!"
   if [ "$CLUSTER_MODE" = "NVLINK" ]; then
+     echo "Starting sched.."
      CUDA_VISIBLE_DEVICES='0' DASK_UCX__CUDA_COPY=True DASK_UCX__TCP=True DASK_UCX__NVLINK=True DASK_UCX__INFINIBAND=False DASK_UCX__RDMACM=False nohup dask-scheduler --dashboard-address $DASHBOARD_ADDRESS --port $SCHEDULER_PORT --interface $INTERFACE --protocol ucx --scheduler-file $SCHEDULER_FILE > $LOGDIR/scheduler.log 2>&1 &
   fi
   
@@ -66,6 +69,7 @@ fi
 
 # Setup workers
 if [ "$CLUSTER_MODE" = "NVLINK" ]; then
+    echo "Starting workers.."
     dask-cuda-worker --device-memory-limit $DEVICE_MEMORY_LIMIT --local-directory $WORKER_DIR  --rmm-pool-size=$POOL_SIZE --memory-limit=$MAX_SYSTEM_MEMORY --enable-tcp-over-ucx --enable-nvlink  --disable-infiniband --scheduler-file $SCHEDULER_FILE >> $LOGDIR/worker.log 2>&1 &
 fi
 

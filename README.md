@@ -69,8 +69,10 @@ In `cluster_configuration/cluster-startup.sh`:
 To start up the cluster on your scheduler node, please run the following from `gpu_bdb/cluster_configuration/`. This will spin up a scheduler and one Dask worker per GPU.
 
 ```bash
-bash cluster-startup.sh SCHEDULER
+DASK_JIT_UNSPILL=True CLUSTER_MODE=NVLINK bash cluster-startup.sh SCHEDULER
 ```
+
+Note: Don't use DASK_JIT_UNSPILL when running BlazingSQL queries.
 
 Then run the following on every other node from `gpu_bdb/cluster_configuration/`.
 

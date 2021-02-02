@@ -26,21 +26,21 @@ bsql_qnums = [str(i).zfill(2) for i in range(1, 31)]
 
 
 if __name__ == "__main__":
-    from xbb_tools.cluster_startup import attach_to_cluster, import_query_libs
-    from xbb_tools.utils import run_query, tpcxbb_argparser
+    from bdb_tools.cluster_startup import attach_to_cluster, import_query_libs
+    from bdb_tools.utils import run_query, gpubdb_argparser
 
     import_query_libs()
     dask_queries = {
-        qnum: load_query(qnum, f"queries/q{qnum}/tpcx_bb_query_{qnum}.py")
+        qnum: load_query(qnum, f"queries/q{qnum}/gpu_bdb_query_{qnum}.py")
         for qnum in dask_qnums
     }
 
     bsql_queries = {
-        qnum: load_query(qnum, f"queries/q{qnum}/tpcx_bb_query_{qnum}_sql.py")
+        qnum: load_query(qnum, f"queries/q{qnum}/gpu_bdb_query_{qnum}_sql.py")
         for qnum in bsql_qnums
     }
 
-    config = tpcxbb_argparser()
+    config = gpubdb_argparser()
     config["run_id"] = uuid.uuid4().hex
 
     include_blazing = config.get("benchmark_runner_include_bsql")
