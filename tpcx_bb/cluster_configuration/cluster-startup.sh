@@ -25,7 +25,6 @@ WORKER_DIR=/tmp/$USERNAME/gpu-bdb-dask-workers/
 
 # Purge Dask worker and log directories
 if [ "$ROLE" = "SCHEDULER" ]; then
-    echo "purging.."
     rm -rf $LOGDIR/*
     mkdir -p $LOGDIR
     rm -rf $WORKER_DIR/*
@@ -56,13 +55,13 @@ SCHEDULER_PORT=8786
 DASHBOARD_ADDRESS=8787
 
 if [ "$ROLE" = "SCHEDULER" ]; then
-  echo "I'm scheduler!"
   if [ "$CLUSTER_MODE" = "NVLINK" ]; then
-     echo "Starting sched.."
+     echo "Starting UCX scheduler.."
      CUDA_VISIBLE_DEVICES='0' DASK_UCX__CUDA_COPY=True DASK_UCX__TCP=True DASK_UCX__NVLINK=True DASK_UCX__INFINIBAND=False DASK_UCX__RDMACM=False nohup dask-scheduler --dashboard-address $DASHBOARD_ADDRESS --port $SCHEDULER_PORT --interface $INTERFACE --protocol ucx --scheduler-file $SCHEDULER_FILE > $LOGDIR/scheduler.log 2>&1 &
   fi
   
   if [ "$CLUSTER_MODE" = "TCP" ]; then
+     echo "Starting TCP scheduler.."
      CUDA_VISIBLE_DEVICES='0' nohup dask-scheduler --dashboard-address $DASHBOARD_ADDRESS --port $SCHEDULER_PORT --interface $INTERFACE --protocol tcp --scheduler-file $SCHEDULER_FILE > $LOGDIR/scheduler.log 2>&1 &
   fi
 fi
@@ -74,5 +73,6 @@ if [ "$CLUSTER_MODE" = "NVLINK" ]; then
 fi
 
 if [ "$CLUSTER_MODE" = "TCP" ]; then
+    echo "Starting workers.."
     dask-cuda-worker --device-memory-limit $DEVICE_MEMORY_LIMIT --local-directory $WORKER_DIR  --rmm-pool-size=$POOL_SIZE --memory-limit=$MAX_SYSTEM_MEMORY --scheduler-file $SCHEDULER_FILE >> $LOGDIR/worker.log 2>&1 &
 fi
