@@ -774,8 +774,8 @@ def build_benchmark_googlesheet_payload(config):
     import blazingsql
     payload = OrderedDict(
         {
-            "Query Number": QUERY_NUM,
-            "Protocol": "UCX" if data.get("nvlink") == True else "TCP",
+            "Query Number": int(QUERY_NUM),
+            "Protocol": "ucx" if data.get("nvlink") == True else "tcp",
             "NVLINK": data.get("nvlink", "NA"),
             "Infiniband": data.get("infiniband", "NA"),
             "Query Type": "blazing" if is_blazing_query() else "dask",
@@ -793,11 +793,13 @@ def build_benchmark_googlesheet_payload(config):
             if read_graph_creation_time
             else "NA",
             "Machine Setup": data.get("hostname"),
-            "Number of GPUs": data.get("num_workers"),
             "Data Location": data.get("data_dir"),
+            "Repartition small table": data.get("repartition_small_table"),
+            "Result Verified": data.get("verify_results"),
             "Current Time": current_time,
+            "Device Memory Limit" : "",
             "cuDF Version": data.get("cudf"),
-            "BlazingSQL Version": data.get("blazingsql"),
+            #"BlazingSQL Version": data.get("blazingsql"),
             "Dask Version": data.get("dask"),
             "Distributed Version": data.get("distributed"),
             "Dask-CUDA Version": data.get("dask-cuda"),
@@ -806,10 +808,11 @@ def build_benchmark_googlesheet_payload(config):
             "RMM Version": data.get("rmm"),
             "cuML Version": data.get("cuml"),
             "CuPy Version": data.get("cupy"),
+            "Number of 32 GB GPUs": data.get("32GB_workers"),
             "Query Status": data.get("query_status", "Unknown"),
-            "BlazingSQL version":  blazingsql.__version__  if is_blazing_query() else "",
+            "BlazingSQL commit":  blazingsql.__version__  if is_blazing_query() else "",
             "allocator": os.environ.get("BLAZING_ALLOCATOR_MODE", "managed") if is_blazing_query() else "",
-            "network_interface": os.environ.get("INTERFACE", "ib0") if is_blazing_query() else "",
+            "network interface": os.environ.get("INTERFACE", "ib0") if is_blazing_query() else "",
             "config_options": str(get_bsql_config_options()) if is_blazing_query() else "",
         }
     )
