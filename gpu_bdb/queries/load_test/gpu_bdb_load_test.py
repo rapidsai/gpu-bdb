@@ -135,7 +135,7 @@ def main(client, config):
     data_dir = config["data_dir"].split('parquet_')[0]
     outdir = f"{data_dir}/parquet_{part_size}gb/"
 
-    total = 0
+    t0 = time.time()
     for table in tables:
         size_gb = get_size_gb(table)
         # product_reviews has lengthy strings which exceed cudf's max number of characters per column
@@ -145,7 +145,7 @@ def main(client, config):
         else:
             npartitions = max(1, int(size_gb / part_size))
         repartition(table, outdir, npartitions, chunksize, compression="snappy")
-    print(f"{chunksize} took {total}s")
+    print(f"Load test with chunk size of {chunksize} took {time.time() - t0:.2f}s")
     return cudf.DataFrame()
 
 
