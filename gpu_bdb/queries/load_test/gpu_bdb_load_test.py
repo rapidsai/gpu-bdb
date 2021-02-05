@@ -145,7 +145,7 @@ def main(client, config):
         else:
             npartitions = max(1, int(size_gb / part_size))
         repartition(table, outdir, npartitions, chunksize, compression="snappy")
-    print(f"Chunksize: {chunksize} took {time.time() - t0:.2f}s")
+    print(f"Load test with chunk size of {chunksize} took {time.time() - t0:.2f}s")
     return cudf.DataFrame()
 
 
