@@ -7,8 +7,8 @@ DEVICE_MEMORY_LIMIT="25GB"
 POOL_SIZE="30GB"
 
 # Fill in your environment name and conda path on each node
-TPCX_BB_HOME="/home/$USERNAME/shared/tpcx-bb"
-CONDA_ENV_NAME="rapids-tpcx-bb"
+GPU_BDB_HOME="/home/$USERNAME/shared/gpu-bdb"
+CONDA_ENV_NAME="rapids-gpu-bdb"
 CONDA_ENV_PATH="/home/$USERNAME/conda/etc/profile.d/conda.sh"
 
 # TODO: Unify interface/IP setting/getting for cluster startup
@@ -17,9 +17,9 @@ INTERFACE="ib0"
 
 # TODO: Remove hard-coding of scheduler
 SCHEDULER=$(hostname)
-SCHEDULER_FILE=$TPCX_BB_HOME/tpcx_bb/cluster_configuration/example-cluster-scheduler.json
-LOGDIR="/tmp/tpcx-bb-dask-logs/"
-WORKER_DIR="/tmp/tpcx-bb-dask-workers/"
+SCHEDULER_FILE=$GPU_BDB_HOME/gpu_bdb/cluster_configuration/example-cluster-scheduler.json
+LOGDIR="/tmp/gpu-bdb-dask-logs/"
+WORKER_DIR="/tmp/gpu-bdb-dask-workers/"
 
 # Purge Dask worker and log directories
 rm -rf $LOGDIR/*

@@ -143,7 +143,7 @@ def main(client, config):
     ### should scale till sf-100k
     grouped_df = grouped_df.repartition(npartitions=1).persist()
     ## converting to strings because of issue
-    # https://github.com/rapidsai/tpcx-bb/issues/36
+    # https://github.com/rapidsai/gpu-bdb/issues/36
 
     grouped_df["item_sk_1"] = grouped_df["item_sk_1"].astype("str")
     grouped_df["item_sk_2"] = grouped_df["item_sk_2"].astype("str")

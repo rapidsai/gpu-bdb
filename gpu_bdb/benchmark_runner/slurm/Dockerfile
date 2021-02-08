@@ -32,10 +32,10 @@ $CUDA_HOME/bin"
 
 SHELL ["/bin/bash", "-c"]
 
-ENV CONDA_ENV="rapids-tpcx-bb"
+ENV CONDA_ENV="rapids-gpu-bdb"
 
-COPY /rapids-tpcx-bb-cuda11.yml /rapids-tpcx-bb-cuda11.yml
-RUN conda env create --name ${CONDA_ENV} --file /rapids-tpcx-bb-cuda11.yml
+COPY /rapids-gpu-bdb-cuda11.yml /rapids-gpu-bdb-cuda11.yml
+RUN conda env create --name ${CONDA_ENV} --file /rapids-gpu-bdb-cuda11.yml
 RUN conda install -n ${CONDA_ENV} -c conda-forge spacy oauth2client gspread -q -y
 RUN source activate ${CONDA_ENV} && python -m spacy download en_core_web_sm
 
