@@ -9,15 +9,15 @@ MAX_SYSTEM_MEMORY=$(free -m | awk '/^Mem:/{print $2}')M
 DEVICE_MEMORY_LIMIT="70GB"
 POOL_SIZE="78GB"
 
-TPCX_BB_HOME=$HOME/tpcx-bb
-CONDA_ENV_NAME="rapids-tpcx-bb"
+GPU_BDB_HOME=$HOME/gpu-bdb
+CONDA_ENV_NAME="rapids-gpu-bdb"
 CONDA_ENV_PATH="/opt/conda/etc/profile.d/conda.sh"
 
 # Used for writing scheduler file to shared storage
 LOCAL_DIRECTORY=$HOME/dask-local-directory
 SCHEDULER_FILE=$LOCAL_DIRECTORY/scheduler.json
 LOGDIR="$LOCAL_DIRECTORY/logs"
-WORKER_DIR="/tmp/tpcx-bb-dask-workers/"
+WORKER_DIR="/tmp/gpu-bdb-dask-workers/"
 
 # Purge Dask worker and log directories
 if [ "$ROLE" = "SCHEDULER" ]; then
@@ -35,7 +35,7 @@ rm -rf ~/.config/dask
 source $CONDA_ENV_PATH
 conda activate $CONDA_ENV_NAME
 
-cd $TPCX_BB_HOME/tpcx_bb
+cd $GPU_BDB_HOME/gpu_bdb
 python -m pip install .
 
 # Dask/distributed configuration

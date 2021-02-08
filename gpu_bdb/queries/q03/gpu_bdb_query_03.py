@@ -232,9 +232,6 @@ def main(client, config):
     # this causes more memory pressures as we try to read the whole thing ( and spill that)
     # at once and then do filtration .
 
-    ### Below Pr has the dashboard snapshot which makes the problem clear
-    ### https://github.com/rapidsai/tpcx-bb-internal/pull/496#issue-399946141
-
     web_clickstream_flist = glob.glob(os.path.join(config["data_dir"], "web_clickstreams/*.parquet"))
     task_ls = [
         delayed(pre_repartition_task)(fn, item_df.to_delayed()[0], wcs_tstamp_min)

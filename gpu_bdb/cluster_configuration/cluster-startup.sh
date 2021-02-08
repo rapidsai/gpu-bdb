@@ -38,7 +38,7 @@ rm -rf ~/.config/dask
 source $CONDA_ENV_PATH
 conda activate $CONDA_ENV_NAME
  
-cd $GPU_BDB_HOME/tpcx_bb
+cd $GPU_BDB_HOME/gpu_bdb
 python -m pip install .
 
 # Dask/distributed configuration

@@ -7,7 +7,7 @@ The final output is review id, product id, "competitor’s" company name and the
 
 We have two implementations for this query: 
 
-## 1. [HuggingFace Implementation](tpcx_bb_query_hf_27.py) 
+## 1. [HuggingFace Implementation](gpu_bdb_query_hf_27.py)
 
 
 This implementation uses [HuggingFace's](https://huggingface.co/) [token-classification](https://github.com/huggingface/transformers/tree/master/examples/token-classification) to do NER. We suggest choosing between the following models for optimal speed and accuracy. 
@@ -55,7 +55,7 @@ a. Download it from https://huggingface.co/dslim/bert-base-NER
 b. Place it on your shared directory `data_dir` +`../../q27_hf_model`
 
 
-## 2. [spaCy Implementation](tpcx_bb_query_27.py)
+## 2. [spaCy Implementation](gpu_bdb_query_27.py)
 
 This implementation relies on spaCy's [entityrecognizer](https://spacy.io/api/entityrecognizer ) model. 
 

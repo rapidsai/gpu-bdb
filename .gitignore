@@ -1,9 +1,9 @@
 __pycache__
 .ipynb_checkpoints
-tpcx_bb/queries/*/benchmarked*.csv
-tpcx_bb/queries/*/profiled*.html
-tpcx_bb/queries/query-tracebacks
-tpcx_bb/queries/*/*.log
+gpu_bdb/queries/*/benchmarked*.csv
+gpu_bdb/queries/*/profiled*.html
+gpu_bdb/queries/query-tracebacks
+gpu_bdb/queries/*/*.log
 *.qdrep
 *.qdstrm
 *.txt
