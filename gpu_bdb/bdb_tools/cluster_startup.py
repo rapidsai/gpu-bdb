@@ -43,8 +43,8 @@ def get_bsql_config_options():
     config_options['MAX_ORDER_BY_SAMPLES_PER_NODE'] = os.environ.get("MAX_ORDER_BY_SAMPLES_PER_NODE", 10000)
     config_options['MAX_SEND_MESSAGE_THREADS'] = os.environ.get("MAX_SEND_MESSAGE_THREADS", 20)
     config_options['MEMORY_MONITOR_PERIOD'] = os.environ.get("MEMORY_MONITOR_PERIOD", 50)
-    config_options['TRANSPORT_BUFFER_BYTE_SIZE'] = os.environ.get("TRANSPORT_BUFFER_BYTE_SIZE", 10485760) # 10 MBs
-    config_options['TRANSPORT_POOL_NUM_BUFFERS'] = os.environ.get("TRANSPORT_POOL_NUM_BUFFERS", 100)
+    config_options['TRANSPORT_BUFFER_BYTE_SIZE'] = os.environ.get("TRANSPORT_BUFFER_BYTE_SIZE", 1048576) # 1 MBs
+    config_options['TRANSPORT_POOL_NUM_BUFFERS'] = os.environ.get("TRANSPORT_POOL_NUM_BUFFERS", 1000)
     config_options['BLAZING_LOGGING_DIRECTORY'] = os.environ.get("BLAZING_LOGGING_DIRECTORY", 'blazing_log')
     config_options['BLAZING_CACHE_DIRECTORY'] = os.environ.get("BLAZING_CACHE_DIRECTORY", '/tmp/')
     config_options['LOGGING_LEVEL'] = os.environ.get("LOGGING_LEVEL", "trace")
