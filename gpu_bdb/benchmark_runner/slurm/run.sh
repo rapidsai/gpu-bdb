@@ -5,7 +5,7 @@ PARTITION=partition
 NODES=1
 let "WORKER_NODES = $NODES - 1"
 
-IMAGE="/path/to/container/"
+IMAGE=/lustre/fsw/rapids/gpu-bdb/containers/gpu-bdb-20210211.sqsh
 DATA_PATH="/lustre/fsw/rapids"
 MOUNT_PATH="/gpu-bdb-data/"
 GPU_BDB_HOME="$HOME/gpu-bdb"
