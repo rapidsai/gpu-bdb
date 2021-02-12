@@ -2,7 +2,8 @@
 
 ACCOUNT=rapids
 PARTITION=partition
-WORKERS=1
+NODES=1
+let "WORKER_NODES = $NODES - 1"
 
 IMAGE="/path/to/container/"
 DATA_PATH="/lustre/fsw/rapids"
@@ -16,17 +17,21 @@ srun \
     --account $ACCOUNT \
     --partition $PARTITION \
     --nodes 1 \
+    --time 120 \
     --container-mounts $DATA_PATH:$MOUNT_PATH,$HOME:$HOME \
     --container-image=$IMAGE \
-    bash -c "$GPU_BDB_HOME/gpu_bdb/benchmark_runner/slurm/scheduler-client.sh"
+    bash -c "$GPU_BDB_HOME/gpu_bdb/benchmark_runner/slurm/scheduler-client.sh" &
 
+sleep 15
 
-if [ "$WORKERS" -gt "0" ]; then
+if [ "$WORKER_NODES" -gt "0" ]
+then
     srun \
         --account $ACCOUNT \
         --partition $PARTITION \
-        --nodes $WORKERS \
+        --nodes $WORKER_NODES \
+        --time 120 \
         --container-mounts $DATA_PATH:$MOUNT_PATH,$HOME:$HOME \
         --container-image $IMAGE \
-        bash -c "$GPU_BDB_HOME/gpu_bdb/cluster_configuration/cluster-startup-slurm.sh"
+        bash -c "$GPU_BDB_HOME/gpu_bdb/benchmark_runner/slurm/spawn-workers.sh"
 fi
