@@ -17,6 +17,7 @@ srun \
     --account $ACCOUNT \
     --partition $PARTITION \
     --nodes 1 \
+    --job-name gpubdb-sched \
     --time 120 \
     --container-mounts $DATA_PATH:$MOUNT_PATH,$HOME:$HOME \
     --container-image=$IMAGE \
