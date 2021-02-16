@@ -24,6 +24,8 @@ srun \
 
 sleep 15
 
+SCHEDULER_JOBID=$(sacct --starttime $(date -d "-30 seconds" +%FT%H:%M:%S) --endtime $(date -d "+1 days" +%F) -n -X --format jobid --name gpubdb-sched)
+
 if [ "$WORKER_NODES" -gt "0" ]
 then
     srun \
@@ -31,6 +33,7 @@ then
         --partition $PARTITION \
         --nodes $WORKER_NODES \
         --time 120 \
+        --dependency after:$SCHEDULER_JOBID \
         --container-mounts $DATA_PATH:$MOUNT_PATH,$HOME:$HOME \
         --container-image $IMAGE \
         bash -c "$GPU_BDB_HOME/gpu_bdb/benchmark_runner/slurm/spawn-workers.sh"
