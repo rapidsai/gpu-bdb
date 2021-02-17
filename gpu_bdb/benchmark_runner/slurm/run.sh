@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ACCOUNT=rapids
-PARTITION=partition
+PARTITION=backfill
 NODES=1
 let "WORKER_NODES = $NODES - 1"
 
@@ -33,6 +33,7 @@ then
         --account $ACCOUNT \
         --partition $PARTITION \
         --nodes $WORKER_NODES \
+        --job-name gpubdb-workers \
         --time 120 \
         --dependency after:$SCHEDULER_JOBID \
         --container-mounts $DATA_PATH:$MOUNT_PATH,$HOME:$HOME \
