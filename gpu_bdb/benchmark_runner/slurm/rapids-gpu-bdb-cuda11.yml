@@ -18,7 +18,7 @@ dependencies:
   - blazingsql
   - scipy
   - scikit-learn
-  - spacy
+  - spacy=2.3
   - oauth2client
   - asyncssh
   - psutil

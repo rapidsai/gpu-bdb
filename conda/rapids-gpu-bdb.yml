@@ -21,7 +21,7 @@ dependencies:
   - scipy
   - scikit-learn
   - cupy=8
-  - spacy
+  - spacy=2.3
   - oauth2client
   - asyncssh
   - psutil
