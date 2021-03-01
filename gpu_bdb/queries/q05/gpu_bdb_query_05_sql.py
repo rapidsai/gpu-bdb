@@ -29,7 +29,7 @@ from bdb_tools.utils import (
     gpubdb_argparser,
     run_query,
 )
-from bdb_tools.cupy_metrics import cupy_conf_mat, cupy_precision_score
+from bdb_tools.cupy_metrics import cupy_precision_score
 from sklearn.metrics import roc_auc_score
 import cupy as cp
 
@@ -58,6 +58,7 @@ def build_and_predict_model(ml_input_df):
     Returns the model and accuracy statistics
     """
     import cuml
+    from cuml.metrics import confusion_matrix
 
     feature_names = ["college_education", "male"] + [
         "clicks_in_%d" % i for i in range(1, 8)
@@ -85,7 +86,9 @@ def build_and_predict_model(ml_input_df):
 
     results_dict["auc"] = roc_auc_score(y.to_array(), y_pred.to_array())
     results_dict["precision"] = cupy_precision_score(cp.asarray(y), cp.asarray(y_pred))
-    results_dict["confusion_matrix"] = cupy_conf_mat(cp.asarray(y), cp.asarray(y_pred))
+    results_dict["confusion_matrix"] = confusion_matrix(
+        cp.asarray(y, dtype="int32"), cp.asarray(y_pred, dtype="int32")
+    )
     results_dict["output_type"] = "supervised"
     return results_dict
 
