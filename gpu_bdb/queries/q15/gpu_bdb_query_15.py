@@ -124,8 +124,8 @@ def main(client, config):
     regression_groups = agg_df.groupby(["cat"]).agg(
         {"x": ["count", "sum"], "xx": ["sum"], "xy": ["sum"], "y": ["count", "sum"]}
     )
-    regression_groups = regression_groups.rename(
-        columns={
+    regression_groups.columns = regression_groups.columns.map(
+        {
             ("x", "count"): "count_x",
             ("x", "sum"): "sum_x",
             ("xx", "sum"): "sum_xx",
