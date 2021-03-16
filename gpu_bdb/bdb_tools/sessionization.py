@@ -50,8 +50,9 @@ def get_session_id(df, keep_cols, time_out):
     """
 
     df["user_change_flag"] = df["wcs_user_sk"].diff(periods=1) != 0
-    df["time_delta"] = df["tstamp_inSec"].diff(periods=1)
+    df["user_change_flag"] = df["user_change_flag"].fillna(True)
     df["session_timeout_flag"] = df["tstamp_inSec"].diff(periods=1) > time_out
+    df["session_timeout_flag"] = df["session_timeout_flag"].fillna(False)
 
     df["session_change_flag"] = df["session_timeout_flag"] | df["user_change_flag"]
 
