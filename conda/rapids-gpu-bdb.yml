@@ -29,6 +29,7 @@ dependencies:
   - jupyterlab
   - gspread
   - oauth2client
+  - pytest
   - pip
   - pip:
     - jupyter-server-proxy
