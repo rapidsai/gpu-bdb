@@ -112,6 +112,7 @@ def get_session_id(df):
     """
 
     df["user_change_flag"] = df["wcs_user_sk"].diff(periods=1) != 0
+    df["user_change_flag"] = df["user_change_flag"].fillna(True)
     df["session_change_flag"] = df["review_flag"] | df["user_change_flag"]
 
     df = df.reset_index(drop=True)
