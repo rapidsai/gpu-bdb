@@ -254,12 +254,11 @@ def main(data_dir, client, bc, config):
     # We extracted it from bigbenchqueriesmr.jar
     # Need to pass the absolute path for this txt file
     sentiment_dir = os.path.join(config["data_dir"], "sentiment_files")
-    bc.create_table(
-        "sent_df",
-        os.path.join(sentiment_dir, "negativeSentiment.txt"),
-        names=["sentiment_word"],
-        dtype=["str"],
-    )
+    bc.create_table("sent_df",
+                    os.path.join(sentiment_dir, "negativeSentiment.txt"),
+                    names=["sentiment_word"],
+                    dtype=["str"],
+                    file_format="csv")
 
     word_df = word_df.persist()
     wait(word_df)

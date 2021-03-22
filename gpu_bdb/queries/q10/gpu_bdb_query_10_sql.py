@@ -91,10 +91,12 @@ def main(data_dir, client, bc, config):
     sentiment_dir = os.path.join(config["data_dir"], "sentiment_files")
     bc.create_table('negative_sentiment',
                     os.path.join(sentiment_dir, "negativeSentiment.txt"),
-                    names="sentiment_word")
+                    names="sentiment_word",
+                    file_format="csv")
     bc.create_table('positive_sentiment',
                     os.path.join(sentiment_dir, "positiveSentiment.txt"),
-                    names="sentiment_word")
+                    names="sentiment_word",
+                    file_format="csv")
 
     word_df = word_df.persist()
     wait(word_df)
