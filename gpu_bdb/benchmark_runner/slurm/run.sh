@@ -20,4 +20,4 @@ srun \
     --time 120 \
     --container-mounts $DATA_PATH:$MOUNT_PATH,$HOME:$HOME \
     --container-image=$IMAGE \
-    bash -c "$GPU_BDB_HOME/gpu_bdb/benchmark_runner/slurm/run_bench.sh" &
+    bash -c "$GPU_BDB_HOME/gpu_bdb/benchmark_runner/slurm/run_bench.sh"
