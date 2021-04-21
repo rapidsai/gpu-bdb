@@ -10,8 +10,8 @@ else
 fi
 
 MAX_SYSTEM_MEMORY=$(free -m | awk '/^Mem:/{print $2}')M
-DEVICE_MEMORY_LIMIT="15GB"
-POOL_SIZE="30GB"
+DEVICE_MEMORY_LIMIT="18GB"
+POOL_SIZE="29GB"
 
 GPU_BDB_HOME=$HOME/gpu-bdb
 CONDA_ENV_NAME="rapids-gpu-bdb"
