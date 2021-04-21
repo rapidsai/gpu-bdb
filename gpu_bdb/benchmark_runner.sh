@@ -3,12 +3,12 @@
 USERNAME=$(whoami)
 GPU_BDB_HOME=/raid/$USERNAME/prod/gpu-bdb
 
-INCLUDE_DASK=True
-INCLUDE_BLAZING=True
+INCLUDE_DASK=true
+INCLUDE_BLAZING=false
 N_REPEATS=1
 
 # Dask queries
-if [ $INCLUDE_DASK = "True" ]; then
+if $INCLUDE_DASK; then
     for qnum in {01..30}
     do
         cd $GPU_BDB_HOME/gpu_bdb/queries/q$qnum/
@@ -22,7 +22,7 @@ if [ $INCLUDE_DASK = "True" ]; then
 fi
 
 # BlazingSQL Queries
-if [ $INCLUDE_BLAZING = "True" ]; then
+if $INCLUDE_BLAZING; then
     for qnum in {01..30}
     do
         cd $GPU_BDB_HOME/gpu_bdb/queries/q$qnum/
