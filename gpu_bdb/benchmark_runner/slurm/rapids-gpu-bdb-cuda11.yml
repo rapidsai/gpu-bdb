@@ -1,5 +1,4 @@
 channels:
-  - blazingsql-nightly
   - rapidsai-nightly
   - nvidia
   - conda-forge

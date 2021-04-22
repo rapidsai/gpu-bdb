@@ -69,19 +69,16 @@ deb http://archive.ubuntu.com/ubuntu/ xenial-updates universe\
 
 
 # Install ibverbs from MOFED
-ADD https://www.mellanox.com/downloads/ofed/MLNX_OFED-5.1-2.5.8.0/MLNX_OFED_LINUX-5.1-2.5.8.0-ubuntu18.04-x86_64.tgz /MLNX_OFED_LINUX-5.1-2.5.8.0-ubuntu18.04-x86_64.tgz
+ADD https://www.mellanox.com/downloads/ofed/MLNX_OFED-5.2-2.2.0.0/MLNX_OFED_LINUX-5.2-2.2.0.0-ubuntu18.04-x86_64.tgz /MLNX_OFED_LINUX-5.2-2.2.0.0-ubuntu18.04-x86_64.tgz
 
-COPY /MLNX_OFED_LINUX-5.1-2.5.8.0-ubuntu18.04-x86_64.tgz /tmp/MLNX_OFED_LINUX-5.1-2.5.8.0-ubuntu18.04-x86_64.tgz
-
-
-RUN tar -xzf /tmp/MLNX_OFED_LINUX-5.1-2.5.8.0-ubuntu18.04-x86_64.tgz && \
- cd MLNX_OFED_LINUX-5.1-2.5.8.0-ubuntu18.04-x86_64 && \
+RUN tar -xzf /MLNX_OFED_LINUX-5.2-2.2.0.0-ubuntu18.04-x86_64.tgz && \
+ cd MLNX_OFED_LINUX-5.2-2.2.0.0-ubuntu18.04-x86_64 && \
  apt-get update && apt-get install -y --no-install-recommends \
     ./DEBS/libibverbs* ./DEBS/ibverbs-providers* \
  && rm -rf /var/lib/apt/lists/* \
- && rm -rf /tmp/MLNX_OFED_LINUX*
+ && rm -rf /MLNX_OFED_LINUX*
 
-RUN rm -rf /MLNX_OFED_LINUX-5.1-2.5.8.0-ubuntu18.04-x86_64*
+RUN rm -rf /MLNX_OFED_LINUX-5.2-2.2.0.0-ubuntu18.04-x86_64*
 
 RUN /opt/conda/bin/conda install -n $CONDA_ENV -c conda-forge autoconf cython automake make libtool \
                                  pkg-config m4 \
@@ -89,15 +86,9 @@ RUN /opt/conda/bin/conda install -n $CONDA_ENV -c conda-forge autoconf cython au
 
 
 # Install UCX
-ADD https://raw.githubusercontent.com/rapidsai/ucx-split-feedstock/ea89f32eae0650de852c32ea48f99b0f3a7a608f/recipe/add-page-alignment.patch /tmp/add-page-alignment.patch
-ADD https://raw.githubusercontent.com/rapidsai/ucx-split-feedstock/master/recipe/cuda-alloc-rcache.patch /tmp/ib_registration_cache.patch
-
-
-RUN git clone --recurse-submodules -b v1.8.x https://github.com/openucx/ucx /tmp/ucx \
+RUN git clone --recurse-submodules -b v1.9.x https://github.com/openucx/ucx /tmp/ucx \
  && cd /tmp/ucx \
  && source activate $CONDA_ENV \
- && patch -p1 < /tmp/ib_registration_cache.patch \
- && patch -p1 < /tmp/add-page-alignment.patch \
  && ./autogen.sh \
  && ./configure \
     --prefix="${CONDA_PREFIX}" \
@@ -115,7 +106,7 @@ RUN git clone --recurse-submodules -b v1.8.x https://github.com/openucx/ucx /tmp
 
 # Install UCX-py
 RUN set -x \
- && git clone --recurse-submodules -j${PARALLEL_LEVEL} -b branch-0.18 https://github.com/rapidsai/ucx-py.git /tmp/ucx-py \
+ && git clone --recurse-submodules -j${PARALLEL_LEVEL} -b branch-0.19 https://github.com/rapidsai/ucx-py.git /tmp/ucx-py \
  && source activate $CONDA_ENV \
  && cd /tmp/ucx-py \
  && python setup.py build_ext --inplace \
