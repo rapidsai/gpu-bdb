@@ -108,15 +108,17 @@ Then configure the `--sheet` and `--tab` arguments in benchmark_config.yaml.
 
 ### Running all of the Queries
 
-The included `benchmark_runner.py` script will run all queries sequentially. Configuration for this type of end-to-end run is specified in `benchmark_runner/benchmark_config.yaml`.
+The included `benchmark_runner.sh` script will run all queries sequentially. Configuration for this type of end-to-end run is specified in `benchmark_runner/benchmark_config.yaml`.
+
+First, set `GPU_BDB_HOME` in the bash script to the location of this repository. This is the same environment variable mentioned in the configuration above.
 
 To run all queries, cd to `gpu_bdb/` and:
 
 ```python
-python benchmark_runner.py --config_file benchmark_runner/benchmark_config.yaml
+bash benchmark_runner.sh
 ```
 
-By default, this will run each Dask query once, and, if BlazingSQL queries are enabled in `benchmark_config.yaml`, each BlazingSQL query once. You can control the number of repeats by changing the `N_REPEATS` variable in the script.
+By default, this will run each Dask query once. If BlazingSQL queries are enabled with `INCLUDE_BLAZING` in `benchmark_runner.sh` and in `benchmark_config.yaml`, this will run each BlazingSQL query once. You can control the number of repeats by changing the `N_REPEATS` variable in the script.
 
 
 ## BlazingSQL
