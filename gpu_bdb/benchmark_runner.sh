@@ -1,7 +1,13 @@
 #!/bin/bash
 
 USERNAME=$(whoami)
-GPU_BDB_HOME=/raid/$USERNAME/prod/gpu-bdb
+
+if [ -z "$GPU_BDB_HOME" ]
+then
+    GPU_BDB_HOME=/raid/$USERNAME/prod/gpu-bdb
+else
+    GPU_BDB_HOME=$GPU_BDB_HOME
+fi
 
 INCLUDE_DASK=true
 INCLUDE_BLAZING=false

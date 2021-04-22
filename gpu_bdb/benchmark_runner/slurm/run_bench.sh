@@ -1,7 +1,6 @@
 set -e pipefail
 
 USERNAME=$(whoami)
-GPU_BDB_HOME=$HOME/gpu-bdb
 LOGDIR=$HOME/dask-local-directory/logs
 STATUS_FILE=${LOGDIR}/status.txt
 
@@ -16,6 +15,8 @@ CONDA_ENV_PATH="/opt/conda/etc/profile.d/conda.sh"
 source $CONDA_ENV_PATH
 conda activate $CONDA_ENV_NAME
 
+export GPU_BDB_HOME=$HOME/gpu-bdb
+
 if [[ "$SLURM_NODEID" -eq 0 ]]; then
     bash $GPU_BDB_HOME/gpu_bdb/cluster_configuration/cluster-startup-slurm.sh SCHEDULER &
     echo "STARTED SCHEDULER"
@@ -29,8 +30,7 @@ if [[ "$SLURM_NODEID" -eq 0 ]]; then
     # echo "Starting load test.."
     # python queries/load_test/gpu_bdb_load_test.py --config_file benchmark_runner/benchmark_config.yaml > $LOGDIR/load_test.log
     echo "Starting E2E run.."
-    python benchmark_runner.py --config_file benchmark_runner/benchmark_config.yaml > $LOGDIR/benchmark_runner.log
-
+    bash benchmark_runner.sh
     echo "FINISHED" > ${STATUS_FILE}
 else
     sleep 15 # Sleep and wait for the scheduler to spin up
