@@ -71,7 +71,7 @@ else
     sleep 15 # Sleep and wait for the scheduler to spin up
     echo $LOGDIR
     echo ls -l $LOGDIR
-    bash $GPU_BDB_HOME/gpu_bdb/cluster_configuration/cluster-startup-slurm.sh &
+    bash $GPU_BDB_HOME/gpu_bdb/cluster_configuration/cluster-startup-slurm.sh
     echo "STARTING WORKERS"
     sleep 10
 fi
