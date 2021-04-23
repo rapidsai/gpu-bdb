@@ -4,7 +4,7 @@ ACCOUNT=rapids
 PARTITION=backfill
 NODES=1
 
-IMAGE=/lustre/fsw/rapids/gpu-bdb/containers/gpu-bdb-20210211.sqsh
+IMAGE=/lustre/fsw/rapids/gpu-bdb/containers/gpu-bdb-20210421.sqsh
 DATA_PATH="/lustre/fsw/rapids"
 MOUNT_PATH="/gpu-bdb-data/"
 GPU_BDB_HOME="$HOME/gpu-bdb"
