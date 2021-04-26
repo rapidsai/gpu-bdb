@@ -24,13 +24,13 @@ export CLUSTER_MODE=TCP
 export INTERFACE="enp97s0f1"
 
 # Cluster memory configuration
-MAX_SYSTEM_MEMORY=$(free -m | awk '/^Mem:/{print $2}')M
-DEVICE_MEMORY_LIMIT=70GB
-POOL_SIZE=78GB
+export MAX_SYSTEM_MEMORY=$(free -m | awk '/^Mem:/{print $2}')M
+export DEVICE_MEMORY_LIMIT=70GB
+export POOL_SIZE=78GB
 
 # Dask-cuda optional configuration
-JIT_SPILLING=False
-EXPLICIT_COMMS=False
+DASK_JIT_UNSPILL=False
+DASK_EXPLICIT_COMMS=False
 
 # BSQL
 export BLAZING_ALLOCATOR_MODE="existing"
@@ -53,7 +53,7 @@ conda activate $CONDA_ENV_NAME
 
 if [[ "$SLURM_NODEID" -eq 0 ]]; then
     bash $GPU_BDB_HOME/gpu_bdb/cluster_configuration/cluster-startup-slurm.sh SCHEDULER
-    echo "STARTED SCHEDULER"
+    echo "STARTED SCHEDULER NODE"
     sleep 10
 
     echo "STARTED" > ${STATUS_FILE}
@@ -72,7 +72,7 @@ else
     echo $LOGDIR
     echo ls -l $LOGDIR
     bash $GPU_BDB_HOME/gpu_bdb/cluster_configuration/cluster-startup-slurm.sh
-    echo "STARTING WORKERS"
+    echo "STARTING WORKER NODES"
     sleep 10
 fi
 
