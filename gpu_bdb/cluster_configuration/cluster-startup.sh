@@ -32,8 +32,8 @@ CONDA_ENV_PATH=${CONDA_ENV_PATH:-/raid/$USERNAME/miniconda3/etc/profile.d/conda.
 GPU_BDB_HOME=${GPU_BDB_HOME:-/raid/$USERNAME/prod/gpu-bdb}
 
 # Dask-cuda optional configuration
-JIT_SPILLING=${DASK_JIT_UNSPILL:-False}
-EXPLICIT_COMMS=${DASK_EXPLICIT_COMMS:-False}
+export DASK_JIT_UNSPILL=${DASK_JIT_UNSPILL:-False}
+export DASK_EXPLICIT_COMMS=${DASK_EXPLICIT_COMMS:-False}
 
 
 #########################################################
@@ -41,10 +41,10 @@ EXPLICIT_COMMS=${DASK_EXPLICIT_COMMS:-False}
 ROLE=$1
 
 # Dask/distributed configuration
-DASK_DISTRIBUTED__COMM__TIMEOUTS__CONNECT=${DASK_DISTRIBUTED__COMM__TIMEOUTS__CONNECT:-100s}
-DASK_DISTRIBUTED__COMM__TIMEOUTS__TCP=${DASK_DISTRIBUTED__COMM__TIMEOUTS__TCP:-600s}
-DASK_DISTRIBUTED__COMM__RETRY__DELAY__MIN=${DASK_DISTRIBUTED__COMM__RETRY__DELAY__MIN:-1s}
-DASK_DISTRIBUTED__COMM__RETRY__DELAY__MAX=${DASK_DISTRIBUTED__COMM__RETRY__DELAY__MAX:-60s}
+export DASK_DISTRIBUTED__COMM__TIMEOUTS__CONNECT=${DASK_DISTRIBUTED__COMM__TIMEOUTS__CONNECT:-100s}
+export DASK_DISTRIBUTED__COMM__TIMEOUTS__TCP=${DASK_DISTRIBUTED__COMM__TIMEOUTS__TCP:-600s}
+export DASK_DISTRIBUTED__COMM__RETRY__DELAY__MIN=${DASK_DISTRIBUTED__COMM__RETRY__DELAY__MIN:-1s}
+export DASK_DISTRIBUTED__COMM__RETRY__DELAY__MAX=${DASK_DISTRIBUTED__COMM__RETRY__DELAY__MAX:-60s}
 
 # Purge Dask worker and log directories
 if [ "$ROLE" = "SCHEDULER" ]; then
@@ -72,22 +72,22 @@ python -m pip install .
 if [ "$ROLE" = "SCHEDULER" ]; then
   if [ "$CLUSTER_MODE" = "NVLINK" ]; then
      echo "Starting UCX scheduler.."
-     CUDA_VISIBLE_DEVICES='0' DASK_UCX__CUDA_COPY=True DASK_UCX__TCP=True DASK_UCX__NVLINK=True DASK_UCX__INFINIBAND=False DASK_UCX__RDMACM=False DASK_JIT_UNSPILL=$JIT_SPILLING DASK_EXPLICIT_COMMS=$EXPLICIT_COMMS nohup dask-scheduler --dashboard-address $DASHBOARD_ADDRESS --port $SCHEDULER_PORT --interface $INTERFACE --protocol ucx --scheduler-file $SCHEDULER_FILE > $LOGDIR/scheduler.log 2>&1 &
+     CUDA_VISIBLE_DEVICES='0' DASK_UCX__CUDA_COPY=True DASK_UCX__TCP=True DASK_UCX__NVLINK=True DASK_UCX__INFINIBAND=False DASK_UCX__RDMACM=False nohup dask-scheduler --dashboard-address $DASHBOARD_ADDRESS --port $SCHEDULER_PORT --interface $INTERFACE --protocol ucx --scheduler-file $SCHEDULER_FILE > $LOGDIR/scheduler.log 2>&1 &
   fi
   
   if [ "$CLUSTER_MODE" = "TCP" ]; then
      echo "Starting TCP scheduler.."
-     CUDA_VISIBLE_DEVICES='0' DASK_JIT_UNSPILL=$JIT_SPILLING DASK_EXPLICIT_COMMS=$EXPLICIT_COMMS nohup dask-scheduler --dashboard-address $DASHBOARD_ADDRESS --port $SCHEDULER_PORT --interface $INTERFACE --protocol tcp --scheduler-file $SCHEDULER_FILE > $LOGDIR/scheduler.log 2>&1 &
+     CUDA_VISIBLE_DEVICES='0' nohup dask-scheduler --dashboard-address $DASHBOARD_ADDRESS --port $SCHEDULER_PORT --interface $INTERFACE --protocol tcp --scheduler-file $SCHEDULER_FILE > $LOGDIR/scheduler.log 2>&1 &
   fi
 fi
 
 # Setup workers
 if [ "$CLUSTER_MODE" = "NVLINK" ]; then
     echo "Starting workers.."
-    DASK_JIT_UNSPILL=$JIT_SPILLING DASK_EXPLICIT_COMMS=$EXPLICIT_COMMS dask-cuda-worker --device-memory-limit $DEVICE_MEMORY_LIMIT --local-directory $WORKER_DIR  --rmm-pool-size $POOL_SIZE --memory-limit $MAX_SYSTEM_MEMORY --enable-tcp-over-ucx --enable-nvlink  --disable-infiniband --scheduler-file $SCHEDULER_FILE >> $LOGDIR/worker.log 2>&1 &
+    dask-cuda-worker --device-memory-limit $DEVICE_MEMORY_LIMIT --local-directory $WORKER_DIR  --rmm-pool-size $POOL_SIZE --memory-limit $MAX_SYSTEM_MEMORY --enable-tcp-over-ucx --enable-nvlink  --disable-infiniband --scheduler-file $SCHEDULER_FILE >> $LOGDIR/worker.log 2>&1 &
 fi
 
 if [ "$CLUSTER_MODE" = "TCP" ]; then
     echo "Starting workers.."
-    DASK_JIT_UNSPILL=$JIT_SPILLING DASK_EXPLICIT_COMMS=$EXPLICIT_COMMS dask-cuda-worker --device-memory-limit $DEVICE_MEMORY_LIMIT --local-directory $WORKER_DIR  --rmm-pool-size $POOL_SIZE --memory-limit=$MAX_SYSTEM_MEMORY --scheduler-file $SCHEDULER_FILE >> $LOGDIR/worker.log 2>&1 &
+    dask-cuda-worker --device-memory-limit $DEVICE_MEMORY_LIMIT --local-directory $WORKER_DIR  --rmm-pool-size $POOL_SIZE --memory-limit=$MAX_SYSTEM_MEMORY --scheduler-file $SCHEDULER_FILE >> $LOGDIR/worker.log 2>&1 &
 fi
