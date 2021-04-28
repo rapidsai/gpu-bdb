@@ -12,9 +12,15 @@ with open(config_file) as fp:
 
 expected_workers = int(os.environ.get("NUM_WORKERS", 16))
 
+# use scheduler file path from global environment if none
+# supplied in configuration yaml
+scheduler_file_path = conf.get("scheduler_file_path")
+if scheduler_file_path is None:
+    scheduler_file_path = os.environ.get("SCHEDULER_FILE")
+
 ready = False
 while not ready:
-    with Client(scheduler_file=conf['scheduler_file_path']) as client:
+    with Client(scheduler_file=scheduler_file_path) as client:
         workers = client.scheduler_info()['workers']
         if len(workers) < expected_workers:
             print(f'Expected {expected_workers} but got {len(workers)}, waiting..')
