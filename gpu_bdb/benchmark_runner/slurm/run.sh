@@ -3,6 +3,8 @@
 ACCOUNT=rapids
 PARTITION=backfill
 NODES=1
+GPUS_PER_NODE=16
+export NUM_WORKERS=$((NODES*GPUS_PER_NODE))
 
 IMAGE=/lustre/fsw/rapids/gpu-bdb/containers/gpu-bdb-20210421.sqsh
 DATA_PATH="/lustre/fsw/rapids"
@@ -16,6 +18,7 @@ srun \
     --account $ACCOUNT \
     --partition $PARTITION \
     --nodes $NODES \
+    --exclusive \
     --job-name ${ACCOUNT}-gpubdb:run_bench \
     --time 120 \
     --container-mounts $DATA_PATH:$MOUNT_PATH,$HOME:$HOME \
