@@ -113,7 +113,7 @@ def attach_to_cluster(config, create_blazing_context=False):
 
     # Save worker information
     # Assumes all GPUs are the same size
-    expected_workers = config.get("num_workers")
+    expected_workers = int(os.environ.get("NUM_WORKERS", 16))
     worker_counts = worker_count_info(client)
     for gpu_size, count in worker_counts.items():
         if count != 0:
