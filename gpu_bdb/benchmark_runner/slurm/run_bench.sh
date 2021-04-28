@@ -62,7 +62,7 @@ if [[ "$SLURM_NODEID" -eq 0 ]]; then
 
     cd $GPU_BDB_HOME/gpu_bdb
     echo "Starting waiter.."
-    python benchmark_runner/wait.py benchmark_runner/benchmark_config.yaml > $LOGDIR/wait.log
+    python benchmark_runner/wait.py benchmark_runner/benchmark_config.yaml
     # echo "Starting load test.."
     # python queries/load_test/gpu_bdb_load_test.py --config_file benchmark_runner/benchmark_config.yaml > $LOGDIR/load_test.log
     echo "Starting E2E run.."
