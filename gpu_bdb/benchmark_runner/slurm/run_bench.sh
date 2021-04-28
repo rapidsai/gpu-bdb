@@ -29,8 +29,8 @@ export DEVICE_MEMORY_LIMIT=70GB
 export POOL_SIZE=78GB
 
 # Dask-cuda optional configuration
-DASK_JIT_UNSPILL=False
-DASK_EXPLICIT_COMMS=False
+export DASK_JIT_UNSPILL=False
+export DASK_EXPLICIT_COMMS=False
 
 # BSQL
 export BLAZING_ALLOCATOR_MODE="existing"
