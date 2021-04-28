@@ -374,6 +374,20 @@ def gpubdb_argparser():
         args = yaml.safe_load(fp.read())
     args = add_empty_config(args)
 
+    # Update specific core keys with environment variables
+    # if yaml configuration missing
+    KEYS_TO_ENV_VAR_MAPPING = {
+        "data_dir": os.environ.get("DATA_DIRECTORY"),
+        "output_dir": os.environ.get("OUTPUT_DIRECTORY"),
+        "sheet": os.environ.get("GOOGLE_SPREADSHEET_NAME"),
+        "tab": os.environ.get("GOOGLE_SPREADSHEET_TAB"),
+        "scheduler_file_path": os.environ.get("SCHEDULER_FILE"),
+    }
+
+    for key in args.keys():
+        if args.get(key) is None and key in KEYS_TO_ENV_VAR_MAPPING:
+            args[key] = KEYS_TO_ENV_VAR_MAPPING[key]
+
     return args
 
 
