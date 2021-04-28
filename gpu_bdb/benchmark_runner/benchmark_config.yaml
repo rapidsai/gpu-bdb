@@ -11,7 +11,6 @@ benchmark_runner_include_bsql: False
 scheduler_file_path: 
 dask_profile: False
 dask_dir: ./
-num_workers: 8
 
 verify_results: False
 verify_dir: 
