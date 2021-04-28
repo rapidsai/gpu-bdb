@@ -14,8 +14,9 @@ export CONDA_ENV_NAME="rapids-gpu-bdb"
 export CONDA_ENV_PATH="/opt/conda/etc/profile.d/conda.sh"
 
 # Logging and scratch space for your machine or cluster
-export LOGDIR=$HOME/dask-local-directory/logs
-export STATUS_FILE=${LOGDIR}/status.txt
+export LOCAL_DIRECTORY=$HOME/dask-local-directory
+export LOGDIR=$LOCAL_DIRECTORY/logs
+export STATUS_FILE=$LOGDIR/status.txt
 
 # Communication protocol
 export CLUSTER_MODE=TCP
