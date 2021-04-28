@@ -1,14 +1,16 @@
+import os
+import sys
+import time
+import yaml
+
 from dask.distributed import Client
-import sys, time, yaml
+
 
 config_file = sys.argv[1]
 with open(config_file) as fp:
     conf = yaml.safe_load(fp)
 
-# handle arbitrary sized worker
-for key in conf.keys():
-    if '_workers' in key:
-        expected_workers = int(conf[key])
+expected_workers = int(os.environ.get("NUM_WORKERS", 16))
 
 ready = False
 while not ready:
