@@ -23,6 +23,8 @@ export CLUSTER_MODE=TCP
 # Scheduler configuration for your machine or cluster
 export INTERFACE="enp97s0f1"
 
+export NUM_WORKERS=${NUM_WORKERS:-8}
+
 # Cluster memory configuration
 export MAX_SYSTEM_MEMORY=$(free -m | awk '/^Mem:/{print $2}')M
 export DEVICE_MEMORY_LIMIT=70GB
