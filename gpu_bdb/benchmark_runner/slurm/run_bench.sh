@@ -2,6 +2,14 @@
 set -e pipefail
 
 #########################################################
+### Core Benchmark Configuration ###
+#########################################################
+export DATA_DIRECTORY=""
+export OUTPUT_DIRECTORY=""
+export GOOGLE_SPREADSHEET_NAME="GPU-BDB"
+export GOOGLE_SPREADSHEET_TAB="SF1K TCP Runs"
+
+#########################################################
 ### Run Configuration ###
 #########################################################
 export USERNAME=$(whoami)
@@ -16,7 +24,10 @@ export CONDA_ENV_PATH="/opt/conda/etc/profile.d/conda.sh"
 # Logging and scratch space for your machine or cluster
 export LOCAL_DIRECTORY=$HOME/dask-local-directory
 export LOGDIR=$LOCAL_DIRECTORY/logs
+export SCHEDULER_FILE=$LOCAL_DIRECTORY/scheduler.json
 export STATUS_FILE=$LOGDIR/status.txt
+
+rm -rf $LOCAL_DIRECTORY/*
 
 # Communication protocol
 export CLUSTER_MODE=TCP
