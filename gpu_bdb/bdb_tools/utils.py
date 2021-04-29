@@ -803,7 +803,7 @@ def build_benchmark_googlesheet_payload(config):
             if read_graph_creation_time
             else "NA",
             "Machine Setup": data.get("hostname"),
-            "Number of GPUs": data.get("num_workers"),
+            "Number of GPUs": os.environ.get("NUM_WORKERS"),
             "Data Location": data.get("data_dir"),
             "Current Time": current_time,
             "cuDF Version": data.get("cudf"),
