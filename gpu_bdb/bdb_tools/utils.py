@@ -802,7 +802,9 @@ def build_benchmark_googlesheet_payload(config):
             "Graph Creation time(seconds)": read_graph_creation_time
             if read_graph_creation_time
             else "NA",
-            "Machine Setup": data.get("hostname"),
+            "Hostname": data.get("hostname"),
+            "RMM Pool Size": os.environ.get("POOL_SIZE"),
+            "Device Memory Limit": os.environ.get("DEVICE_MEMORY_LIMIT"),
             "Number of GPUs": os.environ.get("NUM_WORKERS"),
             "Data Location": data.get("data_dir"),
             "Current Time": current_time,
