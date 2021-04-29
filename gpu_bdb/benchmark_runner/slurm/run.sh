@@ -6,9 +6,9 @@ NODES=1
 GPUS_PER_NODE=16
 export NUM_WORKERS=$((NODES*GPUS_PER_NODE))
 
-IMAGE=/lustre/fsw/rapids/gpu-bdb/containers/gpu-bdb-20210421.sqsh
 DATA_PATH="/lustre/fsw/rapids"
 MOUNT_PATH="/gpu-bdb-data/"
+IMAGE=${IMAGE:-/lustre/fsw/rapids/gpu-bdb/containers/gpu-bdb-20210421.sqsh}
 RUN_BENCH_PATH=${RUN_BENCH_PATH:-$HOME/gpu-bdb/gpu_bdb/benchmark_runner/slurm/run_bench.sh}
 
 rm *.out
