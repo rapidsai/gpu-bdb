@@ -20,6 +20,7 @@ srun \
     --nodes $NODES \
     --exclusive \
     --job-name ${ACCOUNT}-gpubdb:run_bench \
+    --gpus-per-node $GPUS_PER_NODE \
     --time 120 \
     --container-mounts $DATA_PATH:$MOUNT_PATH,$HOME:$HOME \
     --container-image=$IMAGE \
