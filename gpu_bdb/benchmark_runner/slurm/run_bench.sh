@@ -21,7 +21,8 @@ export GPU_BDB_HOME=$HOME/gpu-bdb
 export CONDA_ENV_NAME="rapids-gpu-bdb"
 export CONDA_ENV_PATH="/opt/conda/etc/profile.d/conda.sh"
 
-# Logging and scratch space for your machine or cluster
+# Logging, scratch space, and scheduler file path
+# for your machine or cluster
 export LOCAL_DIRECTORY=$HOME/dask-local-directory
 export LOGDIR=$LOCAL_DIRECTORY/logs
 export SCHEDULER_FILE=$LOCAL_DIRECTORY/scheduler.json
@@ -43,7 +44,7 @@ export DEVICE_MEMORY_LIMIT=70GB
 export POOL_SIZE=78GB
 
 # Dask-cuda optional configuration
-export DASK_JIT_UNSPILL=False
+export DASK_JIT_UNSPILL=True
 export DASK_EXPLICIT_COMMS=False
 
 # BSQL
