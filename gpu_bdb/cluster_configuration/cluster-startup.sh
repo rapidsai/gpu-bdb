@@ -21,7 +21,7 @@ CLUSTER_MODE=${CLUSTER_MODE:-TCP}
 
 # Cluster memory configuration
 MAX_SYSTEM_MEMORY=$(free -m | awk '/^Mem:/{print $2}')M
-DEVICE_MEMORY_LIMIT=${DEVICE_MEMORY_LIMIT:-18GB}
+DEVICE_MEMORY_LIMIT=${DEVICE_MEMORY_LIMIT:-15GB}
 POOL_SIZE=${POOL_SIZE:-29GB}
 
 # Conda environment information
@@ -32,7 +32,7 @@ CONDA_ENV_PATH=${CONDA_ENV_PATH:-/raid/$USERNAME/miniconda3/etc/profile.d/conda.
 GPU_BDB_HOME=${GPU_BDB_HOME:-/raid/$USERNAME/prod/gpu-bdb}
 
 # Dask-cuda optional configuration
-export DASK_JIT_UNSPILL=${DASK_JIT_UNSPILL:-False}
+export DASK_JIT_UNSPILL=${DASK_JIT_UNSPILL:-True}
 export DASK_EXPLICIT_COMMS=${DASK_EXPLICIT_COMMS:-False}
 
 
