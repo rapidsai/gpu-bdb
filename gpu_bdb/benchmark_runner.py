@@ -5,7 +5,7 @@ import gc
 import time
 import uuid
 
-N_REPEATS = 1
+N_REPEATS = 5
 
 
 def get_qnum_from_filename(name):
