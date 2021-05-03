@@ -82,6 +82,8 @@ bash cluster-startup.sh
 
 This will spin up one Dask worker per GPU. If you are running on a single node, you will only need to run `bash cluster-startup.sh SCHEDULER`.
 
+If you are using a Slurm cluster, please adapt the example Slurm setup in `gpu_bdb/benchmark_runner/slurm/` which uses `gpu_bdb/cluster_configuration/cluster-startup-slurm.sh`.
+
 
 ## Running the Queries
 
@@ -91,7 +93,7 @@ To run a query, starting from the repository root, go to the query specific subd
 cd gpu_bdb/queries/q07/
 ```
 
-The queries assume that they can attach to a running Dask cluster. Cluster address and other benchmark configuration lives in a yaml file. You will need to fill this out as appropriate.
+The queries assume that they can attach to a running Dask cluster. Cluster address and other benchmark configuration lives in a yaml file (`gpu_bdb/benchmark_runner/becnhmark_config.yaml`). You will need to fill this out as appropriate if you are not using the Slurm cluster configuration.
 
 ```bash
 conda activate rapids-gpu-bdb
@@ -104,7 +106,7 @@ This repository includes optional performance-tracking automation using Google S
 ```
 export GOOGLE_SHEETS_CREDENTIALS_PATH=<path to creds.json>
 ```
-Then configure the `--sheet` and `--tab` arguments in benchmark_config.yaml.
+Then configure the `--sheet` and `--tab` arguments in `benchmark_config.yaml`.
 
 ### Running all of the Queries
 
@@ -116,7 +118,7 @@ To run all queries, cd to `gpu_bdb/` and:
 python benchmark_runner.py --config_file benchmark_runner/benchmark_config.yaml
 ```
 
-By default, this will run each Dask query once, and, if BlazingSQL queries are enabled in `benchmark_config.yaml`, each BlazingSQL query once. You can control the number of repeats by changing the `N_REPEATS` variable in the script.
+By default, this will run each Dask query five times, and, if BlazingSQL queries are enabled in `benchmark_config.yaml`, each BlazingSQL query five times. You can control the number of repeats by changing the `N_REPEATS` variable in the script.
 
 
 ## BlazingSQL
