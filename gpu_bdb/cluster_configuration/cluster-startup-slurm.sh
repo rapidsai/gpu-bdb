@@ -27,7 +27,7 @@ CONDA_ENV_PATH=${CONDA_ENV_PATH:-/opt/conda/etc/profile.d/conda.sh}
 GPU_BDB_HOME=${GPU_BDB_HOME:-$HOME/gpu-bdb}
 
 # Dask-cuda optional configuration
-export DASK_JIT_UNSPILL=${DASK_JIT_UNSPILL:-False}
+export DASK_JIT_UNSPILL=${DASK_JIT_UNSPILL:-True}
 export DASK_EXPLICIT_COMMS=${DASK_EXPLICIT_COMMS:-False}
 
 
