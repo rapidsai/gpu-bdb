@@ -44,6 +44,8 @@ export DASK_DISTRIBUTED__COMM__RETRY__DELAY__MAX=${DASK_DISTRIBUTED__COMM__RETRY
 
 # Purge Dask worker and log directories
 if [ "$ROLE" = "SCHEDULER" ]; then
+    rm -rf $LOCAL_DIRECTORY/*
+    mkdir -p $LOCAL_DIRECTORY
     rm -rf $LOGDIR/*
     mkdir -p $LOGDIR
     rm -rf $WORKER_DIR/*
