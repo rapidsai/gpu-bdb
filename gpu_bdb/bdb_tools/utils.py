@@ -374,6 +374,21 @@ def gpubdb_argparser():
         args = yaml.safe_load(fp.read())
     args = add_empty_config(args)
 
+    # Update specific core keys with environment variables
+    # if yaml configuration missing
+    KEYS_TO_ENV_VAR_MAPPING = {
+        "data_dir": os.environ.get("DATA_DIRECTORY"),
+        "output_dir": os.environ.get("OUTPUT_DIRECTORY"),
+        "sheet": os.environ.get("GOOGLE_SPREADSHEET_NAME"),
+        "tab": os.environ.get("GOOGLE_SPREADSHEET_TAB"),
+        "scheduler_file_path": os.environ.get("SCHEDULER_FILE"),
+        "benchmark_runner_include_bsql": os.environ.get("RUNNER_INCLUDE_BSQL"),
+    }
+
+    for key in args.keys():
+        if args.get(key) is None and key in KEYS_TO_ENV_VAR_MAPPING:
+            args[key] = KEYS_TO_ENV_VAR_MAPPING[key]
+
     return args
 
 
@@ -788,8 +803,10 @@ def build_benchmark_googlesheet_payload(config):
             "Graph Creation time(seconds)": read_graph_creation_time
             if read_graph_creation_time
             else "NA",
-            "Machine Setup": data.get("hostname"),
-            "Number of GPUs": data.get("num_workers"),
+            "Hostname": data.get("hostname"),
+            "RMM Pool Size": os.environ.get("POOL_SIZE"),
+            "Device Memory Limit": os.environ.get("DEVICE_MEMORY_LIMIT"),
+            "Number of GPUs": os.environ.get("NUM_WORKERS"),
             "Data Location": data.get("data_dir"),
             "Current Time": current_time,
             "cuDF Version": data.get("cudf"),

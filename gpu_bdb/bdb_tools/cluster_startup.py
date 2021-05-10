@@ -113,7 +113,7 @@ def attach_to_cluster(config, create_blazing_context=False):
 
     # Save worker information
     # Assumes all GPUs are the same size
-    expected_workers = config.get("num_workers")
+    expected_workers = int(os.environ.get("NUM_WORKERS", 16))
     worker_counts = worker_count_info(client)
     for gpu_size, count in worker_counts.items():
         if count != 0:
@@ -194,7 +194,13 @@ def import_query_libs():
         "pandas",
         "numpy",
         "spacy",
-        "blazingsql",
     ]
+
+    # optionally include blazingsql
+    # this is brittle, but it resolves breaking change
+    # issues as we can control the environment
+    if os.environ.get("RUNNER_INCLUDE_BSQL"):
+        library_list.append("blazingsql")
+
     for lib in library_list:
         importlib.import_module(lib)
