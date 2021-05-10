@@ -194,7 +194,13 @@ def import_query_libs():
         "pandas",
         "numpy",
         "spacy",
-        "blazingsql",
     ]
+
+    # optionally include blazingsql
+    # this is brittle, but it resolves breaking change
+    # issues as we can control the environment
+    if os.environ.get("RUNNER_INCLUDE_BSQL"):
+        library_list.append("blazingsql")
+
     for lib in library_list:
         importlib.import_module(lib)

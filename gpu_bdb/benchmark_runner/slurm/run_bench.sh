@@ -28,8 +28,6 @@ export LOGDIR=$LOCAL_DIRECTORY/logs
 export SCHEDULER_FILE=$LOCAL_DIRECTORY/scheduler.json
 export STATUS_FILE=$LOGDIR/status.txt
 
-rm -rf $LOCAL_DIRECTORY/*
-
 # Communication protocol
 export CLUSTER_MODE=TCP
 
@@ -48,6 +46,7 @@ export DASK_JIT_UNSPILL=True
 export DASK_EXPLICIT_COMMS=False
 
 # BSQL
+export RUNNER_INCLUDE_BSQL=False
 export BLAZING_ALLOCATOR_MODE="existing"
 export BLAZING_LOGGING_DIRECTORY=/gpu-bdb-data/gpu-bdb/blazing_log
 rm -rf $BLAZING_LOGGING_DIRECTORY/*

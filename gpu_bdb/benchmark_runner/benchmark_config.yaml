@@ -6,7 +6,7 @@ file_format: parquet
 output_filetype: parquet
 split_row_groups: False
 repartition_small_table: True
-benchmark_runner_include_bsql: False
+benchmark_runner_include_bsql:
 
 scheduler_file_path:
 dask_profile: False

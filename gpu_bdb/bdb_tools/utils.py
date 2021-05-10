@@ -382,6 +382,7 @@ def gpubdb_argparser():
         "sheet": os.environ.get("GOOGLE_SPREADSHEET_NAME"),
         "tab": os.environ.get("GOOGLE_SPREADSHEET_TAB"),
         "scheduler_file_path": os.environ.get("SCHEDULER_FILE"),
+        "benchmark_runner_include_bsql": os.environ.get("RUNNER_INCLUDE_BSQL"),
     }
 
     for key in args.keys():

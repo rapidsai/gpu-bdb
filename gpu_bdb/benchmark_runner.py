@@ -30,20 +30,21 @@ if __name__ == "__main__":
     from bdb_tools.utils import run_query, gpubdb_argparser
 
     import_query_libs()
+    config = gpubdb_argparser()
+    config["run_id"] = uuid.uuid4().hex
+    include_blazing = config.get("benchmark_runner_include_bsql")
+
     dask_queries = {
         qnum: load_query(qnum, f"queries/q{qnum}/gpu_bdb_query_{qnum}.py")
         for qnum in dask_qnums
     }
 
-    bsql_queries = {
-        qnum: load_query(qnum, f"queries/q{qnum}/gpu_bdb_query_{qnum}_sql.py")
-        for qnum in bsql_qnums
-    }
+    if include_blazing:
+        bsql_queries = {
+            qnum: load_query(qnum, f"queries/q{qnum}/gpu_bdb_query_{qnum}_sql.py")
+            for qnum in bsql_qnums
+        }
 
-    config = gpubdb_argparser()
-    config["run_id"] = uuid.uuid4().hex
-
-    include_blazing = config.get("benchmark_runner_include_bsql")
     client, bc = attach_to_cluster(config, create_blazing_context=include_blazing)
     # Preload required libraries for queries on all workers
     client.run(import_query_libs)
