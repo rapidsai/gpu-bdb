@@ -904,7 +904,7 @@ def push_payload_to_googlesheet(config):
       payload = build_benchmark_googlesheet_payload(config)
       s = gc.open(config["sheet"])
       tab = s.worksheet(config["tab"])
-      tab.append_row(payload)
+      tab.append_row(payload, value_input_option='USER_ENTERED')
 
 
 #################################
