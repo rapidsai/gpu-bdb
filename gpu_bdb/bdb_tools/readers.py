@@ -127,7 +127,7 @@ class ParquetReader(Reader):
 
         if (table in SMALL_TABLES) or (table in SUPER_SMALL_TABLES):
             df = df.repartition(npartitions=1)
-        return df
+        return df.compute()
 
 
 class ORCReader(Reader):
