@@ -21,6 +21,7 @@ from bdb_tools.utils import (
     benchmark,
     gpubdb_argparser,
     run_query,
+    get_negative_sentiment,
 )
 from bdb_tools.text import create_sentences_from_reviews, create_words_from_sentences
 
@@ -161,13 +162,7 @@ def main(client, config):
         global_position_column="sentence_tokenized_global_pos",
     )
 
-    # This file comes from the official TPCx-BB kit
-    # We extracted it from bigbenchqueriesmr.jar
-    sentiment_dir = os.path.join(config["data_dir"], "sentiment_files")
-    with open(os.path.join(sentiment_dir, "negativeSentiment.txt")) as fh:
-        negativeSentiment = list(map(str.strip, fh.readlines()))
-        # dedupe for one extra record in the source file
-        negativeSentiment = list(set(negativeSentiment))
+    negativeSentiment = get_negative_sentiment(config["data_dir"])
 
     sent_df = cudf.DataFrame({"word": negativeSentiment})
     sent_df["sentiment"] = "NEG"

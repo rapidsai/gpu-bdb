@@ -24,6 +24,7 @@ from bdb_tools.utils import (
     gpubdb_argparser,
     left_semi_join,
     run_query,
+    get_negative_sentiment,
 )
 
 from bdb_tools.readers import build_reader
@@ -284,13 +285,7 @@ def main(client, config):
     sentences["sentence_tokenized_global_pos"] = sentences.x.cumsum()
     del sentences["x"]
 
-    # This file comes from the official TPCx-BB kit
-    # We extracted it from bigbenchqueriesmr.jar
-    sentiment_dir = os.path.join(config["data_dir"], "sentiment_files")
-    with open(os.path.join(sentiment_dir, "negativeSentiment.txt")) as fh:
-        negativeSentiment = list(map(str.strip, fh.readlines()))
-        # dedupe for one extra record in the source file
-        negativeSentiment = list(set(negativeSentiment))
+    negativeSentiment = get_negative_sentiment(config["data_dir"])
 
     word_df = sentences.map_partitions(
         create_words_from_sentences,

@@ -976,3 +976,33 @@ def train_clustering_model(training_df, n_clusters, max_iter, n_init):
         "cluster_centers": best_model.cluster_centers_,
         "nclusters": n_clusters,
     }
+
+
+def get_web_clickstream_flist(basepath):
+    clickstreams_path = os.path.join(basepath, "web_clickstreams/*.parquet")
+    if clickstreams_path[:5] == "s3://":
+        import s3fs
+        fs = s3fs.S3FileSystem()
+        return ["s3://" + fn for fn in fs.glob(clickstreams_path)]
+    else:
+        return glob.glob(clickstreams_path)
+
+
+def get_negative_sentiment(basepath):
+    def preprocess(f):
+        negativeSentiment = list(map(str.strip, f.readlines()))
+        # dedupe for one extra record in the source file
+        return list(set(negativeSentiment))
+
+    # This file comes from the official TPCx-BB kit
+    # We extracted it from bigbenchqueriesmr.jar
+    neg_sentiment_path = os.path.join(basepath, "sentiment_files", "negativeSentiment.txt")
+    if neg_sentiment_path[:5] == "s3://":
+        import s3fs
+        fs = s3fs.S3FileSystem()
+        with fs.open(neg_sentiment_path, 'r') as fh:
+            return preprocess(fh)
+    else:
+        with open(neg_sentiment_path) as fh:
+            return preprocess(fh)
+            

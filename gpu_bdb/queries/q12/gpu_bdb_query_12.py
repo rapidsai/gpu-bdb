@@ -22,6 +22,7 @@ from bdb_tools.utils import (
     benchmark,
     gpubdb_argparser,
     run_query,
+    get_web_clickstream_flist,
 )
 from bdb_tools.readers import build_reader
 
@@ -176,7 +177,7 @@ def main(client, config):
         "wcs_click_date_sk": np.ones(1, dtype=np.int64),
     }
     meta_df = cudf.DataFrame(meta_d)
-    web_clickstream_flist = glob.glob(os.path.join(config["data_dir"], "web_clickstreams/*.parquet"))
+    web_clickstream_flist = get_web_clickstream_flist(config["data_dir"])
     task_ls = [
         delayed(filter_wcs_table)(fn, filtered_item_df.to_delayed()[0])
         for fn in web_clickstream_flist

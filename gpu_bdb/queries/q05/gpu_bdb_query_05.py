@@ -22,6 +22,7 @@ from bdb_tools.utils import (
     benchmark,
     gpubdb_argparser,
     run_query,
+    get_web_clickstream_flist,
 )
 
 from bdb_tools.readers import build_reader
@@ -184,7 +185,7 @@ def main(client, config):
     keep_cols = ["i_item_sk", "i_category_id", "clicks_in_category"]
     item_ddf = item_ddf[keep_cols]
 
-    web_clickstream_flist = glob.glob(os.path.join(config["data_dir"], "web_clickstreams/*.parquet"))
+    web_clickstream_flist = get_web_clickstream_flist(config["data_dir"])
     n_workers = len(client.scheduler_info()["workers"])
     batchsize = len(web_clickstream_flist) // n_workers
     if batchsize < 1:

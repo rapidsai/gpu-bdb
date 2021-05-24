@@ -56,10 +56,19 @@ def read_tables(config):
 def load_sentiment_words(filename, sentiment):
     import cudf
 
-    with open(filename) as fh:
-        sentiment_words = list(map(str.strip, fh.readlines()))
+    def preprocess(f):
+        sentiment_words = list(map(str.strip, f.readlines()))
         # dedupe for one extra record in the source file
-        sentiment_words = list(set(sentiment_words))
+        return list(set(sentiment_words))
+
+    if filename[:5] == "s3://":
+        import s3fs
+        fs = s3fs.S3FileSystem()
+        with fs.open(filename, 'r') as fh:
+            sentiment_words = preprocess(fh)
+    else:
+        with open(filename) as fh:
+            sentiment_words = preprocess(fh)
 
     sent_df = cudf.DataFrame({"word": sentiment_words})
     sent_df["sentiment"] = sentiment
