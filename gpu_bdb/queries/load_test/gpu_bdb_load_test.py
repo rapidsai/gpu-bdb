@@ -25,7 +25,7 @@ refresh_tables = [
 tables = [table.split(".")[0] for table in os.listdir(spark_schema_dir)]
 
 scale = [x for x in config["data_dir"].split("/") if "sf" in x][0]
-part_size = 2
+part_size = 3
 chunksize = "128 MiB"
 
 # Spark uses different names for column types, and RAPIDS doesn't yet support Decimal types.
@@ -47,8 +47,8 @@ def get_schema(table):
 def read_csv_table(table, chunksize="256 MiB"):
     # build dict of dtypes to use when reading CSV
     names, types = get_schema(table)
-    types_str = ['str' if 'decimal' in t else t for t in types]
-    dtype_str = {names[i]: types_str[i] for i in range(0, len(names))}
+    types_dec_as_str = ['str' if 'decimal' in t else t for t in types]
+    dtype_dec_as_str = {names[i]: types_dec_as_str[i] for i in range(0, len(names))}
 
     data_dir = config["data_dir"].split('parquet_')[0]
     base_path = f"{data_dir}/data/{table}"
@@ -67,7 +67,7 @@ def read_csv_table(table, chunksize="256 MiB"):
             if "audit" not in fn and os.path.getsize(f"{base_path}/{fn}") > 0
         ]
         df = dask_cudf.read_csv(
-            paths, sep="|", names=names, dtype=dtype_str, chunksize=chunksize, quoting=3
+            paths, sep="|", names=names, dtype=dtype_dec_as_str, chunksize=chunksize, quoting=3
         )
     else:
         paths = [
@@ -83,7 +83,7 @@ def read_csv_table(table, chunksize="256 MiB"):
                 if os.path.getsize(f"{base_path}/{fn}") > 0
             ]
         df = dask_cudf.read_csv(
-            paths, sep="|", names=names, dtype=types_str, chunksize=chunksize, quoting=3
+            paths, sep="|", names=names, dtype=types_dec_as_str, chunksize=chunksize, quoting=3
         )
 
     for i, dtype in enumerate(types):
