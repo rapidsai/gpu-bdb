@@ -2,7 +2,6 @@ channels:
   - rapidsai-nightly
   - nvidia
   - conda-forge
-  - defaults
 
 dependencies:
   - python=3.8
