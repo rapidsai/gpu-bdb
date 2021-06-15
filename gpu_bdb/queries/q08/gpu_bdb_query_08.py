@@ -23,6 +23,7 @@ from bdb_tools.utils import (
     gpubdb_argparser,
     run_query,
     convert_datestring_to_days,
+    get_web_clickstream_flist,
 )
 from bdb_tools.readers import build_reader
 from bdb_tools.merge_util import hash_merge
@@ -251,7 +252,7 @@ def main(client, config):
     web_page_newcols = ["wp_web_page_sk", "wp_type_codes"]
     web_page_df = web_page_df[web_page_newcols]
 
-    web_clickstream_flist = glob.glob(os.path.join(config["data_dir"], "web_clickstreams/*.parquet"))
+    web_clickstream_flist = get_web_clickstream_flist(config["data_dir"])
 
     task_ls = [
         delayed(etl_wcs)(

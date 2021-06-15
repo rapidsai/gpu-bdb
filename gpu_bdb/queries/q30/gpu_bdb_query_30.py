@@ -22,6 +22,7 @@ from bdb_tools.utils import (
     benchmark,
     gpubdb_argparser,
     run_query,
+    get_web_clickstream_flist,
 )
 from bdb_tools.readers import build_reader
 from bdb_tools.sessionization import get_session_id, get_distinct_sessions, get_pairs
@@ -106,7 +107,7 @@ def main(client, config):
     # this  causes more memory pressures as we try to read the whole thing ( and spill that)
     # at once and then do filtration .
 
-    web_clickstream_flist = glob.glob(os.path.join(config["data_dir"], "web_clickstreams/*.parquet"))
+    web_clickstream_flist = get_web_clickstream_flist(config["data_dir"])
     task_ls = [
         delayed(pre_repartition_task)(fn, f_item_df.to_delayed()[0])
         for fn in web_clickstream_flist
