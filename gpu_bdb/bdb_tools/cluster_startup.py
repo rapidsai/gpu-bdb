@@ -54,6 +54,13 @@ def get_bsql_config_options():
     return config_options
 
 
+def disable_gc():
+    import gc
+
+    gc.disable()
+    gc.set_threshold(0)
+
+
 def attach_to_cluster(config, create_blazing_context=False):
     """Attaches to an existing cluster if available.
     By default, tries to attach to a cluster running on localhost:8786 (dask's default).
@@ -72,6 +79,10 @@ def attach_to_cluster(config, create_blazing_context=False):
                 print(fp.read())
             client = Client(scheduler_file=scheduler_file)
             print('Connected!')
+            
+            print("Disabling GC on scheduler")
+            client.run_on_scheduler(disable_gc)
+            print("Disabled!")
         except OSError as e:
             sys.exit(f"Unable to create a Dask Client connection: {e}")
 
