@@ -21,6 +21,7 @@ def load_query(qnum, fn):
     return mod.main
 
 
+#dask_qnums = [str(i).zfill(2) for i in range(1, 31)]
 dask_qnums = [str(i).zfill(2) for i in range(1, 31)]
 bsql_qnums = [str(i).zfill(2) for i in range(1, 31)]
 
@@ -79,19 +80,21 @@ if __name__ == "__main__":
     # Run Pure Dask Queries
     if len(dask_qnums) > 0:
         print("Pure Dask Queries")
-        for qnum, q_func in dask_queries.items():
-            print(qnum)
+        for r in range(N_REPEATS):
+            for qnum, q_func in dask_queries.items():
+                print(qnum)
 
-            qpath = f"{base_path}/queries/q{qnum}/"
-            os.chdir(qpath)
-            if os.path.exists("current_query_num.txt"):
-                os.remove("current_query_num.txt")
-            with open("current_query_num.txt", "w") as fp:
-                fp.write(qnum)
+                qpath = f"{base_path}/queries/q{qnum}/"
+                os.chdir(qpath)
+                if os.path.exists("current_query_num.txt"):
+                    os.remove("current_query_num.txt")
+                with open("current_query_num.txt", "w") as fp:
+                    fp.write(qnum)
 
-            for r in range(N_REPEATS):
                 run_query(config=config, client=client, query_func=q_func)
-                client.run(gc.collect)
-                client.run_on_scheduler(gc.collect)
-                gc.collect()
-                time.sleep(3)
+
+            #run GC after each full benchmark run
+            client.run(gc.collect)
+            client.run_on_scheduler(gc.collect)
+            gc.collect()
+            time.sleep(3)

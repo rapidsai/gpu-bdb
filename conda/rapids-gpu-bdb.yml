@@ -5,8 +5,8 @@ channels:
 
 dependencies:
   - python=3.8
-  - cudatoolkit=11.0
-  - cudf
+  - cudatoolkit=11.2
+  - cudf=21.08
   - rmm
   - dask-cuda
   - dask-cudf
