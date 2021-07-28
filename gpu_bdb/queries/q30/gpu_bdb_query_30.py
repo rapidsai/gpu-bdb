@@ -29,6 +29,13 @@ from bdb_tools.sessionization import get_session_id, get_distinct_sessions, get_
 from dask import delayed
 import numpy as np
 
+if os.getenv("DASK_CPU") == "True":
+    import pandas as cudf
+    import dask.dataframe as dask_cudf
+else:
+    import cudf
+    import dask_cudf
+
 ### Implementation Notes:
 
 ### Future Notes:
@@ -58,7 +65,6 @@ def pre_repartition_task(wcs_fn, f_item_df):
     """
         Runs the pre-repartition task
     """
-    import cudf
 
     wcs_cols = ["wcs_user_sk", "wcs_item_sk", "wcs_click_date_sk", "wcs_click_time_sk"]
     wcs_df = cudf.read_parquet(wcs_fn, columns=wcs_cols)
@@ -80,8 +86,6 @@ def pre_repartition_task(wcs_fn, f_item_df):
 
 
 def main(client, config):
-    import dask_cudf
-    import cudf
 
     item_df = benchmark(
         read_tables,
@@ -163,8 +167,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

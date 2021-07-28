@@ -14,16 +14,22 @@
 # limitations under the License.
 #
 
-import cupy as cp
 import numpy as np
+
+import os
+
+if os.getenv("DASK_CPU") == "True":
+    import numpy as cp
+    import pandas as cudf
+else:
+    import cupy as cp
+    import cudf
 
 
 def get_session_id_from_session_boundry(session_change_df, last_session_len):
     """
         This function returns session starts given a session change df
     """
-    import cudf
-
     ## we dont really need the `session_id` to start from 0
     ## the total number of sessions per partition should be fairly limited
     ## and we really should not hit 2,147,483,647 sessions per partition

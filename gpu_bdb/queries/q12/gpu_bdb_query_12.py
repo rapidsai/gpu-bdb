@@ -29,6 +29,13 @@ from distributed import wait
 import numpy as np
 from dask import delayed
 
+if os.getenv("DASK_CPU") == "True":
+    import pandas as cudf
+    import dask.dataframe as dask_cudf
+else:
+    import cudf
+    import dask_cudf
+
 ### Current Implementation Assumption
 # The filtered item table will fit in GPU memory :
 # At scale `100` ->non filtered-rows `178,200` -> filtered rows `60,059`
@@ -90,7 +97,6 @@ def filter_wcs_table(web_clickstreams_fn, filtered_item_df):
         ##    AND wcs_user_sk IS NOT NULL
         ###   AND wcs_sales_sk IS NULL --only views, not purchases
     """
-    import cudf
 
     web_clickstreams_cols = [
         "wcs_user_sk",
@@ -150,7 +156,6 @@ def filter_ss_table(store_sales_df, filtered_item_df):
 
 
 def main(client, config):
-    import cudf, dask_cudf
 
     item_df, store_sales_df = benchmark(
         read_tables,
@@ -242,8 +247,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

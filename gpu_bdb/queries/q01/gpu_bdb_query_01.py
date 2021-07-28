@@ -17,7 +17,6 @@
 from bdb_tools.utils import benchmark, gpubdb_argparser, run_query
 from bdb_tools.readers import build_reader
 
-
 ### Implementation Notes:
 # `drop_duplicates` and `groupby` by default brings result to single partition
 # Have changed `drop_duplicates` behaviour to give `n_workers` partitions
@@ -163,8 +162,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

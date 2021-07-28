@@ -350,20 +350,8 @@ def main(client, config):
     return payload
 
 
-def register_serialization():
-    def serialize_mat_descriptor(m):
-        return cp.cupy.cusparse.MatDescriptor.create, ()
-
-    copyreg.pickle(cp.cupy.cusparse.MatDescriptor, serialize_mat_descriptor)
-
-
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-
-    import cudf
-    from cuml.dask.naive_bayes import MultinomialNB as DistMNB
-    from cuml.dask.common.input_utils import DistributedDataHandler
-    from cuml.dask.common import to_dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

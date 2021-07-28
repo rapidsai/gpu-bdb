@@ -23,6 +23,8 @@ from bdb_tools.utils import (
     run_query,
 )
 from bdb_tools.readers import build_reader
+
+import dask.dataframe as dd
 from distributed import wait
 
 ### Current Implimenation Assumption
@@ -92,6 +94,9 @@ def get_helper_query_table(imp_df, item_df):
     item_imp_join_df = item_imp_join_df[
         ["i_item_sk", "imp_sk", "imp_start_date", "price_change", "no_days_comp_price"]
     ]
+
+    #if isinstance(item_imp_join_df, dd.DataFrame):
+
     item_imp_join_df = item_imp_join_df.sort_values(
         by=["i_item_sk", "imp_sk", "imp_start_date"]
     )
@@ -254,8 +259,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

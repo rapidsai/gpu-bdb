@@ -14,8 +14,8 @@
 # limitations under the License.
 #
 
-from dask.distributed import Client
 import sys
+import os
 
 from bdb_tools.utils import (
     benchmark,
@@ -24,6 +24,10 @@ from bdb_tools.utils import (
 )
 from bdb_tools.readers import build_reader
 
+if os.getenv("DASK_CPU") == "True":
+    import pandas as cudf
+else:
+    import cudf
 
 def read_tables(config):
     table_reader = build_reader(
@@ -62,7 +66,6 @@ def read_tables(config):
 
 
 def main(client, config):
-    import cudf
 
     # Conf variables
 
@@ -208,8 +211,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

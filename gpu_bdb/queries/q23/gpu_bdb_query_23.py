@@ -14,10 +14,7 @@
 # limitations under the License.
 #
 
-import cupy as cp
 import sys
-import rmm
-
 
 from bdb_tools.readers import build_reader
 from bdb_tools.utils import (
@@ -26,6 +23,7 @@ from bdb_tools.utils import (
     run_query,
 )
 
+import dask.dataframe as dd
 from distributed import wait
 
 
@@ -119,7 +117,13 @@ def main(client, config):
 
     result_df = result_df.persist()
 
-    result_df = result_df.sort_values(by=["inv_warehouse_sk", "inv_item_sk"])
+    if isinstance(result_df, dd.DataFrame):
+        temp_df = result_df.compute()
+        temp_df = temp_df.sort_values(by=["inv_warehouse_sk", "inv_item_sk"])
+        reuslt_df = dd.from_pandas(temp_df, npartitions=1)
+    else:
+        result_df = result_df.sort_values(by=["inv_warehouse_sk", "inv_item_sk"])
+    
     result_df = result_df.reset_index(drop=True)
 
     result_df = result_df.persist()
@@ -129,8 +133,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

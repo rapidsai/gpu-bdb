@@ -27,11 +27,18 @@ from bdb_tools.readers import build_reader
 
 from distributed import wait
 import numpy as np
+import pandas as pd
 
-from numba import cuda
+from numba import cuda, jit
 import glob
 from dask import delayed
 
+if os.getenv("DASK_CPU") == "True":
+    import pandas as cudf
+    import dask.dataframe as dask_cudf
+else:
+    import cudf
+    import dask_cudf
 
 q03_days_in_sec_before_purchase = 864000
 q03_views_before_purchase = 5
@@ -41,7 +48,6 @@ q03_limit = 100
 
 
 def get_wcs_minima(config):
-    import dask_cudf
 
     wcs_df = dask_cudf.read_parquet(
         os.path.join(config["data_dir"], "web_clickstreams/*.parquet"),
@@ -55,7 +61,6 @@ def get_wcs_minima(config):
 
 
 def pre_repartition_task(wcs_fn, item_df, wcs_tstamp_min):
-    import cudf
 
     wcs_cols = [
         "wcs_user_sk",
@@ -65,13 +70,18 @@ def pre_repartition_task(wcs_fn, item_df, wcs_tstamp_min):
         "wcs_click_time_sk",
     ]
     wcs_df = cudf.read_parquet(wcs_fn, columns=wcs_cols)
-    wcs_df = wcs_df._drop_na_rows(subset=["wcs_user_sk", "wcs_item_sk"])
+    wcs_df = wcs_df.dropna(subset=["wcs_user_sk", "wcs_item_sk"])
     wcs_df["tstamp"] = wcs_df["wcs_click_date_sk"] * 86400 + wcs_df["wcs_click_time_sk"]
     wcs_df["tstamp"] = wcs_df["tstamp"] - wcs_tstamp_min
 
-    wcs_df["tstamp"] = wcs_df["tstamp"].astype("int32")
+    if isinstance(wcs_df, pd.DataFrame):
+        new_type = "float64"
+    else:
+        new_type = "int32"
+
+    wcs_df["tstamp"] = wcs_df["tstamp"].astype(new_type)
     wcs_df["wcs_user_sk"] = wcs_df["wcs_user_sk"].astype("int32")
-    wcs_df["wcs_sales_sk"] = wcs_df["wcs_sales_sk"].astype("int32")
+    wcs_df["wcs_sales_sk"] = wcs_df["wcs_sales_sk"].astype(new_type)
     wcs_df["wcs_item_sk"] = wcs_df["wcs_item_sk"].astype("int32")
 
     merged_df = wcs_df.merge(
@@ -91,7 +101,7 @@ def pre_repartition_task(wcs_fn, item_df, wcs_tstamp_min):
     merged_df = merged_df[cols_keep]
 
     merged_df["wcs_user_sk"] = merged_df["wcs_user_sk"].astype("int32")
-    merged_df["wcs_sales_sk"] = merged_df["wcs_sales_sk"].astype("int32")
+    merged_df["wcs_sales_sk"] = merged_df["wcs_sales_sk"].astype(new_type)
     merged_df["wcs_item_sk"] = merged_df["wcs_item_sk"].astype("int32")
     merged_df["wcs_sales_sk"] = merged_df.wcs_sales_sk.fillna(0)
     return merged_df
@@ -120,7 +130,7 @@ def read_tables(config):
     return item_df
 
 
-@cuda.jit
+@jit(nopython=False)
 def find_items_viewed_before_purchase_kernel(
     relevant_idx_col, user_col, timestamp_col, item_col, out_col, N
 ):
@@ -159,7 +169,6 @@ def find_items_viewed_before_purchase_kernel(
 
 
 def apply_find_items_viewed(df, item_mappings):
-    import cudf
 
     # need to sort descending to ensure that the
     # next N rows are the previous N clicks
@@ -181,9 +190,9 @@ def apply_find_items_viewed(df, item_mappings):
     size = len(sample)
 
     # we know this can be int32, since it's going to contain item_sks
-    out_arr = cuda.device_array(size * N, dtype=df["wcs_item_sk"].dtype)
+    out_arr = np.array(size * N, dtype=df["wcs_item_sk"].dtype)
 
-    find_items_viewed_before_purchase_kernel.forall(size)(
+    find_items_viewed_before_purchase_kernel(
         sample["relevant_idx_pos"],
         df["wcs_user_sk"],
         df["tstamp"],
@@ -208,8 +217,6 @@ def apply_find_items_viewed(df, item_mappings):
 
 
 def main(client, config):
-    import dask_cudf
-    import cudf
 
     item_df = benchmark(
         read_tables,
@@ -289,8 +296,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

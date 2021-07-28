@@ -15,7 +15,7 @@
 #
 
 import sys
-
+import os
 
 from bdb_tools.utils import (
     benchmark,
@@ -25,8 +25,12 @@ from bdb_tools.utils import (
 )
 from bdb_tools.readers import build_reader
 
-from numba import cuda
 import numpy as np
+
+if os.getenv("DASK_CPU") == "True":
+    import pandas as cudf
+else:
+    import cudf
 
 
 q11_start_date = "2003-01-02"
@@ -62,7 +66,6 @@ def read_tables(config):
 
 
 def main(client, config):
-    import cudf
 
     pr_df, ws_df, date_df = benchmark(
         read_tables,
@@ -125,8 +128,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

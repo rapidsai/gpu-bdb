@@ -15,9 +15,10 @@
 #
 
 import sys
+import os
 
 import numpy as np
-from numba import cuda
+import pandas as pd
 
 from bdb_tools.utils import (
     benchmark,
@@ -29,6 +30,10 @@ from bdb_tools.utils import (
 from bdb_tools.readers import build_reader
 from dask import delayed
 
+if os.getenv("DASK_CPU") == "True":
+    import dask.dataframe as dask_cudf
+else:
+    import dask_cudf
 
 # q25 parameters
 Q25_DATE = "2002-01-02"
@@ -77,7 +82,6 @@ def agg_count_distinct(df, group_key, counted_key, client):
 
 
 def get_clusters(client, ml_input_df):
-    import dask_cudf
 
     ml_tasks = [
         delayed(train_clustering_model)(df, N_CLUSTERS, CLUSTER_ITERATIONS, N_ITER)
@@ -87,9 +91,15 @@ def get_clusters(client, ml_input_df):
 
     output = ml_input_df.index.to_frame().reset_index(drop=True)
 
-    labels_final = dask_cudf.from_cudf(
-        results_dict["cid_labels"], npartitions=output.npartitions
-    )
+    if hasattr(dask_cudf, "from_cudf"):
+        labels_final = dask_cudf.from_cudf(
+            results_dict["cid_labels"], npartitions=output.npartitions
+        )
+    else:
+        labels_final = dask_cudf.from_pandas(
+            pd.DataFrame(results_dict["cid_labels"]), npartitions=output.npartitions
+        )
+
     output["label"] = labels_final.reset_index()[0]
 
     # Sort based on CDH6.1 q25-result formatting
@@ -100,7 +110,6 @@ def get_clusters(client, ml_input_df):
 
 
 def main(client, config):
-    import dask_cudf
 
     ss_ddf, ws_ddf, datedim_ddf = benchmark(
         read_tables,
@@ -173,8 +182,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

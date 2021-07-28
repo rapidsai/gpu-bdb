@@ -15,7 +15,7 @@
 #
 
 import sys
-
+import os
 
 from bdb_tools.utils import (
     benchmark,
@@ -29,6 +29,10 @@ from dask.distributed import wait
 
 import numpy as np
 
+if os.getenv("DASK_CPU") == "True":
+    import pandas as cudf
+else:
+    import cudf
 
 ### conf
 q16_date = "2001-03-16"
@@ -88,7 +92,6 @@ def read_tables(config):
 
 
 def main(client, config):
-    import cudf
 
     web_sales_df, web_returns_df, date_dim_df, item_df, warehouse_df = benchmark(
         read_tables,
@@ -108,8 +111,8 @@ def main(client, config):
     item_df = item_df.persist()
     ## casting down because of dtype incosistieny in cudf/dask due to cat columns
     ### https://github.com/rapidsai/cudf/issues/4093
-    wh_df_codes_min_signed_type = cudf.utils.dtypes.min_signed_type(
-        len(warehouse_df["w_state_code"].compute().cat.categories)
+    wh_df_codes_min_signed_type = np.min_scalar_type(
+        -len(warehouse_df["w_state_code"].compute().cat.categories)-1
     )
     warehouse_df["w_state_code"] = warehouse_df["w_state_code"].cat.codes.astype(
         wh_df_codes_min_signed_type
@@ -120,8 +123,8 @@ def main(client, config):
 
     ## casting down because of dtype incosistieny in cudf/dask due to cat columns
     ### https://github.com/rapidsai/cudf/issues/4093
-    item_df_codes_min_signed_type = cudf.utils.dtypes.min_signed_type(
-        len(item_df["i_item_id_code"].compute().cat.categories)
+    item_df_codes_min_signed_type = np.min_scalar_type(
+        -len(item_df["i_item_id_code"].compute().cat.categories)-1
     )
     item_df["i_item_id_code"] = item_df["i_item_id_code"].cat.codes.astype(
         item_df_codes_min_signed_type
@@ -264,8 +267,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

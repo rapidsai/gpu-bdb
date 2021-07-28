@@ -15,7 +15,10 @@
 #
 
 import sys
+import os
 
+import numpy as np
+import dask.dataframe as dd
 
 from bdb_tools.utils import (
     benchmark,
@@ -25,6 +28,10 @@ from bdb_tools.utils import (
 from bdb_tools.readers import build_reader
 from bdb_tools.sessionization import get_sessions
 
+if os.getenv("DASK_CPU") == "True":
+    import pandas as cudf
+else:
+    import cudf
 
 # parameters
 q04_session_timeout_inSec = 3600
@@ -53,8 +60,6 @@ def read_tables(config):
 
 
 def abandonedShoppingCarts(df, DYNAMIC_CAT_CODE, ORDER_CAT_CODE):
-    import cudf
-
     # TODO: test without reset index
     df.reset_index(drop=True, inplace=True)
 
@@ -94,7 +99,7 @@ def abandonedShoppingCarts(df, DYNAMIC_CAT_CODE, ORDER_CAT_CODE):
     )
     del (last_dynamic_df, grouped_count_df)
     return cudf.DataFrame(
-        {"pagecount": result.tstamp_inSec.sum(), "count": len(result)}
+        {"pagecount": [result.tstamp_inSec.sum()], "count": [len(result)]}
     )
 
 
@@ -107,7 +112,6 @@ def reduction_function(df, keep_cols, DYNAMIC_CAT_CODE, ORDER_CAT_CODE):
 
 
 def main(client, config):
-    import cudf
 
     wp, wcs_df = benchmark(
         read_tables,
@@ -117,7 +121,10 @@ def main(client, config):
     )
 
     ### downcasting the column inline with q03
-    wcs_df["wcs_user_sk"] = wcs_df["wcs_user_sk"].astype("int32")
+    if isinstance(wcs_df, dd.DataFrame):
+        wcs_df["wcs_user_sk"] = wcs_df["wcs_user_sk"].astype("float64").round()
+    else:
+        wcs_df["wcs_user_sk"] = wcs_df["wcs_user_sk"].astype("int32")
 
     f_wcs_df = wcs_df[
         wcs_df["wcs_web_page_sk"].notnull()
@@ -135,11 +142,14 @@ def main(client, config):
 
     # Convert wp_type to categorical and get cat_id of review and dynamic type
     wp["wp_type"] = wp["wp_type"].map_partitions(lambda ser: ser.astype("category"))
-    cpu_categories = wp["wp_type"].compute().cat.categories.to_pandas()
+    cpu_categories = wp["wp_type"].compute().cat.categories
+    if hasattr(cpu_categories, "to_pandas"):
+        cpu_categories = cpu_categories.to_pandas()
+
     DYNAMIC_CAT_CODE = cpu_categories.get_loc("dynamic")
     ORDER_CAT_CODE = cpu_categories.get_loc("order")
     # ### cast to minimum viable dtype
-    codes_min_signed_type = cudf.utils.dtypes.min_signed_type(len(cpu_categories))
+    codes_min_signed_type = np.min_scalar_type(-len(cpu_categories)-1)
     wp["wp_type_codes"] = wp["wp_type"].cat.codes.astype(codes_min_signed_type)
     cols_2_keep = ["wp_web_page_sk", "wp_type_codes"]
     wp = wp[cols_2_keep]
@@ -166,8 +176,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

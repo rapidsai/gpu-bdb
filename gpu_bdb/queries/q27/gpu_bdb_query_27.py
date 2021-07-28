@@ -15,12 +15,11 @@
 #
 
 import sys
+import os
 import time
 import argparse
 
 import spacy
-import rmm
-import cupy as cp
 import distributed
 
 from bdb_tools.utils import (
@@ -32,9 +31,12 @@ from bdb_tools.utils import (
 
 from bdb_tools.text import create_sentences_from_reviews, create_words_from_sentences
 from bdb_tools.readers import build_reader
-from dask_cuda import LocalCUDACluster
 from dask.distributed import Client, wait
 
+if os.getenv("DASK_CPU") == "True":
+    import dask.dataframe as dask_cudf
+else:
+    import dask_cudf
 
 # -------- Q27 -----------
 q27_pr_item_sk = 10002
@@ -56,7 +58,8 @@ def read_tables(config):
 
 
 def ner_parser(df, col_string, batch_size=256):
-    spacy.require_gpu()
+    if hasattr(df, "to_pandas"):
+        spacy.require_gpu()
     nlp = spacy.load("en_core_web_sm")
     docs = nlp.pipe(df[col_string], disable=["tagger", "parser"], batch_size=batch_size)
     out = []
@@ -70,7 +73,6 @@ def ner_parser(df, col_string, batch_size=256):
 
 
 def main(client, config):
-    import dask_cudf
 
     product_reviews_df = benchmark(
         read_tables,
@@ -97,9 +99,13 @@ def main(client, config):
     wait(sentences)
 
     # Do the NER
-    sentences = sentences.to_dask_dataframe()
-    ner_parsed = sentences.map_partitions(ner_parser, "sentence")
-    ner_parsed = dask_cudf.from_dask_dataframe(ner_parsed)
+    if hasattr(sentences, "to_dask_dataframe()"):
+        sentences = sentences.to_dask_dataframe()
+        ner_parsed = sentences.map_partitions(ner_parser, "sentence")
+        ner_parsed = dask_cudf.from_dask_dataframe(ner_parsed)
+    else:
+        ner_parsed = sentences.map_partitions(ner_parser, "sentence")
+
     ner_parsed = ner_parsed.persist()
     wait(ner_parsed)
 
@@ -138,8 +144,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

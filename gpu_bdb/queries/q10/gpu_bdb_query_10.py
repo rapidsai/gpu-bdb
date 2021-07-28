@@ -24,13 +24,15 @@ from bdb_tools.utils import (
 )
 from bdb_tools.text import create_sentences_from_reviews, create_words_from_sentences
 
-
-import rmm
-import cupy as cp
-import distributed
-
 from bdb_tools.readers import build_reader
-from dask.distributed import Client, wait
+from dask.distributed import wait
+
+if os.getenv("DASK_CPU") == "True":
+    import pandas as cudf
+    import dask.dataframe as dask_cudf
+else:
+    import cudf
+    import dask_cudf
 
 
 # -------- Q10 -----------
@@ -54,7 +56,6 @@ def read_tables(config):
 
 
 def load_sentiment_words(filename, sentiment):
-    import cudf
 
     with open(filename) as fh:
         sentiment_words = list(map(str.strip, fh.readlines()))
@@ -67,8 +68,6 @@ def load_sentiment_words(filename, sentiment):
 
 
 def main(client, config):
-    import cudf
-    import dask_cudf
 
     product_reviews_df = benchmark(
         read_tables,
@@ -87,7 +86,7 @@ def main(client, config):
     product_reviews_df[
         "pr_review_content"
     ] = product_reviews_df.pr_review_content.str.replace(
-        [".", "?", "!"], [eol_char], regex=False
+        [".", "?", "!"], eol_char, regex=False
     )
 
     sentences = product_reviews_df.map_partitions(create_sentences_from_reviews)
@@ -108,7 +107,10 @@ def main(client, config):
     pos_sent_df = load_sentiment_words(os.path.join(sentiment_dir, "positiveSentiment.txt"), "POS")
 
     sent_df = cudf.concat([pos_sent_df, neg_sent_df])
-    sent_df = dask_cudf.from_cudf(sent_df, npartitions=1)
+    if hasattr(dask_cudf, "from_cudf"):
+        sent_df = dask_cudf.from_cudf(sent_df, npartitions=1)
+    else:
+        sent_df = dask_cudf.from_pandas(sent_df, npartitions=1)
 
     word_sentence_sentiment = word_df.merge(sent_df, how="inner", on="word")
 
@@ -150,8 +152,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

@@ -16,6 +16,10 @@
 
 import os
 
+if os.getenv("DASK_CPU") == "True":
+    import pandas as cudf
+else:
+    import cudf
 
 EOL_CHAR = "è"
 
@@ -23,12 +27,11 @@ EOL_CHAR = "è"
 def create_sentences_from_reviews(
     df, review_column="pr_review_content", end_of_line_char=EOL_CHAR
 ):
-    import cudf
 
-    sentences = df[review_column].str.tokenize(delimiter=end_of_line_char)
+    sentences = df[review_column].astype(str).str.split(end_of_line_char)
 
     # expand the reviews
-    tk_cnts = df[review_column].str.token_count(delimiter=end_of_line_char)
+    tk_cnts = len(sentences) 
 
     # use pr_review_sk as the global position
     # (leaving hardcoded as it's consistent across all queries)
@@ -44,16 +47,15 @@ def create_words_from_sentences(
     global_position_column="sentence_tokenized_global_pos",
     delimiter=" ",
 ):
-    import cudf
 
     cleaned_sentences = df[sentence_column].str.replace(
-        [",", ";", "-", '"', "."], ["", "", "", "", " "], regex=False
-    )
-    normalized_sentences = cleaned_sentences.str.normalize_spaces()
-    repeat_counts_per_sentence = normalized_sentences.str.token_count(
-        delimiter=delimiter
-    )
-    words = normalized_sentences.str.tokenize(delimiter=delimiter)
+        "|".join([",", ";", "-", '"']), ""
+    ).str.replace(".", " ", regex=False)
+    normalized_sentences = cleaned_sentences.str.strip()
+    repeat_counts_per_sentence = len(normalized_sentences.str.split(
+        delimiter
+    ))
+    words = normalized_sentences.str.split(delimiter)
 
     # reassociate with the global position
     global_pos = (

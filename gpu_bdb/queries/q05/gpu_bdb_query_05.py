@@ -25,14 +25,27 @@ from bdb_tools.utils import (
 )
 
 from bdb_tools.readers import build_reader
-from bdb_tools.cupy_metrics import cupy_precision_score
 
-import cupy as cp
 import numpy as np
 from dask import delayed
 import dask
 import pandas as pd
-from sklearn.metrics import roc_auc_score
+
+if os.getenv("DASK_CPU") == "True":
+    import numpy as cp
+    import pandas as cudf
+    import dask.dataframe as dask_cudf
+
+    import sklearn.linear_model as cuml
+    from sklearn.metrics import precision_score, roc_auc_score, confusion_matrix
+else:
+    import cupy as cp
+    import cudf
+    import dask_cudf
+
+    import cuml
+    from cuml.metrics import roc_auc_score, confusion_matrix
+    from bdb_tools.cupy_metrics import cupy_precision_score as precision_score
 
 #
 # Query Configuration
@@ -77,8 +90,6 @@ def build_and_predict_model(ml_input_df):
     Create a standardized feature matrix X and target array y.
     Returns the model and accuracy statistics
     """
-    import cuml
-    from cuml.metrics import confusion_matrix
 
     feature_names = ["college_education", "male"] + [
         "clicks_in_%d" % i for i in range(1, 8)
@@ -88,10 +99,12 @@ def build_and_predict_model(ml_input_df):
     X = (X - X.mean()) / X.std()
     y = ml_input_df["clicks_in_category"]
 
+    solver = "lbfgs" if np == cp else "qn"
+
     model = cuml.LogisticRegression(
         tol=convergence_tol,
         penalty="none",
-        solver="qn",
+        solver=solver,
         fit_intercept=True,
         max_iter=iterations,
         C=C,
@@ -104,8 +117,8 @@ def build_and_predict_model(ml_input_df):
     results_dict = {}
     y_pred = model.predict(X)
 
-    results_dict["auc"] = roc_auc_score(y.to_array(), y_pred.to_array())
-    results_dict["precision"] = cupy_precision_score(cp.asarray(y), cp.asarray(y_pred))
+    results_dict["auc"] = roc_auc_score(y, y_pred)
+    results_dict["precision"] = precision_score(cp.asarray(y), cp.asarray(y_pred))
     results_dict["confusion_matrix"] = confusion_matrix(
         cp.asarray(y, dtype="int32"), cp.asarray(y_pred, dtype="int32")
     )
@@ -117,7 +130,6 @@ def get_groupby_results(file_list, item_df):
     """
         Functionial approach for better scaling
     """
-    import cudf
 
     sum_by_cat_ddf = None
     for fn in file_list:
@@ -129,12 +141,11 @@ def get_groupby_results(file_list, item_df):
         keep_cols = ["wcs_user_sk", "i_category_id", "clicks_in_category"]
         wcs_ddf = wcs_ddf[keep_cols]
 
-        wcs_ddf = cudf.DataFrame.one_hot_encoding(
+        wcs_ddf = cudf.get_dummies(
             wcs_ddf,
-            column="i_category_id",
+            columns=["i_category_id"],
             prefix="clicks_in",
             prefix_sep="_",
-            cats=[i for i in range(1, 8)],
             dtype=np.int8,
         )
         keep_cols = ["wcs_user_sk", "clicks_in_category"] + [
@@ -162,8 +173,6 @@ def get_groupby_results(file_list, item_df):
 
 
 def main(client, config):
-    import cudf
-    import dask_cudf
 
     item_ddf, customer_ddf, customer_dem_ddf = benchmark(
         read_tables,
@@ -209,7 +218,10 @@ def main(client, config):
         "clicks_in_6": {},
         "clicks_in_7": {},
     }
-    df = cudf.from_pandas(pd.DataFrame.from_dict(meta_d, dtype="int64"))
+    df = pd.DataFrame.from_dict(meta_d, dtype="int64")
+    if hasattr(cudf, "from_pandas"):
+        df = cudf.from_pandas(df)
+
 
     sum_by_cat_ddf = dask_cudf.from_delayed(task_ls, meta=df)
     sum_by_cat_ddf = sum_by_cat_ddf.groupby(["wcs_user_sk"], sort=True).sum()
@@ -268,9 +280,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
-    import cuml
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

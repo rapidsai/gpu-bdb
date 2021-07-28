@@ -29,6 +29,13 @@ from bdb_tools.readers import build_reader
 from dask.distributed import Client, wait
 import distributed
 
+if os.getenv("DASK_CPU") == "True":
+    import pandas as cudf
+    import dask.dataframe as dask_cudf
+else:
+    import cudf
+    import dask_cudf
+
 
 # -------- Q19 -----------
 q19_returns_dates = ["2004-03-08", "2004-08-02", "2004-11-15", "2004-12-20"]
@@ -64,8 +71,6 @@ def read_tables(config):
 
 
 def main(client, config):
-    import cudf
-    import dask_cudf
 
     date_dim_df, store_returns_df, web_returns_df, product_reviews_df = benchmark(
         read_tables,
@@ -146,7 +151,7 @@ def main(client, config):
     merged_df = merged_df[["pr_item_sk", "pr_review_content", "pr_review_sk"]]
     merged_df["pr_review_content"] = merged_df.pr_review_content.str.lower()
     merged_df["pr_review_content"] = merged_df.pr_review_content.str.replace(
-        [".", "?", "!"], [eol_char], regex=False
+        [".", "?", "!"], eol_char, regex=False
     )
 
     sentences = merged_df.map_partitions(create_sentences_from_reviews)
@@ -171,7 +176,11 @@ def main(client, config):
 
     sent_df = cudf.DataFrame({"word": negativeSentiment})
     sent_df["sentiment"] = "NEG"
-    sent_df = dask_cudf.from_cudf(sent_df, npartitions=1)
+
+    if hasattr(dask_cudf, "from_cudf"):
+        sent_df = dask_cudf.from_cudf(sent_df, npartitions=1)
+    else:
+        sent_df = dask_cudf.from_pandas(sent_df, npartitions=1)
 
     word_sentence_sentiment = word_df.merge(sent_df, how="inner", on="word")
 
@@ -207,8 +216,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

@@ -29,10 +29,16 @@ from bdb_tools.merge_util import hash_merge
 
 import numpy as np
 from distributed import wait
-import cupy as cp
-import rmm
 from dask import delayed
 
+if os.getenv("DASK_CPU") == "True":
+    import numpy as cp
+    import pandas as cudf
+    import dask.dataframe as dask_cudf
+else:
+    import cupy as cp
+    import cudf
+    import dask_cudf
 
 q08_STARTDATE = "2001-09-02"
 q08_ENDDATE = "2002-09-02"
@@ -41,7 +47,6 @@ NA_FLAG = 0
 
 
 def etl_wcs(wcs_fn, filtered_date_df, web_page_df):
-    import cudf
 
     filtered_date_df = filtered_date_df
     web_page_df = web_page_df
@@ -85,7 +90,6 @@ def get_session_id_from_session_boundary(session_change_df, last_session_len):
     """
         This function returns session starts given a session change df
     """
-    import cudf
 
     user_session_ids = session_change_df.tstamp_inSec
 
@@ -209,12 +213,10 @@ def reduction_function(df, REVIEW_CAT_CODE):
     df = prep_for_sessionization(df, review_cat_code=REVIEW_CAT_CODE)
     df = get_sessions(df)
     df = get_unique_sales_keys_from_sessions(df, REVIEW_CAT_CODE)
-    return df.to_frame()
+    return cudf.DataFrame(df)
 
 
 def main(client, config):
-    import cudf
-    import dask_cudf
 
     (date_dim_df, web_page_df, web_sales_df) = benchmark(
         read_tables,
@@ -239,11 +241,14 @@ def main(client, config):
     web_page_df["wp_type"] = web_page_df["wp_type"].map_partitions(
         lambda ser: ser.astype("category")
     )
-    cpu_categories = web_page_df["wp_type"].compute().cat.categories.to_pandas()
+    cpu_categories = web_page_df["wp_type"].compute().cat.categories
+    if hasattr(cpu_categories, "to_pandas"):
+        cpu_categories = cpu_categories.to_pandas()
+
     REVIEW_CAT_CODE = cpu_categories.get_loc("review")
 
     # cast to minimum viable dtype
-    codes_min_signed_type = cudf.utils.dtypes.min_signed_type(len(cpu_categories))
+    codes_min_signed_type = np.min_scalar_type(-len(cpu_categories)-1)
 
     web_page_df["wp_type_codes"] = web_page_df["wp_type"].cat.codes.astype(
         codes_min_signed_type
@@ -327,8 +332,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

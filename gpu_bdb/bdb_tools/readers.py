@@ -17,6 +17,11 @@
 from abc import ABC, abstractmethod
 import os
 
+if os.getenv("DASK_CPU") == "True":
+    import dask.dataframe as dask_cudf
+else:
+    import dask_cudf
+
 
 TABLE_NAMES = [
     "customer",
@@ -99,8 +104,6 @@ class ParquetReader(Reader):
         return self.table_path_mapping.keys()
 
     def read(self, table, relevant_cols=None, **kwargs):
-        import dask_cudf
-
         filepath = self.table_path_mapping[table]
         # we ignore split_row_groups if gather_statistics=False
         if self.split_row_groups:

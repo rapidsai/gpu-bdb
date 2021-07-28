@@ -15,9 +15,10 @@
 #
 
 import sys
+import os
 
 import numpy as np
-from numba import cuda
+import pandas as pd
 
 from bdb_tools.utils import (
     benchmark,
@@ -28,6 +29,12 @@ from bdb_tools.utils import (
 from bdb_tools.readers import build_reader
 from dask import delayed
 
+if os.getenv("DASK_CPU") == "True":
+    import pandas as cudf
+    import dask.dataframe as dask_cudf
+else:
+    import cudf
+    import dask_cudf
 
 # q26 parameters
 Q26_CATEGORY = "Books"
@@ -66,7 +73,6 @@ def agg_count_distinct(df, group_key, counted_key):
 
 
 def get_clusters(client, kmeans_input_df):
-    import dask_cudf
 
     ml_tasks = [
         delayed(train_clustering_model)(df, N_CLUSTERS, CLUSTER_ITERATIONS, N_ITER)
@@ -76,9 +82,15 @@ def get_clusters(client, kmeans_input_df):
 
     output = kmeans_input_df.index.to_frame().reset_index(drop=True)
 
-    labels_final = dask_cudf.from_cudf(
-        results_dict["cid_labels"], npartitions=output.npartitions
-    )
+    if hasattr(dask_cudf, "from_cudf"):
+        labels_final = dask_cudf.from_cudf(
+            results_dict["cid_labels"], npartitions=output.npartitions
+        )
+    else:
+        labels_final = dask_cudf.from_pandas(
+            pd.DataFrame(results_dict["cid_labels"]), npartitions=output.npartitions
+        )
+
     output["label"] = labels_final.reset_index()[0]
 
     # Sort based on CDH6.1 q26-result formatting
@@ -90,7 +102,6 @@ def get_clusters(client, kmeans_input_df):
 
 
 def main(client, config):
-    import cudf
 
     ss_ddf, items_ddf = benchmark(
         read_tables,
@@ -113,15 +124,15 @@ def main(client, config):
 
     # One-Hot-Encode i_class_id
     merged_ddf = merged_ddf.map_partitions(
-        cudf.DataFrame.one_hot_encoding,
-        column="i_class_id",
+        cudf.get_dummies,
+        columns=["i_class_id"],
         prefix="id",
-        cats=[i for i in range(1, 16)],
         prefix_sep="",
         dtype="float32",
     )
     merged_ddf["total"] = 1.0  # Will keep track of total count
-    all_categories = ["total"] + ["id%d" % i for i in range(1, 16)]
+    print(merged_ddf.columns)
+    all_categories = ["total"] + ["id%d" % i for i in range(1,16)]
 
     # Aggregate using agg to get sorted ss_customer_sk
     agg_dict = dict.fromkeys(all_categories, "sum")
@@ -139,8 +150,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

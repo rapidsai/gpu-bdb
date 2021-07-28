@@ -45,6 +45,13 @@ import json
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
+if os.getenv("DASK_CPU") == "True":
+    import pandas as cudf
+    import dask.dataframe as dask_cudf
+else:
+    import cudf
+    import dask_cudf
+
 #################################
 # Benchmark Timing
 #################################
@@ -65,7 +72,6 @@ def benchmark(func, *args, **kwargs):
     logging_info["elapsed_time_seconds"] = elapsed_time
     logging_info["function_name"] = name
     if compute_result:
-        import dask_cudf
 
         if isinstance(result, dask_cudf.DataFrame):
             len_tasks = [dask.delayed(len)(df) for df in result.to_delayed()]
@@ -96,7 +102,6 @@ def benchmark(func, *args, **kwargs):
 def write_result(payload, filetype="parquet", output_directory="./"):
     """
     """
-    import cudf
 
     if isinstance(payload, MutableMapping):
         if payload.get("output_type", None) == "supervised":
@@ -211,7 +216,11 @@ def write_clustering_result(result_dict, output_directory="./", filetype="csv"):
         fh.write(f"WSSSE: {result_dict.get('wssse')}\n")
 
         centers = result_dict.get("cluster_centers")
-        for center in centers.values.tolist():
+
+        if not isinstance(centers, np.ndarray):
+            centers = centers.values
+
+        for center in centers.tolist():
             fh.write(f"{center}\n")
 
     # this is a single partition dataframe, with cid_labels hard coded
@@ -219,7 +228,7 @@ def write_clustering_result(result_dict, output_directory="./", filetype="csv"):
     data = result_dict.get("cid_labels")
 
     if filetype == "csv":
-        clustering_result_name = f"q{QUERY_NUM}-results.csv"
+        clustering_result_name = f"q{QUERY_NUM}-results.csv" 
         data.to_csv(
             f"{output_directory}{clustering_result_name}", index=False, header=None
         )
@@ -844,7 +853,6 @@ def _get_benchmarked_method_time(
     """
     Returns the `elapsed_time_seconds` field from files generated using the `benchmark` decorator.
     """
-    import cudf
 
     try:
         benchmark_results = cudf.read_csv(filename)
@@ -914,7 +922,7 @@ def push_payload_to_googlesheet(config):
 
 def left_semi_join(df_1, df_2, left_on, right_on):
     """
-        Pefrorm left semi join b/w tables
+        Perform left semi join b/w tables
     """
     left_merge = lambda df_1, df_2: df_1.merge(
         df_2, left_on=left_on, right_on=right_on, how="leftsemi"
@@ -927,15 +935,22 @@ def left_semi_join(df_1, df_2, left_on, right_on):
 
 
 def convert_datestring_to_days(df):
-    import cudf
 
-    df["d_date"] = (
-        cudf.to_datetime(df["d_date"], format="%Y-%m-%d")
-        .astype("datetime64[s]")
-        .astype("int64")
-        / 86400
-    )
-    df["d_date"] = df["d_date"].astype("int64")
+    if isinstance(df, (pd.DataFrame, dd.DataFrame)):
+        df["d_date"] = cudf.to_numeric(
+            cudf.to_datetime(df["d_date"], format="%Y-%m-%d", errors="coerce")
+            .astype("datetime64[s]")
+            ) / 86400
+        df["d_date"] = df["d_date"].astype("float64").round()
+    else:
+        df["d_date"] = (
+            cudf.to_datetime(df["d_date"], format="%Y-%m-%d")
+            .astype("datetime64[s]")
+            .astype("int64")
+            / 86400
+        )
+        df["d_date"] = df["d_date"].astype("int64")
+    
     return df
 
 
@@ -944,7 +959,11 @@ def train_clustering_model(training_df, n_clusters, max_iter, n_init):
     given dataframe and returns the resulting
     labels and WSSSE"""
 
-    from cuml.cluster.kmeans import KMeans
+    if cudf == pd:
+        from sklearn.cluster import KMeans
+    else:
+        from cuml.cluster.kmeans import KMeans
+        KMeans = partial(KMeans, oversampling_factor=0)
 
     best_sse = 0
     best_model = None
@@ -952,7 +971,6 @@ def train_clustering_model(training_df, n_clusters, max_iter, n_init):
     # Optimizing by doing multiple seeding iterations.
     for i in range(n_init):
         model = KMeans(
-            oversampling_factor=0,
             n_clusters=n_clusters,
             max_iter=max_iter,
             random_state=np.random.randint(0, 500),

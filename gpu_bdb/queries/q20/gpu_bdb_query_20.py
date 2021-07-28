@@ -15,10 +15,9 @@
 #
 
 import sys
-import cupy as cp
-import rmm
+import os
 import numpy as np
-
+import pandas as pd
 
 from bdb_tools.utils import (
     benchmark,
@@ -30,6 +29,10 @@ from bdb_tools.readers import build_reader
 from dask import delayed
 from dask.distributed import wait
 
+if os.getenv("DASK_CPU") == "True":
+    import dask.dataframe as dask_cudf
+else:
+    import dask_cudf
 
 # q20 parameters
 N_CLUSTERS = 8
@@ -69,7 +72,6 @@ def get_clusters(client, ml_input_df, feature_cols):
     Takes the dask client, kmeans_input_df and feature columns.
     Returns a dictionary matching the output required for q20
     """
-    import dask_cudf
 
     ml_tasks = [
         delayed(train_clustering_model)(df, N_CLUSTERS, CLUSTER_ITERATIONS, N_ITER)
@@ -80,7 +82,11 @@ def get_clusters(client, ml_input_df, feature_cols):
 
     labels = results_dict["cid_labels"]
 
-    labels_final = dask_cudf.from_cudf(labels, npartitions=ml_input_df.npartitions)
+    if hasattr(dask_cudf, "from_cudf"):
+        labels_final = dask_cudf.from_cudf(labels, npartitions=ml_input_df.npartitions)
+    else:
+        labels_final = dask_cudf.from_pandas(pd.DataFrame(labels), npartitions=ml_input_df.npartitions)
+    
     ml_input_df["label"] = labels_final.reset_index()[0]
 
     output = ml_input_df[["user_sk", "label"]]
@@ -224,8 +230,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)
