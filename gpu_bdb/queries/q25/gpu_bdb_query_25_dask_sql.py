@@ -148,6 +148,6 @@ def main(data_dir, client, bc, config):
 
 if __name__ == "__main__":
     config = gpubdb_argparser()
-    client, _ = attach_to_cluster(config, create_blazing_context=True)
+    client, _ = attach_to_cluster(config)
     c = Context()
     run_query(config=config, client=client, query_func=main, blazing_context=c)

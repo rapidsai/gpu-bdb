@@ -22,6 +22,8 @@ from bdb_tools.cluster_startup import attach_to_cluster
 import numpy as np
 import cupy as cp
 
+import dask_cudf
+
 from bdb_tools.text import create_sentences_from_reviews, create_words_from_sentences
 
 from bdb_tools.utils import (
@@ -292,7 +294,7 @@ def main(data_dir, client, bc, config):
     # Need to pass the absolute path for this txt file
     sentiment_dir = os.path.join(config["data_dir"], "sentiment_files")
     ns_df = dask_cudf.read_csv(os.path.join(sentiment_dir, "negativeSentiment.txt"), names=["sentiment_word"])
-    bc.create_table('negative_sentiment', ns_df)
+    bc.create_table('sent_df', ns_df)
 
     word_df = word_df.persist()
     wait(word_df)
