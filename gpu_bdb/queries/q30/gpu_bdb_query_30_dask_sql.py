@@ -59,6 +59,7 @@ def read_tables(data_dir, bc):
 
     bc.create_table('web_clickstreams', wcs_df)
     bc.create_table('item', item_df)
+    # print(len(wcs_df))
 
     # bc.create_table('web_clickstreams', os.path.join(data_dir, "web_clickstreams/*.parquet"))
     # bc.create_table('item', os.path.join(data_dir, "item/*.parquet"))
@@ -77,6 +78,8 @@ def main(data_dir, client, bc, config):
     item_df = item_df.persist()
     wait(item_df)
     bc.create_table("item_df", item_df)
+    # print(len(item_df))
+    # print(len(item_df.columns))
 
     query_2 = """
         SELECT wcs_user_sk,
@@ -89,6 +92,7 @@ def main(data_dir, client, bc, config):
         ORDER BY wcs.wcs_user_sk, tstamp_inSec, i_category_id
     """
     merged_df = bc.sql(query_2)
+    # print(len(merged_df))
 
     bc.drop_table("item_df")
     del item_df
@@ -108,6 +112,7 @@ def main(data_dir, client, bc, config):
     pair_df = pair_df.persist()
     wait(pair_df)
     bc.create_table('pair_df', pair_df)
+    # print(len(pair_df))
 
     last_query = f"""
         SELECT CAST(category_id_1 AS BIGINT) AS category_id_1,

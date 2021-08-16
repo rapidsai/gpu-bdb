@@ -137,8 +137,16 @@ def read_tables(data_dir, bc):
     )
 
     item_cols = ["i_category_id", "i_item_sk"]
+    wcs_cols = [
+        "wcs_user_sk",
+        "wcs_click_time_sk",
+        "wcs_click_date_sk",
+        "wcs_item_sk",
+        "wcs_sales_sk",
+    ]
+
     item_df = table_reader.read("item", relevant_cols=item_cols)
-    wcs_df = table_reader.read("web_clickstreams")
+    wcs_df = table_reader.read("web_clickstreams", relevant_cols=wcs_cols)
 
     bc.create_table("web_clickstreams", wcs_df)
     bc.create_table("item", item_df)
