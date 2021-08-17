@@ -105,8 +105,8 @@ def read_tables(data_dir, bc):
     ]
     wcs_df = table_reader.read("web_clickstreams", relevant_cols=wcs_cols)
 
-    bc.create_table('web_page_wo_categorical', wp_df)
-    bc.create_table('web_clickstreams', wcs_df)
+    bc.create_table('web_page_wo_categorical', wp_df, persist=False)
+    bc.create_table('web_clickstreams', wcs_df, persist=False)
 
     # bc.create_table('web_page_wo_categorical', os.path.join(data_dir, "web_page/*.parquet"))
     # bc.create_table('web_clickstreams',
@@ -144,7 +144,7 @@ def main(data_dir, client, bc, config):
 
     wp = wp.persist()
     wait(wp)
-    bc.create_table('web_page', wp)
+    bc.create_table('web_page', wp, persist=False)
 
     query = """
         SELECT

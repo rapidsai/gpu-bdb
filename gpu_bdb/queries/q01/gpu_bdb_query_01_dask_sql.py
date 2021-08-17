@@ -54,8 +54,8 @@ def read_tables(data_dir, bc):
     item_df = table_reader.read("item", relevant_cols=item_cols)
     ss_df = table_reader.read("store_sales", relevant_cols=ss_cols)
 
-    bc.create_table("item", item_df)
-    bc.create_table("store_sales", ss_df)
+    bc.create_table("item", item_df, persist=False)
+    bc.create_table("store_sales", ss_df, persist=False)
 
     # bc.create_table("item", os.path.join(data_dir, "item/*.parquet"))
     # bc.create_table("store_sales", os.path.join(data_dir, "store_sales/*.parquet"))
@@ -75,7 +75,7 @@ def main(data_dir, client, bc, config):
 
     result_distinct = result_distinct.persist()
     wait(result_distinct)
-    bc.create_table("distinct_table", result_distinct)
+    bc.create_table("distinct_table", result_distinct, persist=False)
 
     query = f"""
         SELECT item_sk_1, item_sk_2, COUNT(*) AS cnt

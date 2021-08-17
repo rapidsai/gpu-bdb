@@ -57,11 +57,11 @@ def read_tables(data_dir, bc):
     item_df = table_reader.read("item", relevant_cols=item_cols)
     warehouse_df = table_reader.read("warehouse", relevant_cols=warehouse_cols)
 
-    bc.create_table("web_sales", web_sales_df)
-    bc.create_table("web_returns", web_returns_df)
-    bc.create_table("date_dim", date_dim_df)
-    bc.create_table("item", item_df)
-    bc.create_table("warehouse", warehouse_df)
+    bc.create_table("web_sales", web_sales_df, persist=False)
+    bc.create_table("web_returns", web_returns_df, persist=False)
+    bc.create_table("date_dim", date_dim_df, persist=False)
+    bc.create_table("item", item_df, persist=False)
+    bc.create_table("warehouse", warehouse_df, persist=False)
 
     # bc.create_table("web_sales", os.path.join(data_dir, "web_sales/*.parquet"))
     # bc.create_table("web_returns", os.path.join(data_dir, "web_returns/*.parquet"))

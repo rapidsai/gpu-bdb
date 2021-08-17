@@ -49,9 +49,9 @@ def read_tables(data_dir, bc):
     store_sales_df = table_reader.read("store_sales", relevant_cols=store_sales_cols)
     wcs_df = table_reader.read("web_clickstreams", relevant_cols=wcs_cols)
     
-    bc.create_table("web_clickstreams", wcs_df)
-    bc.create_table("store_sales", store_sales_df)
-    bc.create_table("item", item_df)
+    bc.create_table("web_clickstreams", wcs_df, persist=False)
+    bc.create_table("store_sales", store_sales_df, persist=False)
+    bc.create_table("item", item_df, persist=False)
 
     # bc.create_table("web_clickstreams",
     #                 os.path.join(data_dir, "web_clickstreams/*.parquet"))

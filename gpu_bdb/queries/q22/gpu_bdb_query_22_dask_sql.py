@@ -59,10 +59,10 @@ def read_tables(data_dir, bc):
     dd_columns = ["d_date_sk", "d_date"]
     date_dim = table_reader.read("date_dim", relevant_cols=dd_columns)
 
-    bc.create_table('inventory', inventory)
-    bc.create_table('item', item)
-    bc.create_table('warehouse', warehouse)
-    bc.create_table('date_dim', date_dim)
+    bc.create_table('inventory', inventory, persist=False)
+    bc.create_table('item', item, persist=False)
+    bc.create_table('warehouse', warehouse, persist=False)
+    bc.create_table('date_dim', date_dim, persist=False)
 
     # bc.create_table('inventory', os.path.join(data_dir, "inventory/*.parquet"))
     # bc.create_table('item', os.path.join(data_dir, "item/*.parquet"))

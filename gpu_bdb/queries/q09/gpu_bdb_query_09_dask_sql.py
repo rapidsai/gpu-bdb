@@ -94,11 +94,11 @@ def read_tables(data_dir, bc):
     s_columns = ["s_store_sk"]
     store = table_reader.read("store", relevant_cols=s_columns)
 
-    bc.create_table("store_sales", store_sales)
-    bc.create_table("customer_address", customer_address)
-    bc.create_table("customer_demographics", customer_demographics)
-    bc.create_table("date_dim", date_dim)
-    bc.create_table("store", store)
+    bc.create_table("store_sales", store_sales, persist=False)
+    bc.create_table("customer_address", customer_address, persist=False)
+    bc.create_table("customer_demographics", customer_demographics, persist=False)
+    bc.create_table("date_dim", date_dim, persist=False)
+    bc.create_table("store", store, persist=False)
 
     # bc.create_table("store_sales", os.path.join(data_dir, "store_sales/*.parquet"))
     # bc.create_table("customer_address", os.path.join(data_dir, "customer_address/*.parquet"))

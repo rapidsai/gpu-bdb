@@ -70,10 +70,10 @@ def read_tables(data_dir, bc):
         "product_reviews", relevant_cols=product_reviews_cols
     )
     
-    bc.create_table('web_returns', web_returns_df)
-    bc.create_table('date_dim', date_dim_df)
-    bc.create_table('product_reviews', product_reviews_df)
-    bc.create_table('store_returns', store_returns_df)
+    bc.create_table('web_returns', web_returns_df, persist=False)
+    bc.create_table('date_dim', date_dim_df, persist=False)
+    bc.create_table('product_reviews', product_reviews_df, persist=False)
+    bc.create_table('store_returns', store_returns_df, persist=False)
     
     # bc.create_table('web_returns', os.path.join(data_dir, "web_returns/*.parquet"))
     # bc.create_table('date_dim', os.path.join(data_dir, "date_dim/*.parquet"))
@@ -153,19 +153,19 @@ def main(data_dir, client, bc, config):
     # Need to pass the absolute path for this txt file
     sentiment_dir = os.path.join(config["data_dir"], "sentiment_files")
     ns_df = dask_cudf.read_csv(os.path.join(sentiment_dir, "negativeSentiment.txt"), names=["sentiment_word"])
-    bc.create_table('sent_df', ns_df)
+    bc.create_table('sent_df', ns_df, persist=False)
 
     sentences = sentences.persist()
     wait(sentences)
-    bc.create_table('sentences_df', sentences)
+    bc.create_table('sentences_df', sentences, persist=False)
 
     word_df = word_df.persist()
     wait(word_df)
-    bc.create_table('word_df', word_df)
+    bc.create_table('word_df', word_df, persist=False)
 
     merged_df = merged_df.persist()
     wait(merged_df)
-    bc.create_table('merged_df', merged_df)
+    bc.create_table('merged_df', merged_df, persist=False)
 
     query = """
         WITH negativesent AS

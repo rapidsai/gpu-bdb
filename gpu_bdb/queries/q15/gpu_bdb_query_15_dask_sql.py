@@ -53,9 +53,9 @@ def read_tables(data_dir, bc):
     date_dim_df = table_reader.read("date_dim", relevant_cols=date_cols)
     item_df = table_reader.read("item", relevant_cols=item_cols)
     
-    bc.create_table("store_sales", store_sales_df)
-    bc.create_table("date_dim", date_dim_df)
-    bc.create_table("item", item_df)
+    bc.create_table("store_sales", store_sales_df, persist=False)
+    bc.create_table("date_dim", date_dim_df, persist=False)
+    bc.create_table("item", item_df, persist=False)
 
 
 def main(data_dir, client, bc, config):

@@ -53,10 +53,10 @@ def read_tables(data_dir, bc):
 	imp_df = table_reader.read("item_marketprices", relevant_cols=imp_cols)
 	ss_df = table_reader.read("store_sales", relevant_cols=ss_cols)
 
-	bc.create_table("web_sales", ws_df)
-	bc.create_table("item", item_df)
-	bc.create_table("item_marketprices", imp_df)
-	bc.create_table("store_sales", ss_df)
+	bc.create_table("web_sales", ws_df, persist=False)
+	bc.create_table("item", item_df, persist=False)
+	bc.create_table("item_marketprices", imp_df, persist=False)
+	bc.create_table("store_sales", ss_df, persist=False)
 
 	# bc.create_table("web_sales", os.path.join(data_dir, "web_sales/*.parquet"))
     # bc.create_table("item", os.path.join(data_dir, "item/*.parquet"))

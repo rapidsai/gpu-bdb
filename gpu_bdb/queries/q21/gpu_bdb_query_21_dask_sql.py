@@ -64,12 +64,12 @@ def read_tables(data_dir, bc):
 	store_table_df = table_reader.read("store", relevant_cols=store_cols)
 	item_table_df = table_reader.read("item", relevant_cols=item_cols)
 
-	bc.create_table("store_sales", store_sales_df)
-	bc.create_table("date_dim", date_dim_df)
-	bc.create_table("item", item_table_df)
-	bc.create_table("web_sales", web_sales_df)
-	bc.create_table("store_returns", store_returns_df)
-	bc.create_table("store", store_table_df)
+	bc.create_table("store_sales", store_sales_df, persist=False)
+	bc.create_table("date_dim", date_dim_df, persist=False)
+	bc.create_table("item", item_table_df, persist=False)
+	bc.create_table("web_sales", web_sales_df, persist=False)
+	bc.create_table("store_returns", store_returns_df, persist=False)
+	bc.create_table("store", store_table_df, persist=False)
 	
 	# bc.create_table("store_sales", os.path.join(data_dir, "store_sales/*.parquet"))
     # bc.create_table("date_dim", os.path.join(data_dir, "date_dim/*.parquet"))

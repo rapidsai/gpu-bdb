@@ -51,10 +51,10 @@ def read_tables(data_dir, bc):
 	td_columns = ["t_time_sk", "t_hour"]
 	time_dim = table_reader.read("time_dim", relevant_cols=td_columns)
 
-	bc.create_table("household_demographics", household_demographics)
-	bc.create_table("web_page", web_page)
-	bc.create_table("web_sales", web_sales)
-	bc.create_table("time_dim", time_dim)
+	bc.create_table("household_demographics", household_demographics, persist=False)
+	bc.create_table("web_page", web_page, persist=False)
+	bc.create_table("web_sales", web_sales, persist=False)
+	bc.create_table("time_dim", time_dim, persist=False)
 
     # bc.create_table(
     #     "household_demographics", os.path.join(data_dir, "household_demographics/*.parquet"

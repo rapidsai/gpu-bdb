@@ -54,11 +54,11 @@ def read_tables(data_dir, bc):
 		"customer_address", relevant_cols=customer_address_cols
 	)
 
-	bc.create_table("item", item_df)
-	bc.create_table("customer", customer_df)
-	bc.create_table("store_sales", store_sales_df)
-	bc.create_table("date_dim", date_dim_df)
-	bc.create_table("customer_address", customer_address_df)
+	bc.create_table("item", item_df, persist=False)
+	bc.create_table("customer", customer_df, persist=False)
+	bc.create_table("store_sales", store_sales_df, persist=False)
+	bc.create_table("date_dim", date_dim_df, persist=False)
+	bc.create_table("customer_address", customer_address_df, persist=False)
 
     # bc.create_table("item", os.path.join(data_dir, "item/*.parquet"))
     # bc.create_table("customer", os.path.join(data_dir, "customer/*.parquet"))

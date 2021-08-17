@@ -89,8 +89,8 @@ def read_tables(data_dir, bc):
         "store_returns", relevant_cols=store_returns_cols
     )
 
-    bc.create_table("store_sales", store_sales_df)
-    bc.create_table("store_returns", store_returns_df)
+    bc.create_table("store_sales", store_sales_df, persist=False)
+    bc.create_table("store_returns", store_returns_df, persist=False)
 
     # bc.create_table("store_sales", os.path.join(data_dir, "store_sales/*.parquet"))
     # bc.create_table("store_returns", os.path.join(data_dir, "store_returns/*.parquet"))

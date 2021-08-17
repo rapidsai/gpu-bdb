@@ -316,7 +316,7 @@ def read_tables(data_dir, bc):
     ]
     pr_df = table_reader.read("product_reviews", relevant_cols=columns)
 
-    bc.create_table("product_reviews", pr_df)
+    bc.create_table("product_reviews", pr_df, persist=False)
 
     # bc.create_table("product_reviews", os.path.join(data_dir, "product_reviews/*.parquet"))
 

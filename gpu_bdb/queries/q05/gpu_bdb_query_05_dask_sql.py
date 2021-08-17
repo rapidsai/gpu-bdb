@@ -67,10 +67,10 @@ def read_tables(data_dir, bc):
         "web_clickstreams", relevant_cols=wcs_columns, index=False
     )
 
-    bc.create_table("web_clickstreams", wcs_ddf)
-    bc.create_table("customer", customer_ddf)
-    bc.create_table("item", item_ddf)
-    bc.create_table("customer_demographics", customer_dem_ddf)
+    bc.create_table("web_clickstreams", wcs_ddf, persist=False)
+    bc.create_table("customer", customer_ddf, persist=False)
+    bc.create_table("item", item_ddf, persist=False)
+    bc.create_table("customer_demographics", customer_dem_ddf, persist=False)
 
     # bc.create_table("web_clickstreams", os.path.join(data_dir, "web_clickstreams/*.parquet"))
     # bc.create_table("customer", os.path.join(data_dir, "customer/*.parquet"))
@@ -163,6 +163,7 @@ def main(data_dir, client, bc, config):
     """
 
     cust_and_clicks_ddf = bc.sql(query)
+    print(len(cust_and_clicks_ddf))
 
     cust_and_clicks_ddf = cust_and_clicks_ddf.repartition(npartitions=1)
 

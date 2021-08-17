@@ -46,8 +46,8 @@ def read_tables(data_dir, bc):
     ws_cols = ["ws_order_number", "ws_item_sk"]
     ws_df = table_reader.read("web_sales", relevant_cols=ws_cols)
 
-    bc.create_table('item', item_df)
-    bc.create_table('web_sales', ws_df)
+    bc.create_table('item', item_df, persist=False)
+    bc.create_table('web_sales', ws_df, persist=False)
 
 
 def main(data_dir, client, bc, config):
@@ -63,7 +63,7 @@ def main(data_dir, client, bc, config):
 
     result_distinct = result_distinct.persist()
     wait(result_distinct)
-    bc.create_table('distinct_table', result_distinct)
+    bc.create_table('distinct_table', result_distinct, persist=False)
 
     query = f"""
         SELECT category_id_1, category_id_2, COUNT (*) AS cnt

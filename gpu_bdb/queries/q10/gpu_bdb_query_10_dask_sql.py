@@ -56,7 +56,7 @@ def read_tables(data_dir, bc):
         "product_reviews", relevant_cols=product_reviews_cols,
     )
 
-    bc.create_table("product_reviews", product_reviews_df)
+    bc.create_table("product_reviews", product_reviews_df, persist=False)
 
     # bc.create_table('product_reviews', os.path.join(data_dir, "product_reviews/*.parquet"))
 
@@ -100,24 +100,24 @@ def main(data_dir, client, bc, config):
 
     product_reviews_df = product_reviews_df.persist()
     wait(product_reviews_df)
-    bc.create_table('product_reviews_df', product_reviews_df)
+    bc.create_table('product_reviews_df', product_reviews_df, persist=False)
     
     sentences = sentences.persist()
     wait(sentences)
-    bc.create_table('sentences', sentences)
+    bc.create_table('sentences', sentences, persist=False)
 
     # These files come from the official TPCx-BB kit
     # We extracted them from bigbenchqueriesmr.jar
     # Need to pass the absolute path for these txt files
     sentiment_dir = os.path.join(config["data_dir"], "sentiment_files")
-    ns_df = dask_cudf.read_csv(os.path.join(sentiment_dir, "negativeSentiment.txt"), names=["sentiment_word"])
-    bc.create_table('negative_sentiment', ns_df)
-    ps_df = dask_cudf.read_csv(os.path.join(sentiment_dir, "positiveSentiment.txt"), names=["sentiment_word"])
-    bc.create_table('positive_sentiment', ps_df)
+    ns_df = dask_cudf.read_csv(os.path.join(sentiment_dir, "negativeSentiment.txt"), names=["sentiment_word"], persist=False)
+    bc.create_table('negative_sentiment', ns_df, persist=False)
+    ps_df = dask_cudf.read_csv(os.path.join(sentiment_dir, "positiveSentiment.txt"), names=["sentiment_word"], persist=False)
+    bc.create_table('positive_sentiment', ps_df, persist=False)
 
     word_df = word_df.persist()
     wait(word_df)
-    bc.create_table('word_df', word_df)
+    bc.create_table('word_df', word_df, persist=False)
 
     query = '''
         SELECT pr_item_sk as item_sk,

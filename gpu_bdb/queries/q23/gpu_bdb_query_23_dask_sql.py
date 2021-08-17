@@ -54,8 +54,8 @@ def read_tables(data_dir, bc):
     ]
     inv_df = table_reader.read("inventory", relevant_cols=inv_cols)
 
-    bc.create_table('inventory', inv_df)
-    bc.create_table('date_dim', date_df)
+    bc.create_table('inventory', inv_df, persist=False)
+    bc.create_table('date_dim', date_df, persist=False)
 
     # bc.create_table('inventory', os.path.join(data_dir, "inventory/*.parquet"))
     # bc.create_table('date_dim', os.path.join(data_dir, "date_dim/*.parquet"))
@@ -78,7 +78,7 @@ def main(data_dir, client, bc, config):
 
     inv_dates_result = inv_dates_result.persist()
     wait(inv_dates_result)
-    bc.create_table('inv_dates', inv_dates_result)
+    bc.create_table('inv_dates', inv_dates_result, persist=False)
     query_2 = """
         SELECT inv_warehouse_sk,
             inv_item_sk,
@@ -91,7 +91,7 @@ def main(data_dir, client, bc, config):
 
     mean_result = mean_result.persist()
     wait(mean_result)
-    bc.create_table('mean_df', mean_result)
+    bc.create_table('mean_df', mean_result, persist=False)
     query_3 = """
         SELECT id.inv_warehouse_sk,
             id.inv_item_sk,
@@ -116,7 +116,7 @@ def main(data_dir, client, bc, config):
 
     std_result = std_result.persist()
     wait(std_result)
-    bc.create_table('iteration', std_result)
+    bc.create_table('iteration', std_result, persist=False)
     query_4 = f"""
         SELECT inv_warehouse_sk,
             inv_item_sk,
@@ -131,7 +131,7 @@ def main(data_dir, client, bc, config):
 
     std_result = std_result.persist()
     wait(std_result)
-    bc.create_table('temp_table', std_result)
+    bc.create_table('temp_table', std_result, persist=False)
     query = f"""
         SELECT inv1.inv_warehouse_sk,
             inv1.inv_item_sk,

@@ -56,7 +56,7 @@ def read_tables(data_dir, bc):
         "product_reviews", relevant_cols=product_reviews_cols
     )
 
-    bc.create_table("product_reviews", product_reviews_df)
+    bc.create_table("product_reviews", product_reviews_df, persist=False)
 
     # bc.create_table("product_reviews", os.path.join(data_dir, "product_reviews/*.parquet"))
 
@@ -120,11 +120,11 @@ def main(data_dir, client, bc, config):
     # recombine
     repeated_names = repeated_names.persist()
     wait(repeated_names)
-    bc.create_table('repeated_names', repeated_names)
+    bc.create_table('repeated_names', repeated_names, persist=False)
 
     ner_parsed = ner_parsed.persist()
     wait(ner_parsed)
-    bc.create_table('ner_parsed', ner_parsed)
+    bc.create_table('ner_parsed', ner_parsed, persist=False)
 
     query = f"""
         SELECT review_idx_global_pos as review_sk,

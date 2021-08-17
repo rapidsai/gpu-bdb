@@ -83,9 +83,9 @@ def read_tables(data_dir, bc):
     ws_ddf = table_reader.read("web_sales", relevant_cols=ws_cols, index=False)
     datedim_ddf = table_reader.read("date_dim", relevant_cols=datedim_cols, index=False)
 
-    bc.create_table("web_sales", ws_ddf)
-    bc.create_table("store_sales", ss_ddf)
-    bc.create_table("date_dim", datedim_ddf)
+    bc.create_table("web_sales", ws_ddf, persist=False)
+    bc.create_table("store_sales", ss_ddf, persist=False)
+    bc.create_table("date_dim", datedim_ddf, persist=False)
 
     # bc.create_table("web_sales", os.path.join(data_dir, "web_sales/*.parquet"))
     # bc.create_table("store_sales", os.path.join(data_dir, "store_sales/*.parquet"))

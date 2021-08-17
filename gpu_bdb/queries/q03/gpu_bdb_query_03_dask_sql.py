@@ -148,8 +148,8 @@ def read_tables(data_dir, bc):
     item_df = table_reader.read("item", relevant_cols=item_cols)
     wcs_df = table_reader.read("web_clickstreams", relevant_cols=wcs_cols)
 
-    bc.create_table("web_clickstreams", wcs_df)
-    bc.create_table("item", item_df)
+    bc.create_table("web_clickstreams", wcs_df, persist=False)
+    bc.create_table("item", item_df, persist=False)
 
 
 def main(data_dir, client, bc, config):
@@ -164,7 +164,7 @@ def main(data_dir, client, bc, config):
 
     item_df = item_df.persist()
     wait(item_df)
-    bc.create_table("item_df", item_df)
+    bc.create_table("item_df", item_df, persist=False)
 
     query_2 = """
         SELECT CAST(w.wcs_user_sk AS INTEGER) as wcs_user_sk,
@@ -198,7 +198,7 @@ def main(data_dir, client, bc, config):
     del merged_df
     del item_df_filtered
 
-    bc.create_table('product_result', product_view_results)
+    bc.create_table('product_result', product_view_results, persist=False)
 
     last_query = f"""
         SELECT CAST({q03_purchased_item_IN} AS BIGINT) AS purchased_item,

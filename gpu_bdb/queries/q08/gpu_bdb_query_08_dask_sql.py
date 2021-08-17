@@ -168,10 +168,10 @@ def read_tables(data_dir, bc):
     web_sales_df = table_reader.read("web_sales", relevant_cols=web_sales_cols)
     wcs_df = table_reader.read("web_clickstreams", relevant_cols=wcs_cols)
 
-    bc.create_table("web_clickstreams", wcs_df)
-    bc.create_table("web_sales", web_sales_df)
-    bc.create_table("web_page", web_page_df)
-    bc.create_table("date_dim", date_dim_df)
+    bc.create_table("web_clickstreams", wcs_df, persist=False)
+    bc.create_table("web_sales", web_sales_df, persist=False)
+    bc.create_table("web_page", web_page_df, persist=False)
+    bc.create_table("date_dim", date_dim_df, persist=False)
 
     # bc.create_table("web_clickstreams", os.path.join(data_dir, "web_clickstreams/*.parquet"))
     # bc.create_table("web_sales", os.path.join(data_dir, "web_sales/*.parquet"))
@@ -223,7 +223,7 @@ def main(data_dir, client, bc, config):
 
     web_page_df = web_page_df.persist()
     wait(web_page_df)
-    bc.create_table('web_page_2', web_page_df)
+    bc.create_table('web_page_2', web_page_df, persist=False)
 
     query_2 = f"""
         SELECT
@@ -260,7 +260,7 @@ def main(data_dir, client, bc, config):
 
     unique_review_sales = unique_review_sales.persist()
     wait(unique_review_sales)
-    bc.create_table("reviews", unique_review_sales)
+    bc.create_table("reviews", unique_review_sales, persist=False)
     last_query = f"""
         SELECT
             CAST(review_total AS BIGINT) AS q08_review_sales_amount,

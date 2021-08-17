@@ -52,10 +52,10 @@ def read_tables(data_dir, bc):
 	w_sales_cols = ["ws_sold_date_sk", "ws_bill_customer_sk", "ws_net_paid"]
 	web_sales_df = table_reader.read("web_sales", relevant_cols=w_sales_cols)
 
-	bc.create_table("date_dim", date_dim_df)
-	bc.create_table("customer", customer_df)
-	bc.create_table("store_sales", s_sales_df)
-	bc.create_table("web_sales", web_sales_df)
+	bc.create_table("date_dim", date_dim_df, persist=False)
+	bc.create_table("customer", customer_df, persist=False)
+	bc.create_table("store_sales", s_sales_df, persist=False)
+	bc.create_table("web_sales", web_sales_df, persist=False)
 
     # bc.create_table("date_dim", os.path.join(data_dir, "date_dim/*.parquet"))
     # bc.create_table("customer", os.path.join(data_dir, "customer/*.parquet"))
@@ -85,7 +85,7 @@ def main(data_dir, client, bc, config):
 
     temp_table1 = temp_table1.persist()
     wait(temp_table1)
-    bc.create_table("temp_table1", temp_table1)
+    bc.create_table("temp_table1", temp_table1, persist=False)
     query_2 = """
 		SELECT
 			ws.ws_bill_customer_sk AS customer_sk,
@@ -105,7 +105,7 @@ def main(data_dir, client, bc, config):
 
     temp_table2 = temp_table2.persist()
     wait(temp_table2)
-    bc.create_table("temp_table2", temp_table2)
+    bc.create_table("temp_table2", temp_table2, persist=False)
     query = """
 		SELECT
 			CAST(c_customer_sk AS BIGINT) as c_customer_sk,

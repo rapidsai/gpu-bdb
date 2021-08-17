@@ -57,8 +57,8 @@ def read_tables(data_dir, bc):
     wcs_cols = ["wcs_user_sk", "wcs_item_sk", "wcs_click_date_sk", "wcs_click_time_sk"]
     wcs_df = table_reader.read("web_clickstreams", relevant_cols=wcs_cols)
 
-    bc.create_table('web_clickstreams', wcs_df)
-    bc.create_table('item', item_df)
+    bc.create_table('web_clickstreams', wcs_df, persist=False)
+    bc.create_table('item', item_df, persist=False)
     # print(len(wcs_df))
 
     # bc.create_table('web_clickstreams', os.path.join(data_dir, "web_clickstreams/*.parquet"))
@@ -77,7 +77,7 @@ def main(data_dir, client, bc, config):
 
     item_df = item_df.persist()
     wait(item_df)
-    bc.create_table("item_df", item_df)
+    bc.create_table("item_df", item_df, persist=False)
     # print(len(item_df))
     # print(len(item_df.columns))
 
@@ -111,7 +111,7 @@ def main(data_dir, client, bc, config):
 
     pair_df = pair_df.persist()
     wait(pair_df)
-    bc.create_table('pair_df', pair_df)
+    bc.create_table('pair_df', pair_df, persist=False)
     # print(len(pair_df))
 
     last_query = f"""

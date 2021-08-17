@@ -76,10 +76,10 @@ def read_tables(data_dir, bc):
     date_df = table_reader.read("date_dim", relevant_cols=date_cols)
     customer_df = table_reader.read("customer", relevant_cols=customer_cols)
 
-    bc.create_table('web_sales', ws_df)
-    bc.create_table('store_sales', ss_df)
-    bc.create_table('date_dim', date_df)
-    bc.create_table('customer', customer_df)
+    bc.create_table('web_sales', ws_df, persist=False)
+    bc.create_table('store_sales', ss_df, persist=False)
+    bc.create_table('date_dim', date_df, persist=False)
+    bc.create_table('customer', customer_df, persist=False)
 
     # bc.create_table('web_sales', os.path.join(data_dir, "web_sales/*.parquet"))
     # bc.create_table('store_sales', os.path.join(data_dir, "store_sales/*.parquet"))
