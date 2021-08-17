@@ -77,7 +77,6 @@ def main(data_dir, client, bc, config):
     session_df = session_df.persist()
     wait(session_df)
     bc.create_table('session_df', session_df, persist=False)
-    print(len(session_df))
 
     last_query = f"""
         WITH item_df AS (
