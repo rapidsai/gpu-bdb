@@ -163,7 +163,6 @@ def main(data_dir, client, bc, config):
     """
 
     cust_and_clicks_ddf = bc.sql(query)
-    print(len(cust_and_clicks_ddf))
 
     cust_and_clicks_ddf = cust_and_clicks_ddf.repartition(npartitions=1)
 
