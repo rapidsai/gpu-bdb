@@ -157,6 +157,7 @@ def main(data_dir, client, bc, config):
         AND   c.wcs_user_sk     IS NOT NULL
         AND   c.wcs_sales_sk    IS NULL --abandoned implies: no sale
         ORDER BY wcs_user_sk, tstamp_inSec
+        DISTRIBUTE BY wcs_user_sk
     """
     merged_df = bc.sql(query)
 

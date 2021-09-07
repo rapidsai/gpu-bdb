@@ -175,7 +175,7 @@ def main(data_dir, client, bc, config):
         INNER JOIN item_df AS i ON w.wcs_item_sk = i.i_item_sk
         WHERE w.wcs_user_sk IS NOT NULL
         AND w.wcs_item_sk IS NOT NULL
-        ORDER BY w.wcs_user_sk
+        DISTRIBUTE BY wcs_user_sk
     """
     merged_df = bc.sql(query_2)
 
@@ -208,6 +208,7 @@ def main(data_dir, client, bc, config):
         GROUP BY i_item_sk
         ORDER BY purchased_item, cnt desc, lastviewed_item
         LIMIT {q03_limit}
+        DISTRIBUTE BY lastviewed_item
     """
     result = bc.sql(last_query)
 

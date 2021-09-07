@@ -236,7 +236,7 @@ def main(data_dir, client, bc, config):
         WHERE wcs_user_sk IS NOT NULL
         AND wcs_click_date_sk BETWEEN {q08_start_dt} AND {q08_end_dt}
         --in the future we want to remove this ORDER BY
-        ORDER BY wcs_user_sk
+        DISTRIBUTE BY wcs_user_sk
     """
     merged_df = bc.sql(query_2)
 

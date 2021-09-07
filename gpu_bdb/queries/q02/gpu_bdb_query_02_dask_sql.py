@@ -63,7 +63,7 @@ def main(data_dir, client, bc, config):
         FROM web_clickstreams
         WHERE wcs_item_sk IS NOT NULL
         AND   wcs_user_sk IS NOT NULL
-        ORDER BY wcs_user_sk
+        DISTRIBUTE BY wcs_user_sk
     """
     wcs_result = bc.sql(query_1)
 
