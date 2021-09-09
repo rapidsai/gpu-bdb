@@ -214,6 +214,7 @@ def main(data_dir, client, bc, config):
         ORDER BY pr_review_date, pr_review_content, pr_review_sk
     """
     no_nulls = bc.sql(query_2)
+    no_nulls = no_nulls.reset_index(drop=True)
 
     targets = (
         stores_with_regression.s_store_name.str.lower()
