@@ -76,62 +76,31 @@ def main(data_dir, client, bc, config):
     """
     inv_dates_result = bc.sql(query_1)
 
-    inv_dates_result = inv_dates_result.persist()
-    wait(inv_dates_result)
     bc.create_table('inv_dates', inv_dates_result, persist=False)
     query_2 = """
         SELECT inv_warehouse_sk,
             inv_item_sk,
             d_moy,
-            AVG(CAST(inv_quantity_on_hand AS DOUBLE)) AS q_mean
+            AVG(CAST(inv_quantity_on_hand AS DOUBLE)) AS q_mean,
+            stddev_samp(CAST(inv_quantity_on_hand as DOUBLE)) AS q_std
         FROM inv_dates
         GROUP BY inv_warehouse_sk, inv_item_sk, d_moy
     """
-    mean_result = bc.sql(query_2)
+    iteration_1 = bc.sql(query_2)
 
-    mean_result = mean_result.persist()
-    wait(mean_result)
-    bc.create_table('mean_df', mean_result, persist=False)
-    query_3 = """
-        SELECT id.inv_warehouse_sk,
-            id.inv_item_sk,
-            id.d_moy,
-            md.q_mean,
-            SQRT( SUM( (id.inv_quantity_on_hand - md.q_mean) * (id.inv_quantity_on_hand - md.q_mean) )
-                / (COUNT(id.inv_quantity_on_hand) - 1.0)) AS q_std
-        FROM mean_df md
-        INNER JOIN inv_dates id ON id.inv_warehouse_sk = md.inv_warehouse_sk
-        AND id.inv_item_sk = md.inv_item_sk
-        AND id.d_moy = md.d_moy
-        AND md.q_mean > 0.0
-        GROUP BY id.inv_warehouse_sk, id.inv_item_sk, id.d_moy, md.q_mean
-    """
-    std_result = bc.sql(query_3)
-
-    bc.drop_table("inv_dates")
-    del inv_dates_result
-
-    bc.drop_table("mean_df")
-    del mean_result
-
-    std_result = std_result.persist()
-    wait(std_result)
-    bc.create_table('iteration', std_result, persist=False)
-    query_4 = f"""
+    bc.create_table('iteration_1', iteration_1, persist=False)
+    query_3 = f"""
         SELECT inv_warehouse_sk,
             inv_item_sk,
             d_moy,
             q_std / q_mean AS qty_cov
-        FROM iteration
+        FROM iteration_1
         WHERE (q_std / q_mean) >= {q23_coefficient}
     """
-    std_result = bc.sql(query_4)
 
-    bc.drop_table("iteration")
+    iteration_2 = bc.sql(query_3)
 
-    std_result = std_result.persist()
-    wait(std_result)
-    bc.create_table('temp_table', std_result, persist=False)
+    bc.create_table('temp_table', iteration_2, persist=False)
     query = f"""
         SELECT inv1.inv_warehouse_sk,
             inv1.inv_item_sk,
@@ -148,7 +117,8 @@ def main(data_dir, client, bc, config):
             inv1.inv_item_sk
     """
     result = bc.sql(query)
-
+    result = result.persist()
+    wait(result)
     bc.drop_table("temp_table")
     return result
 
