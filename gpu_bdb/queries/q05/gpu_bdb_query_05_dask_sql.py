@@ -56,6 +56,8 @@ def read_tables(data_dir, bc):
     )
 
     item_ddf = table_reader.read("item", relevant_cols=items_columns, index=False)
+    item_ddf = item_ddf.reset_index(drop=True)
+
     customer_ddf = table_reader.read(
         "customer", relevant_cols=customer_columns, index=False
     )

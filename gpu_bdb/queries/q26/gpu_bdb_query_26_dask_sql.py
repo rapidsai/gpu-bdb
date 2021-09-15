@@ -76,6 +76,7 @@ def read_tables(data_dir, bc):
 
     ss_ddf = table_reader.read("store_sales", relevant_cols=ss_cols, index=False)
     items_ddf = table_reader.read("item", relevant_cols=items_cols, index=False)
+    items_ddf = items_ddf.reset_index(drop=True)
 
     bc.create_table("store_sales", ss_ddf, persist=False)
     bc.create_table("item", items_ddf, persist=False)
