@@ -56,7 +56,7 @@ def main(data_dir, client, bc, config):
 
     join_query = """
         -- Commented Distinct as we do it in
-        -- dask_cudf based drop_duplicates with drop_duplicates
+        -- dask_cudf based drop_duplicates with split_out
         -- 553 M rows dont fit on single GPU (int32,int64 column)
         -- TODO: Remove when we support Split Out
         -- https://github.com/dask-contrib/dask-sql/issues/241
