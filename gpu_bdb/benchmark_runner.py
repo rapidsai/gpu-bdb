@@ -5,7 +5,7 @@ import gc
 import time
 import uuid
 
-N_REPEATS = 5
+N_REPEATS = 1
 
 
 def get_qnum_from_filename(name):
@@ -22,7 +22,9 @@ def load_query(qnum, fn):
 
 
 dask_qnums = [str(i).zfill(2) for i in range(1, 31)]
+dask_qnums = []
 bsql_qnums = [str(i).zfill(2) for i in range(1, 31)]
+bsql_qnums = ['01', '05', '08', '26', '27']
 
 
 if __name__ == "__main__":
@@ -39,9 +41,10 @@ if __name__ == "__main__":
         for qnum in dask_qnums
     }
 
+    include_blazing = True
     if include_blazing:
         bsql_queries = {
-            qnum: load_query(qnum, f"queries/q{qnum}/gpu_bdb_query_{qnum}_sql.py")
+            qnum: load_query(qnum, f"queries/q{qnum}/gpu_bdb_query_{qnum}_dask_sql.py")
             for qnum in bsql_qnums
         }
 

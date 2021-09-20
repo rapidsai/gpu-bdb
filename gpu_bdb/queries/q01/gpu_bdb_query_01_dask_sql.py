@@ -29,8 +29,6 @@ from bdb_tools.readers import build_reader
 
 from dask.distributed import wait
 
-from dask_sql import Context
-
 
 # -------- Q1 -----------
 q01_i_category_id_IN = "1, 2, 3"
@@ -44,7 +42,7 @@ item_cols = ["i_item_sk", "i_category_id"]
 ss_cols = ["ss_item_sk", "ss_store_sk", "ss_ticket_number"]
 
 
-def read_tables(data_dir, bc):
+def read_tables(data_dir, bc, config):
     table_reader = build_reader(
         data_format=config["file_format"],
         basepath=config["data_dir"],
@@ -62,7 +60,7 @@ def read_tables(data_dir, bc):
 
 
 def main(data_dir, client, bc, config):
-    benchmark(read_tables, data_dir, bc, dask_profile=config["dask_profile"])
+    benchmark(read_tables, data_dir, bc, config, dask_profile=config["dask_profile"])
 
     query_distinct = f"""
         SELECT DISTINCT ss_item_sk, ss_ticket_number
@@ -103,5 +101,4 @@ def main(data_dir, client, bc, config):
 if __name__ == "__main__":
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)
-    c = Context()
-    run_query(config=config, client=client, query_func=main, blazing_context=c)
+    run_query(config=config, client=client, query_func=main, blazing_context=bc)
