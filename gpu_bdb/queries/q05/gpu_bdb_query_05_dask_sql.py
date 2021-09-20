@@ -48,7 +48,7 @@ items_columns = ["i_item_sk", "i_category", "i_category_id"]
 customer_columns = ["c_customer_sk", "c_current_cdemo_sk"]
 customer_dem_columns = ["cd_demo_sk", "cd_gender", "cd_education_status"]
 
-def read_tables(data_dir, bc):
+def read_tables(data_dir, bc, config):
     table_reader = build_reader(
         data_format=config["file_format"],
         basepath=config["data_dir"],
@@ -124,7 +124,7 @@ def build_and_predict_model(ml_input_df):
 
 
 def main(data_dir, client, bc, config):
-    benchmark(read_tables, data_dir, bc, dask_profile=config["dask_profile"])
+    benchmark(read_tables, data_dir, bc, config, dask_profile=config["dask_profile"])
 
     query = """
         SELECT
@@ -188,6 +188,5 @@ def main(data_dir, client, bc, config):
 
 if __name__ == "__main__":
     config = gpubdb_argparser()
-    client, _ = attach_to_cluster(config)
-    c = Context()
-    run_query(config=config, client=client, query_func=main, blazing_context=c)
+    client, bc = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main, blazing_context=bc)

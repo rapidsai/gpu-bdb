@@ -132,16 +132,11 @@ def attach_to_cluster(config, create_blazing_context=False):
     config["80GB_workers"] = worker_counts.get("80GB", 0)
 
     bc = None
+    create_blazing_context = True
     if create_blazing_context:
-        from blazingsql import BlazingContext
-        bc = BlazingContext(
-            dask_client=client,
-            pool=os.environ.get("BLAZING_POOL", False),
-            network_interface=os.environ.get("INTERFACE", "ib0"),
-            config_options=get_bsql_config_options(),
-            allocator=os.environ.get("BLAZING_ALLOCATOR_MODE", "existing"),
-            initial_pool_size=os.environ.get("BLAZING_INITIAL_POOL_SIZE", None)
-        )
+        print('Creating context..')
+        from dask_sql import Context
+        bc = Context()
 
     return client, bc
 
@@ -173,7 +168,7 @@ def _get_ucx_config():
     Get a subset of ucx config variables relevant for benchmarking
     """
     relevant_configs = ["infiniband", "nvlink"]
-    ucx_config = dask.config.get("ucx")
+    ucx_config = dask.config.get("distributed.comm.ucx")
     # Doing this since when relevant configs are not enabled the value is `None` instead of `False`
     filtered_ucx_config = {
         config: ucx_config.get(config) if ucx_config.get(config) else False
