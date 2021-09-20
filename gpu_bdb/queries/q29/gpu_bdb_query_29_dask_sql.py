@@ -55,7 +55,8 @@ def main(data_dir, client, bc, config):
     n_workers = len(client.scheduler_info()["workers"])
 
     join_query = """
-        -- Commented Distinct as we do it in drop_duplicates 
+        -- Commented Distinct as we do it in
+        -- dask_cudf based drop_duplicates with drop_duplicates
         -- 553 M rows dont fit on single GPU (int32,int64 column)
         -- TODO: Remove when we support Split Out
         -- https://github.com/dask-contrib/dask-sql/issues/241
@@ -72,8 +73,8 @@ def main(data_dir, client, bc, config):
     ## Remove the int64 index that was created
     ## TODO Raise a issue for this
     result_distinct = result_distinct.reset_index(drop=True)
-    
-    bc.create_table('distinct_table', result_distinct, persist=False)
+    ### Persiting cause Order by causes execution
+    bc.create_table('distinct_table', result_distinct, persist=True)
 
     query = f"""
         SELECT category_id_1, category_id_2, COUNT (*) AS cnt
@@ -91,6 +92,8 @@ def main(data_dir, client, bc, config):
         LIMIT {q29_limit}
     """
     result = bc.sql(query)
+    result = result.persist()
+    wait(result);
 
     bc.drop_table("distinct_table")
     return result
