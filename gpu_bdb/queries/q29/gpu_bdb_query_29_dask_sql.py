@@ -52,18 +52,29 @@ def read_tables(data_dir, bc):
 
 def main(data_dir, client, bc, config):
     benchmark(read_tables, data_dir, bc, dask_profile=config["dask_profile"])
+    n_workers = len(client.scheduler_info()["workers"])
 
-    query_distinct = """
-        SELECT DISTINCT i_category_id, ws_order_number
+    join_query = """
+        -- Removed distinct as we do it in
+        -- dask_cudf based drop_duplicates with split_out
+        -- 553 M rows dont fit on single GPU (int32,int64 column)
+        -- TODO: Remove when we support Split Out
+        -- https://github.com/dask-contrib/dask-sql/issues/241
+
+        SELECT  i_category_id, ws_order_number
         FROM web_sales ws, item i
         WHERE ws.ws_item_sk = i.i_item_sk
         AND i.i_category_id IS NOT NULL
     """
-    result_distinct = bc.sql(query_distinct)
-
-    result_distinct = result_distinct.persist()
-    wait(result_distinct)
-    bc.create_table('distinct_table', result_distinct, persist=False)
+    result = bc.sql(join_query)
+    
+    # Distinct Calculatiin
+    result_distinct = result.drop_duplicates(split_out=n_workers,ignore_index=True)
+    ## Remove the int64 index that was created
+    ## TODO Raise a issue for this
+    result_distinct = result_distinct.reset_index(drop=True)
+    ### Persiting cause Order by causes execution
+    bc.create_table('distinct_table', result_distinct, persist=True)
 
     query = f"""
         SELECT category_id_1, category_id_2, COUNT (*) AS cnt
@@ -81,6 +92,8 @@ def main(data_dir, client, bc, config):
         LIMIT {q29_limit}
     """
     result = bc.sql(query)
+    result = result.persist()
+    wait(result);
 
     bc.drop_table("distinct_table")
     return result
