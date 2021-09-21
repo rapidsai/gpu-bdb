@@ -52,7 +52,7 @@ date_cols = ["d_date_sk", "d_year", "d_moy"]
 customer_address_cols = ["ca_address_sk", "ca_gmt_offset"]
 promotion_cols = ["p_channel_email", "p_channel_dmail", "p_channel_tv", "p_promo_sk"]
 
-def read_tables(data_dir, bc):
+def read_tables(data_dir, bc, config):
     table_reader = build_reader(
         data_format=config["file_format"],
         basepath=config["data_dir"],
@@ -87,7 +87,7 @@ def read_tables(data_dir, bc):
 
 
 def main(data_dir, client, bc, config):
-    benchmark(read_tables, data_dir, bc, dask_profile=config["dask_profile"])
+    benchmark(read_tables, data_dir, bc, config, dask_profile=config["dask_profile"])
 
     query_date = f"""
         select min(d_date_sk) as min_d_date_sk,
@@ -136,6 +136,5 @@ def main(data_dir, client, bc, config):
 
 if __name__ == "__main__":
     config = gpubdb_argparser()
-    client, _ = attach_to_cluster(config)
-    c = Context()
-    run_query(config=config, client=client, query_func=main, blazing_context=c)
+    client, bc = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main, blazing_context=bc)

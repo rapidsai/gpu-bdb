@@ -44,7 +44,7 @@ date_cols = ["d_date", "d_date_sk"]
 item_cols = ["i_item_sk", "i_item_id"]
 warehouse_cols = ["w_warehouse_sk", "w_state"]
 
-def read_tables(data_dir, bc):
+def read_tables(data_dir, bc, config):
     table_reader = build_reader(
         data_format=config["file_format"],
         basepath=config["data_dir"],
@@ -71,7 +71,7 @@ def read_tables(data_dir, bc):
 
 
 def main(data_dir, client, bc, config):
-    benchmark(read_tables, data_dir, bc, dask_profile=config["dask_profile"])
+    benchmark(read_tables, data_dir, bc, config, dask_profile=config["dask_profile"])
 
     date = datetime.datetime(2001, 3, 16)
     start = (date + timedelta(days=-30)).strftime("%Y-%m-%d")
@@ -133,6 +133,5 @@ def main(data_dir, client, bc, config):
 
 if __name__ == "__main__":
     config = gpubdb_argparser()
-    client, _ = attach_to_cluster(config)
-    c = Context()
-    run_query(config=config, client=client, query_func=main, blazing_context=c)
+    client, bc = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main, blazing_context=bc)

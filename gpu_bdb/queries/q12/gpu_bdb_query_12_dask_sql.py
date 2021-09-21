@@ -38,7 +38,7 @@ store_sales_cols = ["ss_item_sk", "ss_sold_date_sk", "ss_customer_sk"]
 wcs_cols = ["wcs_user_sk", "wcs_click_date_sk", "wcs_item_sk", "wcs_sales_sk"]
 
 
-def read_tables(data_dir, bc):
+def read_tables(data_dir, bc, config):
     table_reader = build_reader(
         data_format=config["file_format"],
         basepath=config["data_dir"],
@@ -61,7 +61,7 @@ def read_tables(data_dir, bc):
 
 
 def main(data_dir, client, bc, config):
-    benchmark(read_tables, data_dir, bc, dask_profile=config["dask_profile"])
+    benchmark(read_tables, data_dir, bc, config, dask_profile=config["dask_profile"])
 
     query = f"""
         SELECT DISTINCT wcs_user_sk
@@ -97,6 +97,5 @@ def main(data_dir, client, bc, config):
 
 if __name__ == "__main__":
     config = gpubdb_argparser()
-    client, _ = attach_to_cluster(config)
-    c = Context()
-    run_query(config=config, client=client, query_func=main, blazing_context=c)
+    client, bc = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main, blazing_context=bc)

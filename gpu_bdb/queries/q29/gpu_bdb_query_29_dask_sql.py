@@ -36,7 +36,7 @@ from dask_sql import Context
 q29_limit = 100
 
 
-def read_tables(data_dir, bc):
+def read_tables(data_dir, bc, config):
     table_reader = build_reader(
         data_format=config["file_format"], basepath=config["data_dir"],
     )
@@ -51,7 +51,7 @@ def read_tables(data_dir, bc):
 
 
 def main(data_dir, client, bc, config):
-    benchmark(read_tables, data_dir, bc, dask_profile=config["dask_profile"])
+    benchmark(read_tables, data_dir, bc, config, dask_profile=config["dask_profile"])
     n_workers = len(client.scheduler_info()["workers"])
 
     join_query = """
@@ -101,6 +101,5 @@ def main(data_dir, client, bc, config):
 
 if __name__ == "__main__":
     config = gpubdb_argparser()
-    client, _ = attach_to_cluster(config)
-    c = Context()
-    run_query(config=config, client=client, query_func=main, blazing_context=c)
+    client, bc = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main, blazing_context=bc)

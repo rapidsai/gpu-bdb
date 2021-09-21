@@ -44,7 +44,7 @@ q27_pr_item_sk = 10002
 EOL_CHAR = "."
 
 
-def read_tables(data_dir, bc):
+def read_tables(data_dir, bc, config):
     ### splitting by row groups for better parallelism
     table_reader = build_reader(
         data_format=config["file_format"],
@@ -76,7 +76,7 @@ def ner_parser(df, col_string, batch_size=256):
 
 
 def main(data_dir, client, bc, config):
-    benchmark(read_tables, data_dir, bc, dask_profile=config["dask_profile"])
+    benchmark(read_tables, data_dir, bc, config, dask_profile=config["dask_profile"])
 
     import dask_cudf
 
@@ -146,7 +146,6 @@ def main(data_dir, client, bc, config):
 
 if __name__ == "__main__":
     config = gpubdb_argparser()
-    client, _ = attach_to_cluster(config)
-    c = Context()
-    run_query(config=config, client=client, query_func=main, blazing_context=c)
+    client, bc = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main, blazing_context=bc)
 

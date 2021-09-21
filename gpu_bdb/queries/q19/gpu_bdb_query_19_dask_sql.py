@@ -45,7 +45,7 @@ q19_returns_dates_IN = ["2004-03-08", "2004-08-02", "2004-11-15", "2004-12-20"]
 eol_char = "è"
 
 
-def read_tables(data_dir, bc):
+def read_tables(data_dir, bc, config):
     table_reader = build_reader(
         data_format=config["file_format"], basepath=config["data_dir"],
     )
@@ -82,7 +82,7 @@ def read_tables(data_dir, bc):
 
 
 def main(data_dir, client, bc, config):
-    benchmark(read_tables, data_dir, bc, dask_profile=config["dask_profile"])
+    benchmark(read_tables, data_dir, bc, config, dask_profile=config["dask_profile"])
 
     query = f"""
         WITH dateFilter AS
@@ -209,6 +209,5 @@ def main(data_dir, client, bc, config):
 
 if __name__ == "__main__":
     config = gpubdb_argparser()
-    client, _ = attach_to_cluster(config)
-    c = Context()
-    run_query(config=config, client=client, query_func=main, blazing_context=c)
+    client, bc = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main, blazing_context=bc)
