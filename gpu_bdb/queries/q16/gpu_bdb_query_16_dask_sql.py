@@ -30,7 +30,6 @@ from bdb_tools.utils import (
 
 from bdb_tools.readers import build_reader
 
-from dask_sql import Context
 
 websale_cols = [
     "ws_order_number",

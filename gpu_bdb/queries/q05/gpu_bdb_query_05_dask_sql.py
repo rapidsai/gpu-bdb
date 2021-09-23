@@ -33,7 +33,6 @@ from bdb_tools.cupy_metrics import cupy_precision_score
 from sklearn.metrics import roc_auc_score
 import cupy as cp
 
-from dask_sql import Context
 
 # Logistic Regression params
 # solver = "LBFGS" Used by passing `penalty=None` or "l2"
@@ -56,15 +55,12 @@ def read_tables(data_dir, bc, config):
     )
 
     item_ddf = table_reader.read("item", relevant_cols=items_columns, index=False)
-    item_ddf = item_ddf.reset_index(drop=True)
-
     customer_ddf = table_reader.read(
         "customer", relevant_cols=customer_columns, index=False
     )
     customer_dem_ddf = table_reader.read(
         "customer_demographics", relevant_cols=customer_dem_columns, index=False
     )
-
     wcs_ddf = table_reader.read(
         "web_clickstreams", relevant_cols=wcs_columns, index=False
     )

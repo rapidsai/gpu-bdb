@@ -35,8 +35,6 @@ from bdb_tools.utils import (
 
 from bdb_tools.readers import build_reader
 
-from dask_sql import Context
-
 
 N_FEATURES = 2 ** 23  # Spark is doing 2^20
 ngram_range = (1, 2)
@@ -336,7 +334,6 @@ def main(data_dir, client, bc, config):
         ORDER BY pr_review_sk
     """
     test_data = bc.sql(query1)
-    test_data = test_data.reset_index(drop=True)
 
     # 90 % of data
     query2 = """
@@ -350,7 +347,6 @@ def main(data_dir, client, bc, config):
         ORDER BY pr_review_sk
     """
     train_data = bc.sql(query2)
-    train_data = train_data.reset_index(drop=True)
 
     final_data, acc, prec, cmat = post_etl_processing(
         client=client, train_data=train_data, test_data=test_data

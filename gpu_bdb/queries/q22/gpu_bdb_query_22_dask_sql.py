@@ -28,7 +28,6 @@ from bdb_tools.utils import (
 
 from bdb_tools.readers import build_reader
 
-from dask_sql import Context
 
 # -------- Q22 -----------
 q22_date = "2001-05-08"

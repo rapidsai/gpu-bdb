@@ -28,7 +28,6 @@ from bdb_tools.utils import (
 
 from bdb_tools.readers import build_reader
 
-from dask_sql import Context
 
 # ------- Q17 ------
 q17_gmt_offset = -5.0

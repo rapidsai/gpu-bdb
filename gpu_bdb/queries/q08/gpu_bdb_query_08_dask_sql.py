@@ -33,7 +33,6 @@ from bdb_tools.readers import build_reader
 
 from dask.distributed import wait
 
-from dask_sql import Context
 
 # -------- Q8 -----------
 q08_SECONDS_BEFORE_PURCHASE = 259200
@@ -167,8 +166,6 @@ def read_tables(data_dir, bc, config):
     web_page_df = table_reader.read("web_page", relevant_cols=web_page_cols)
     web_sales_df = table_reader.read("web_sales", relevant_cols=web_sales_cols)
     wcs_df = table_reader.read("web_clickstreams", relevant_cols=wcs_cols)
-
-    wcs_df = wcs_df.reset_index(drop=True)
 
     bc.create_table("web_clickstreams", wcs_df, persist=False)
     bc.create_table("web_sales", web_sales_df, persist=False)

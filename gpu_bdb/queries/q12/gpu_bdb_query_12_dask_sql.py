@@ -28,7 +28,6 @@ from bdb_tools.utils import (
 
 from bdb_tools.readers import build_reader
 
-from dask_sql import Context
 
 # -------- Q12 -----------
 q12_i_category_IN = "'Books', 'Electronics'"

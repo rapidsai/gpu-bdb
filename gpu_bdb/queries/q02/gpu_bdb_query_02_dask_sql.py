@@ -30,7 +30,6 @@ from bdb_tools.readers import build_reader
 from bdb_tools.sessionization import get_distinct_sessions
 from dask.distributed import wait
 
-from dask_sql import Context
 
 # -------- Q2 -----------
 q02_item_sk = 10001

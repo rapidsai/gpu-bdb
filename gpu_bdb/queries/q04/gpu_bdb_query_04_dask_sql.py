@@ -31,7 +31,6 @@ from bdb_tools.readers import build_reader
 
 from dask.distributed import wait
 
-from dask_sql import Context
 
 def abandonedShoppingCarts(df, DYNAMIC_CAT_CODE, ORDER_CAT_CODE):
     import cudf

@@ -30,8 +30,6 @@ from dask import delayed
 
 from bdb_tools.readers import build_reader
 
-from dask_sql import Context
-
 
 # -------- Q25 -----------
 # -- store_sales and web_sales date

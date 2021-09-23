@@ -28,7 +28,6 @@ from bdb_tools.utils import (
 
 from bdb_tools.readers import build_reader
 
-from dask_sql import Context
 
 ws_cols = ["ws_item_sk", "ws_sold_date_sk", "ws_quantity"]
 item_cols = ["i_item_sk", "i_current_price"]

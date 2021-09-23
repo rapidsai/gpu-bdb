@@ -30,7 +30,6 @@ from bdb_tools.readers import build_reader
 
 from dask.distributed import wait
 
-from dask_sql import Context
 
 # -------- Q29 -----------
 q29_limit = 100

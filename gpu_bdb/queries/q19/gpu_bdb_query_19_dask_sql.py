@@ -37,7 +37,6 @@ from bdb_tools.readers import build_reader
 
 from dask.distributed import wait
 
-from dask_sql import Context
 
 # -------- Q19 -----------
 q19_returns_dates_IN = ["2004-03-08", "2004-08-02", "2004-11-15", "2004-12-20"]

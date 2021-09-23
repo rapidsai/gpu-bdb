@@ -31,7 +31,6 @@ from bdb_tools.readers import build_reader
 
 from dask.distributed import wait
 
-from dask_sql import Context
 
 def read_tables(data_dir, bc, config):
 	table_reader = build_reader(
