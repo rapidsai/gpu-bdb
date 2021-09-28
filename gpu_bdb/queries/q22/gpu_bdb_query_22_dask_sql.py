@@ -15,6 +15,7 @@
 # limitations under the License.
 #
 
+import numpy as np
 import sys
 import os
 
@@ -24,6 +25,7 @@ from bdb_tools.utils import (
     benchmark,
     gpubdb_argparser,
     run_query,
+    convert_datestring_to_days,
 )
 
 from bdb_tools.readers import build_reader
@@ -57,6 +59,7 @@ def read_tables(data_dir, bc, config):
 
     dd_columns = ["d_date_sk", "d_date"]
     date_dim = table_reader.read("date_dim", relevant_cols=dd_columns)
+    date_dim = date_dim.map_partitions(convert_datestring_to_days)
 
     bc.create_table('inventory', inventory, persist=False)
     bc.create_table('item', item, persist=False)
@@ -72,14 +75,18 @@ def read_tables(data_dir, bc, config):
 def main(data_dir, client, bc, config):
     benchmark(read_tables, data_dir, bc, config, dask_profile=config["dask_profile"])
 
+    # Filter limit in days
+    min_date = np.datetime64(q22_date, "D").astype(int) - 30
+    max_date = np.datetime64(q22_date, "D").astype(int) + 30
+    d_date_int = np.datetime64(q22_date, "D").astype(int)
+    ratio_min = 2.0 / 3.0
+    ratio_max = 3.0 / 2.0
     query = f"""
         SELECT
             w_warehouse_name,
             i_item_id,
-            SUM(CASE WHEN timestampdiff(DAY, timestamp '{q22_date} 00:00:00', CAST(d_date || ' 00:00:00' AS timestamp))
-                / 1000000 < 0 THEN inv_quantity_on_hand ELSE 0 END) AS inv_before,
-            SUM(CASE WHEN timestampdiff(DAY, timestamp '{q22_date} 00:00:00', CAST(d_date || ' 00:00:00' AS timestamp))
-                / 1000000 >= 0 THEN inv_quantity_on_hand ELSE 0 END) AS inv_after
+            SUM(CASE WHEN d_date - {d_date_int} < 0 THEN inv_quantity_on_hand ELSE 0 END) AS inv_before,
+            SUM(CASE WHEN d_date - {d_date_int} >= 0 THEN inv_quantity_on_hand ELSE 0 END) AS inv_after
         FROM
             inventory inv,
             item i,
@@ -89,29 +96,27 @@ def main(data_dir, client, bc, config):
         AND i_item_sk        = inv_item_sk
         AND inv_warehouse_sk = w_warehouse_sk
         AND inv_date_sk      = d_date_sk
-        AND timestampdiff(DAY, timestamp '{q22_date} 00:00:00', CAST(d_date || ' 00:00:00' AS timestamp)) / 1000000 >= -30
-        AND timestampdiff(DAY, timestamp '{q22_date} 00:00:00', CAST(d_date || ' 00:00:00' AS timestamp)) / 1000000 <= 30
+        AND d_date >= {min_date}
+        AND d_date <= {max_date}
         GROUP BY w_warehouse_name, i_item_id
-        HAVING SUM(CASE WHEN timestampdiff(DAY, timestamp '{q22_date}', CAST(d_date || ' 00:00:00' AS timestamp))
-            / 1000000 < 0 THEN inv_quantity_on_hand ELSE 0 END) > 0
-        AND
-        (
-            CAST(
-            SUM (CASE WHEN timestampdiff(DAY, timestamp '{q22_date} 00:00:00', CAST(d_date || ' 00:00:00' AS timestamp)) / 1000000 >= 0 THEN inv_quantity_on_hand ELSE 0 END) AS DOUBLE)
-            / CAST( SUM(CASE WHEN timestampdiff(DAY, timestamp '{q22_date} 00:00:00', CAST(d_date || ' 00:00:00' AS timestamp)) / 1000000 < 0 THEN inv_quantity_on_hand ELSE 0 END)
-            AS DOUBLE) >= 0.666667
-        )
-        AND
-        (
-            CAST(
-            SUM(CASE WHEN timestampdiff(DAY, timestamp '{q22_date} 00:00:00', CAST(d_date || ' 00:00:00' AS timestamp)) / 1000000 >= 0 THEN inv_quantity_on_hand ELSE 0 END) AS DOUBLE)
-            / CAST ( SUM(CASE WHEN timestampdiff(DAY, timestamp '{q22_date} 00:00:00', CAST(d_date || ' 00:00:00' AS timestamp)) / 1000000 < 0 THEN inv_quantity_on_hand ELSE 0 END)
-         AS DOUBLE) <= 1.50
-        )
+    """
+    intermediate = bc.sql(query)
+    bc.create_table("intermediate", intermediate ,persist=False)
+
+    query_2 = f"""
+        SELECT
+            w_warehouse_name,
+            i_item_id,
+            inv_before,
+            inv_after
+        FROM intermediate
+        WHERE inv_before > 0
+        AND CAST(inv_after AS DOUBLE) / CAST(inv_before AS DOUBLE) >= {ratio_min}
+        AND CAST(inv_after AS DOUBLE) / CAST(inv_before AS DOUBLE) <= {ratio_max}
         ORDER BY w_warehouse_name, i_item_id
         LIMIT 100
     """
-    result = bc.sql(query)
+    result = bc.sql(query_2)
     return result
 
 
