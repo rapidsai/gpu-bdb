@@ -148,7 +148,7 @@ def main(data_dir, client, bc, config):
     ss_agg_query = """
         SELECT
             ss_customer_sk AS cid,
-            -- count(distinct ss_ticket_number) AS frequency,  # distinct count groupby OOMS with dask-s
+            -- count(distinct ss_ticket_number) AS frequency,  # distinct count groupby OOMS with dask-sql
             max(ss_sold_date_sk) AS most_recent_date,
             CAST( SUM(ss_net_paid) AS DOUBLE) AS amount
         FROM ss_merged_table
