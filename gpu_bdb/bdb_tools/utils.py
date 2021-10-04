@@ -53,9 +53,10 @@ def benchmark(func, *args, **kwargs):
     dask_profile = kwargs.pop("dask_profile", False)
     compute_result = kwargs.pop("compute_result", False)
     name = func.__name__
+    query_number = get_query_number()
     t0 = time.time()
     if dask_profile:
-        with performance_report(filename=f"profiled-{name}.html"):
+        with performance_report(filename=f"q{query_number}-profiled-{name}.html"):
             result = func(*args, **kwargs)
     else:
         result = func(*args, **kwargs)

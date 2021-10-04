@@ -24,7 +24,7 @@ def load_query(qnum, fn):
 dask_qnums = [str(i).zfill(2) for i in range(1, 31)]
 dask_qnums = []
 bsql_qnums = [str(i).zfill(2) for i in range(1, 31)]
-bsql_qnums = ['01', '02', '03', '04', '05']
+bsql_qnums = ['01', '11', '22', '29']
 
 
 if __name__ == "__main__":
