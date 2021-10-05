@@ -1,4 +1,4 @@
-ARG CUDA_VER=11.0
+ARG CUDA_VER=11.2.0
 ARG LINUX_VER=ubuntu18.04
 
 FROM nvidia/cuda:${CUDA_VER}-devel-${LINUX_VER}
@@ -9,15 +9,15 @@ ADD https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh /minic
 RUN bash /miniconda.sh -b -p /opt/conda
 
 
-ENV GCC_VERSION=7
-ENV CXX_VERSION=7
+ENV GCC_VERSION=9
+ENV CXX_VERSION=9
 ENV CC=/usr/bin/gcc
 ENV CXX=/usr/bin/g++
 
 ARG CONDA_HOME=/opt/conda
 ENV CONDA_HOME="$CONDA_HOME"
 
-ENV CUDA_HOME="/usr/local/cuda-11.0"
+ENV CUDA_HOME="/usr/local/cuda-11.2"
 ENV CUDA_PATH="$CUDA_HOME"
 
 ARG CUDA_SHORT_VERSION
@@ -34,8 +34,8 @@ SHELL ["/bin/bash", "-c"]
 
 ENV CONDA_ENV="rapids-gpu-bdb"
 
-COPY /rapids-gpu-bdb-cuda11.yml /rapids-gpu-bdb-cuda11.yml
-RUN conda env create --name ${CONDA_ENV} --file /rapids-gpu-bdb-cuda11.yml
+COPY /rapids-gpu-bdb-cuda11.2.yml /rapids-gpu-bdb-cuda11.2.yml
+RUN conda env create --name ${CONDA_ENV} --file /rapids-gpu-bdb-cuda11.2.yml
 RUN conda install -n ${CONDA_ENV} -c conda-forge spacy oauth2client gspread -q -y
 RUN source activate ${CONDA_ENV} && python -m spacy download en_core_web_sm
 
@@ -83,38 +83,6 @@ RUN rm -rf /MLNX_OFED_LINUX-5.2-2.2.0.0-ubuntu18.04-x86_64*
 RUN /opt/conda/bin/conda install -n $CONDA_ENV -c conda-forge autoconf cython automake make libtool \
                                  pkg-config m4 \
                                  --force --no-deps -y -q
-
-
-# Install UCX
-RUN git clone --recurse-submodules -b v1.9.x https://github.com/openucx/ucx /tmp/ucx \
- && cd /tmp/ucx \
- && source activate $CONDA_ENV \
- && ./autogen.sh \
- && ./configure \
-    --prefix="${CONDA_PREFIX}" \
-    --with-sysroot \
-    --enable-cma \
-    --enable-mt \
-    --enable-numa \
-    --with-gnu-ld \
-    --with-cm \
-    --with-rdmacm \
-    --with-verbs \
-    --with-cuda="${CUDA_HOME}" \
- && make -j${PARALLEL_LEVEL} \
- && make install
-
-# Install UCX-py
-RUN set -x \
- && git clone --recurse-submodules -j${PARALLEL_LEVEL} -b branch-0.19 https://github.com/rapidsai/ucx-py.git /tmp/ucx-py \
- && source activate $CONDA_ENV \
- && cd /tmp/ucx-py \
- && python setup.py build_ext --inplace \
- && python -m pip install . --no-deps --no-cache-dir -vvvv \
- && rm -rf /tmp/ucx-py
-
-# use login shell when exec'ing into the container
-# SHELL ["/bin/bash", "-l"]
 
 ADD creds.json /creds.json
 ENV GOOGLE_SHEETS_CREDENTIALS_PATH=/creds.json

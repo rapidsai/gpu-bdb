@@ -173,7 +173,7 @@ def _get_ucx_config():
     Get a subset of ucx config variables relevant for benchmarking
     """
     relevant_configs = ["infiniband", "nvlink"]
-    ucx_config = dask.config.get("ucx")
+    ucx_config = dask.config.get("distributed.comm.ucx")
     # Doing this since when relevant configs are not enabled the value is `None` instead of `False`
     filtered_ucx_config = {
         config: ucx_config.get(config) if ucx_config.get(config) else False
