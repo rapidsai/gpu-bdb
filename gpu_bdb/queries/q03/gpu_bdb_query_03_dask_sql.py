@@ -207,7 +207,6 @@ def main(data_dir, client, bc, config):
         GROUP BY i_item_sk
         ORDER BY purchased_item, cnt desc, lastviewed_item
         LIMIT {q03_limit}
-        DISTRIBUTE BY lastviewed_item
     """
     result = bc.sql(last_query)
 

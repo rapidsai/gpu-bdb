@@ -88,7 +88,6 @@ def main(data_dir, client, bc, config):
         WHERE wcs.wcs_item_sk = i.i_item_sk
         AND i.i_category_id IS NOT NULL
         AND wcs.wcs_user_sk IS NOT NULL
-        ORDER BY wcs.wcs_user_sk, tstamp_inSec, i_category_id
         DISTRIBUTE BY wcs_user_sk
     """
     merged_df = bc.sql(query_2)
