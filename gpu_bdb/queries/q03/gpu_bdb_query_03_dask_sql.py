@@ -189,8 +189,6 @@ def main(data_dir, client, bc, config):
         apply_find_items_viewed, item_mappings=item_df_filtered
     )
     
-    product_view_results = product_view_results.persist()
-    wait(product_view_results)
 
     bc.drop_table("item_df")
     del item_df

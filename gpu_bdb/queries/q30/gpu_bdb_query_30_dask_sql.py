@@ -42,6 +42,23 @@ q30_session_timeout_inSec = 3600
 # query output limit
 q30_limit = 40
 
+def start_local_cuda_cluster():
+    from dask_cuda import LocalCUDACluster
+    from distributed import Client
+    
+    cluster = LocalCUDACluster(local_directory='/data/vjawa/',
+                               device_memory_limit='18 GB',
+                               rmm_pool_size='29 GB',
+                               jit_unspill=True, 
+                               enable_nvlink=True)
+    client = Client(cluster)
+    return client
+
+    
+def start_dask_sql():
+    from dask_sql import Context
+    return Context()
+
 
 def read_tables(data_dir, bc, config):
     table_reader = build_reader(
@@ -91,7 +108,6 @@ def main(data_dir, client, bc, config):
         DISTRIBUTE BY wcs_user_sk
     """
     merged_df = bc.sql(query_2)
-    # print(len(merged_df))
 
     bc.drop_table("item_df")
     del item_df
@@ -108,10 +124,7 @@ def main(data_dir, client, bc, config):
         output_col_2="category_id_2")
     del distinct_session_df
 
-    pair_df = pair_df.persist()
-    wait(pair_df)
     bc.create_table('pair_df', pair_df, persist=False)
-    # print(len(pair_df))
 
     last_query = f"""
         SELECT CAST(category_id_1 AS BIGINT) AS category_id_1,
@@ -130,5 +143,6 @@ def main(data_dir, client, bc, config):
 
 if __name__ == "__main__":
     config = gpubdb_argparser()
-    client, bc = attach_to_cluster(config)
+    #client, bc = attach_to_cluster(config)
+    client, bc = start_local_cuda_cluster(), start_dask_sql()
     run_query(config=config, client=client, query_func=main, blazing_context=bc)
