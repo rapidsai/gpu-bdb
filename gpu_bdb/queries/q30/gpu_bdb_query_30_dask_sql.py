@@ -42,22 +42,6 @@ q30_session_timeout_inSec = 3600
 # query output limit
 q30_limit = 40
 
-def start_local_cuda_cluster():
-    from dask_cuda import LocalCUDACluster
-    from distributed import Client
-    
-    cluster = LocalCUDACluster(local_directory='/data/vjawa/',
-                               device_memory_limit='18 GB',
-                               rmm_pool_size='29 GB',
-                               jit_unspill=True, 
-                               enable_nvlink=True)
-    client = Client(cluster)
-    return client
-
-    
-def start_dask_sql():
-    from dask_sql import Context
-    return Context()
 
 
 def read_tables(data_dir, bc, config):
@@ -143,6 +127,5 @@ def main(data_dir, client, bc, config):
 
 if __name__ == "__main__":
     config = gpubdb_argparser()
-    #client, bc = attach_to_cluster(config)
-    client, bc = start_local_cuda_cluster(), start_dask_sql()
+    client, bc = attach_to_cluster(config)
     run_query(config=config, client=client, query_func=main, blazing_context=bc)
