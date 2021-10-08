@@ -43,6 +43,7 @@ q30_session_timeout_inSec = 3600
 q30_limit = 40
 
 
+
 def read_tables(data_dir, bc, config):
     table_reader = build_reader(
         data_format=config["file_format"],
@@ -88,11 +89,9 @@ def main(data_dir, client, bc, config):
         WHERE wcs.wcs_item_sk = i.i_item_sk
         AND i.i_category_id IS NOT NULL
         AND wcs.wcs_user_sk IS NOT NULL
-        ORDER BY wcs.wcs_user_sk, tstamp_inSec, i_category_id
         DISTRIBUTE BY wcs_user_sk
     """
     merged_df = bc.sql(query_2)
-    # print(len(merged_df))
 
     bc.drop_table("item_df")
     del item_df
@@ -109,10 +108,7 @@ def main(data_dir, client, bc, config):
         output_col_2="category_id_2")
     del distinct_session_df
 
-    pair_df = pair_df.persist()
-    wait(pair_df)
     bc.create_table('pair_df', pair_df, persist=False)
-    # print(len(pair_df))
 
     last_query = f"""
         SELECT CAST(category_id_1 AS BIGINT) AS category_id_1,

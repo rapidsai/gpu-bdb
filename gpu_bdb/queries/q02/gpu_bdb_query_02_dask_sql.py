@@ -73,8 +73,6 @@ def main(data_dir, client, bc, config):
     )
     del wcs_result
 
-    session_df = session_df.persist()
-    wait(session_df)
     bc.create_table('session_df', session_df, persist=False)
 
     last_query = f"""
