@@ -51,7 +51,7 @@ RUN set -x \
  && apt install -y --fix-missing software-properties-common \
  && add-apt-repository -y ppa:git-core/ppa || true \
  && apt install -y --fix-missing --no-install-recommends \
-    ed vim nano less git wget sudo tzdata \
+    ed vim bc nano less git wget sudo tzdata \
     apt-utils apt-transport-https \
     gcc g++ ninja-build bash-completion \
     curl libssl-dev libcurl4-openssl-dev zlib1g-dev \

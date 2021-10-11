@@ -13,7 +13,6 @@ dependencies:
   - cuml
   - dask
   - distributed
-  - blazingsql
   - scipy
   - scikit-learn
   - spacy=2.3
@@ -24,6 +23,9 @@ dependencies:
   - jupyterlab
   - gspread
   - oauth2client
+  - numba=0.54.*
+  - maven
+  - google-api-python-client
   - pip
   - pip:
     - jupyter-server-proxy
