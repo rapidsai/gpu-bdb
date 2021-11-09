@@ -4,7 +4,6 @@ import os
 import gc
 import time
 import uuid
-import sys
 
 N_REPEATS = 1
 
@@ -19,7 +18,6 @@ def load_query(qnum, fn):
     loader = importlib.machinery.SourceFileLoader(qnum, fn)
     mod = types.ModuleType(loader.name)
     loader.exec_module(mod)
-    sys.modules[loader.name] = mod
     return mod.main
 
 
