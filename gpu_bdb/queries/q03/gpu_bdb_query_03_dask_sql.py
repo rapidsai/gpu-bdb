@@ -141,7 +141,7 @@ def apply_find_items_viewed(df, item_mappings):
     return filtered
 
 
-def read_tables(data_dir, bc, config):
+def read_tables(data_dir, c, config):
     table_reader = build_reader(
         data_format=config["file_format"],
         basepath=config["data_dir"],
@@ -160,23 +160,23 @@ def read_tables(data_dir, bc, config):
     item_df = table_reader.read("item", relevant_cols=item_cols)
     wcs_df = table_reader.read("web_clickstreams", relevant_cols=wcs_cols)
 
-    bc.create_table("web_clickstreams", wcs_df, persist=False)
-    bc.create_table("item", item_df, persist=False)
+    c.create_table("web_clickstreams", wcs_df, persist=False)
+    c.create_table("item", item_df, persist=False)
 
 
-def main(data_dir, client, bc, config):
-    benchmark(read_tables, data_dir, bc, config, dask_profile=config["dask_profile"])
+def main(data_dir, client, c, config):
+    benchmark(read_tables, data_dir, c, config, dask_profile=config["dask_profile"])
 
     query_1 = """
         SELECT i_item_sk,
             CAST(i_category_id AS TINYINT) AS i_category_id
         FROM item
     """
-    item_df = bc.sql(query_1)
+    item_df = c.sql(query_1)
 
     item_df = item_df.persist()
     wait(item_df)
-    bc.create_table("item_df", item_df, persist=False)
+    c.create_table("item_df", item_df, persist=False)
 
     query_2 = """
         SELECT CAST(w.wcs_user_sk AS INTEGER) as wcs_user_sk,
@@ -189,26 +189,26 @@ def main(data_dir, client, bc, config):
         AND w.wcs_item_sk IS NOT NULL
         DISTRIBUTE BY wcs_user_sk
     """
-    merged_df = bc.sql(query_2)
+    merged_df = c.sql(query_2)
 
     query_3 = f"""
         SELECT i_item_sk, i_category_id
         FROM item_df
         WHERE i_category_id IN ({q03_purchased_item_category_IN})
     """
-    item_df_filtered = bc.sql(query_3)
+    item_df_filtered = c.sql(query_3)
 
     product_view_results = merged_df.map_partitions(
         apply_find_items_viewed, item_mappings=item_df_filtered
     )
     
 
-    bc.drop_table("item_df")
+    c.drop_table("item_df")
     del item_df
     del merged_df
     del item_df_filtered
 
-    bc.create_table('product_result', product_view_results, persist=False)
+    c.create_table('product_result', product_view_results, persist=False)
 
     last_query = f"""
         SELECT CAST({q03_purchased_item_IN} AS BIGINT) AS purchased_item,
@@ -219,14 +219,14 @@ def main(data_dir, client, bc, config):
         ORDER BY purchased_item, cnt desc, lastviewed_item
         LIMIT {q03_limit}
     """
-    result = bc.sql(last_query)
+    result = c.sql(last_query)
 
-    bc.drop_table("product_result")
+    c.drop_table("product_result")
     del product_view_results
     return result
 
 
 if __name__ == "__main__":
     config = gpubdb_argparser()
-    client, bc = attach_to_cluster(config)
-    run_query(config=config, client=client, query_func=main, blazing_context=bc)
+    client, c = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main, sql_context=c)

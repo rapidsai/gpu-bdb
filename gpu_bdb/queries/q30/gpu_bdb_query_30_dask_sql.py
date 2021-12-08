@@ -44,7 +44,7 @@ q30_limit = 40
 
 
 
-def read_tables(data_dir, bc, config):
+def read_tables(data_dir, c, config):
     table_reader = build_reader(
         data_format=config["file_format"],
         basepath=config["data_dir"],
@@ -57,27 +57,23 @@ def read_tables(data_dir, bc, config):
     wcs_cols = ["wcs_user_sk", "wcs_item_sk", "wcs_click_date_sk", "wcs_click_time_sk"]
     wcs_df = table_reader.read("web_clickstreams", relevant_cols=wcs_cols)
 
-    bc.create_table('web_clickstreams', wcs_df, persist=False)
-    bc.create_table('item', item_df, persist=False)
-    # print(len(wcs_df))
-
-    # bc.create_table('web_clickstreams', os.path.join(data_dir, "web_clickstreams/*.parquet"))
-    # bc.create_table('item', os.path.join(data_dir, "item/*.parquet"))
+    c.create_table('web_clickstreams', wcs_df, persist=False)
+    c.create_table('item', item_df, persist=False)
 
 
-def main(data_dir, client, bc, config):
-    benchmark(read_tables, data_dir, bc, config, dask_profile=config["dask_profile"])
+def main(data_dir, client, c, config):
+    benchmark(read_tables, data_dir, c, config, dask_profile=config["dask_profile"])
 
     query_1 = """
         SELECT i_item_sk,
             CAST(i_category_id AS TINYINT) AS i_category_id
         FROM item
     """
-    item_df = bc.sql(query_1)
+    item_df = c.sql(query_1)
 
     item_df = item_df.persist()
     wait(item_df)
-    bc.create_table("item_df", item_df, persist=False)
+    c.create_table("item_df", item_df, persist=False)
     # print(len(item_df))
     # print(len(item_df.columns))
 
@@ -91,9 +87,9 @@ def main(data_dir, client, bc, config):
         AND wcs.wcs_user_sk IS NOT NULL
         DISTRIBUTE BY wcs_user_sk
     """
-    merged_df = bc.sql(query_2)
+    merged_df = c.sql(query_2)
 
-    bc.drop_table("item_df")
+    c.drop_table("item_df")
     del item_df
 
     distinct_session_df = merged_df.map_partitions(get_distinct_sessions,
@@ -108,7 +104,7 @@ def main(data_dir, client, bc, config):
         output_col_2="category_id_2")
     del distinct_session_df
 
-    bc.create_table('pair_df', pair_df, persist=False)
+    c.create_table('pair_df', pair_df, persist=False)
 
     last_query = f"""
         SELECT CAST(category_id_1 AS BIGINT) AS category_id_1,
@@ -119,13 +115,13 @@ def main(data_dir, client, bc, config):
         ORDER BY cnt desc
         LIMIT {q30_limit}
     """
-    result = bc.sql(last_query)
+    result = c.sql(last_query)
 
-    bc.drop_table("pair_df")
+    c.drop_table("pair_df")
     return result
 
 
 if __name__ == "__main__":
     config = gpubdb_argparser()
-    client, bc = attach_to_cluster(config)
-    run_query(config=config, client=client, query_func=main, blazing_context=bc)
+    client, c = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main, sql_context=c)

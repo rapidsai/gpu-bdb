@@ -29,7 +29,7 @@ from bdb_tools.utils import (
 from bdb_tools.readers import build_reader
 
 
-def read_tables(data_dir, bc, config):
+def read_tables(data_dir, c, config):
 	table_reader = build_reader(
 		data_format=config["file_format"],
 		basepath=config["data_dir"],
@@ -50,21 +50,14 @@ def read_tables(data_dir, bc, config):
 	td_columns = ["t_time_sk", "t_hour"]
 	time_dim = table_reader.read("time_dim", relevant_cols=td_columns)
 
-	bc.create_table("household_demographics", household_demographics, persist=False)
-	bc.create_table("web_page", web_page, persist=False)
-	bc.create_table("web_sales", web_sales, persist=False)
-	bc.create_table("time_dim", time_dim, persist=False)
-
-    # bc.create_table(
-    #     "household_demographics", os.path.join(data_dir, "household_demographics/*.parquet"
-    # ))
-    # bc.create_table("web_page", os.path.join(data_dir, "web_page/*.parquet"))
-    # bc.create_table("web_sales", os.path.join(data_dir, "web_sales/*.parquet"))
-    # bc.create_table("time_dim", os.path.join(data_dir, "time_dim/*.parquet"))
+	c.create_table("household_demographics", household_demographics, persist=False)
+	c.create_table("web_page", web_page, persist=False)
+	c.create_table("web_sales", web_sales, persist=False)
+	c.create_table("time_dim", time_dim, persist=False)
 
 
-def main(data_dir, client, bc, config):
-    benchmark(read_tables, data_dir, bc, config, dask_profile=config["dask_profile"])
+def main(data_dir, client, c, config):
+    benchmark(read_tables, data_dir, c, config, dask_profile=config["dask_profile"])
 
     query = """ 
 		SELECT CASE WHEN pmc > 0.0 THEN CAST (amc AS DOUBLE) / CAST (pmc AS DOUBLE) ELSE -1.0 END AS am_pm_ratio
@@ -85,11 +78,11 @@ def main(data_dir, client, bc, config):
 		) sum_am_pm
 	"""
 
-    result = bc.sql(query)
+    result = c.sql(query)
     return result
 
 
 if __name__ == "__main__":
 	config = gpubdb_argparser()
-	client, bc = attach_to_cluster(config)
-	run_query(config=config, client=client, query_func=main, blazing_context=bc)
+	client, c = attach_to_cluster(config)
+	run_query(config=config, client=client, query_func=main, sql_context=c)

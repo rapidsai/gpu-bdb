@@ -43,7 +43,7 @@ date_cols = ["d_date", "d_date_sk"]
 item_cols = ["i_item_sk", "i_item_id"]
 warehouse_cols = ["w_warehouse_sk", "w_state"]
 
-def read_tables(data_dir, bc, config):
+def read_tables(data_dir, c, config):
     table_reader = build_reader(
         data_format=config["file_format"],
         basepath=config["data_dir"],
@@ -56,21 +56,15 @@ def read_tables(data_dir, bc, config):
     item_df = table_reader.read("item", relevant_cols=item_cols)
     warehouse_df = table_reader.read("warehouse", relevant_cols=warehouse_cols)
 
-    bc.create_table("web_sales", web_sales_df, persist=False)
-    bc.create_table("web_returns", web_returns_df, persist=False)
-    bc.create_table("date_dim", date_dim_df, persist=False)
-    bc.create_table("item", item_df, persist=False)
-    bc.create_table("warehouse", warehouse_df, persist=False)
-
-    # bc.create_table("web_sales", os.path.join(data_dir, "web_sales/*.parquet"))
-    # bc.create_table("web_returns", os.path.join(data_dir, "web_returns/*.parquet"))
-    # bc.create_table("date_dim", os.path.join(data_dir, "date_dim/*.parquet"))
-    # bc.create_table("item", os.path.join(data_dir, "item/*.parquet"))
-    # bc.create_table("warehouse", os.path.join(data_dir, "warehouse/*.parquet"))
+    c.create_table("web_sales", web_sales_df, persist=False)
+    c.create_table("web_returns", web_returns_df, persist=False)
+    c.create_table("date_dim", date_dim_df, persist=False)
+    c.create_table("item", item_df, persist=False)
+    c.create_table("warehouse", warehouse_df, persist=False)
 
 
-def main(data_dir, client, bc, config):
-    benchmark(read_tables, data_dir, bc, config, dask_profile=config["dask_profile"])
+def main(data_dir, client, c, config):
+    benchmark(read_tables, data_dir, c, config, dask_profile=config["dask_profile"])
 
     date = datetime.datetime(2001, 3, 16)
     start = (date + timedelta(days=-30)).strftime("%Y-%m-%d")
@@ -84,7 +78,7 @@ def main(data_dir, client, bc, config):
         ORDER BY CAST(d_date as date) ASC
     """
 
-    dates = bc.sql(date_query)
+    dates = c.sql(date_query)
 
     cpu_dates = dates["d_date_sk"].compute().to_pandas()
     cpu_dates.index = list(range(0, cpu_dates.shape[0]))
@@ -126,11 +120,11 @@ def main(data_dir, client, bc, config):
         LIMIT 100
     """
 
-    result = bc.sql(last_query)
+    result = c.sql(last_query)
     return result
 
 
 if __name__ == "__main__":
     config = gpubdb_argparser()
-    client, bc = attach_to_cluster(config)
-    run_query(config=config, client=client, query_func=main, blazing_context=bc)
+    client, c = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main, sql_context=c)

@@ -37,7 +37,7 @@ q02_limit = 30
 q02_session_timeout_inSec = 3600
 
 
-def read_tables(data_dir, bc, config):
+def read_tables(data_dir, c, config):
     table_reader = build_reader(
         data_format=config["file_format"],
         basepath=config["data_dir"],
@@ -46,13 +46,11 @@ def read_tables(data_dir, bc, config):
     wcs_cols = ["wcs_user_sk", "wcs_item_sk", "wcs_click_date_sk", "wcs_click_time_sk"]
     wcs_df = table_reader.read("web_clickstreams", relevant_cols=wcs_cols)
 
-    bc.create_table("web_clickstreams", wcs_df, persist=False)
-    # bc.create_table("web_clickstreams",
-    #                 os.path.join(data_dir, "web_clickstreams/*.parquet"))
+    c.create_table("web_clickstreams", wcs_df, persist=False)
 
 
-def main(data_dir, client, bc, config):
-    benchmark(read_tables, data_dir, bc, config, dask_profile=config["dask_profile"])
+def main(data_dir, client, c, config):
+    benchmark(read_tables, data_dir, c, config, dask_profile=config["dask_profile"])
 
     query_1 = """
         SELECT
@@ -64,7 +62,7 @@ def main(data_dir, client, bc, config):
         AND   wcs_user_sk IS NOT NULL
         DISTRIBUTE BY wcs_user_sk
     """
-    wcs_result = bc.sql(query_1)
+    wcs_result = c.sql(query_1)
 
     session_df = wcs_result.map_partitions(
         get_distinct_sessions,
@@ -73,7 +71,7 @@ def main(data_dir, client, bc, config):
     )
     del wcs_result
 
-    bc.create_table('session_df', session_df, persist=False)
+    c.create_table('session_df', session_df, persist=False)
 
     last_query = f"""
         WITH item_df AS (
@@ -92,17 +90,17 @@ def main(data_dir, client, bc, config):
         ORDER BY cnt desc
         LIMIT {q02_limit}
     """
-    result = bc.sql(last_query)
+    result = c.sql(last_query)
     result["item_sk_2"] = q02_item_sk
     result_order = ["item_sk_1", "item_sk_2", "cnt"]
     result = result[result_order]
 
     del session_df
-    bc.drop_table("session_df")
+    c.drop_table("session_df")
     return result
 
 
 if __name__ == "__main__":
     config = gpubdb_argparser()
-    client, bc = attach_to_cluster(config)
-    run_query(config=config, client=client, query_func=main, blazing_context=bc)
+    client, c = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main, sql_context=c)

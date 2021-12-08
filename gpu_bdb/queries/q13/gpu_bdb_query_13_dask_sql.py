@@ -32,7 +32,7 @@ from bdb_tools.readers import build_reader
 from dask.distributed import wait
 
 
-def read_tables(data_dir, bc, config):
+def read_tables(data_dir, c, config):
 	table_reader = build_reader(
         data_format=config["file_format"],
         basepath=config["data_dir"],
@@ -51,19 +51,14 @@ def read_tables(data_dir, bc, config):
 	w_sales_cols = ["ws_sold_date_sk", "ws_bill_customer_sk", "ws_net_paid"]
 	web_sales_df = table_reader.read("web_sales", relevant_cols=w_sales_cols)
 
-	bc.create_table("date_dim", date_dim_df, persist=False)
-	bc.create_table("customer", customer_df, persist=False)
-	bc.create_table("store_sales", s_sales_df, persist=False)
-	bc.create_table("web_sales", web_sales_df, persist=False)
-
-    # bc.create_table("date_dim", os.path.join(data_dir, "date_dim/*.parquet"))
-    # bc.create_table("customer", os.path.join(data_dir, "customer/*.parquet"))
-    # bc.create_table("store_sales", os.path.join(data_dir, "store_sales/*.parquet"))
-    # bc.create_table("web_sales", os.path.join(data_dir, "web_sales/*.parquet"))
+	c.create_table("date_dim", date_dim_df, persist=False)
+	c.create_table("customer", customer_df, persist=False)
+	c.create_table("store_sales", s_sales_df, persist=False)
+	c.create_table("web_sales", web_sales_df, persist=False)
 
 
-def main(data_dir, client, bc, config):
-    benchmark(read_tables, data_dir, bc, config, dask_profile=config["dask_profile"])
+def main(data_dir, client, c, config):
+    benchmark(read_tables, data_dir, c, config, dask_profile=config["dask_profile"])
 
     query_1 = """
 		SELECT
@@ -80,11 +75,11 @@ def main(data_dir, client, bc, config):
 		GROUP BY ss.ss_customer_sk 
 		HAVING sum( case when (d_year = 2001) THEN ss_net_paid ELSE 0.0 END) > 0.0
 	"""
-    temp_table1 = bc.sql(query_1)
+    temp_table1 = c.sql(query_1)
 
     temp_table1 = temp_table1.persist()
     wait(temp_table1)
-    bc.create_table("temp_table1", temp_table1, persist=False)
+    c.create_table("temp_table1", temp_table1, persist=False)
     query_2 = """
 		SELECT
 			ws.ws_bill_customer_sk AS customer_sk,
@@ -100,11 +95,11 @@ def main(data_dir, client, bc, config):
 		GROUP BY ws.ws_bill_customer_sk 
 		HAVING sum( case when (d_year = 2001) THEN ws_net_paid ELSE 0.0 END) > 0.0
 	"""
-    temp_table2 = bc.sql(query_2)
+    temp_table2 = c.sql(query_2)
 
     temp_table2 = temp_table2.persist()
     wait(temp_table2)
-    bc.create_table("temp_table2", temp_table2, persist=False)
+    c.create_table("temp_table2", temp_table2, persist=False)
     query = """
 		SELECT
 			CAST(c_customer_sk AS BIGINT) as c_customer_sk,
@@ -124,14 +119,14 @@ def main(data_dir, client, bc, config):
 			c_last_name
 		LIMIT 100
     """
-    result = bc.sql(query)
+    result = c.sql(query)
 
-    bc.drop_table("temp_table1")
-    bc.drop_table("temp_table2")
+    c.drop_table("temp_table1")
+    c.drop_table("temp_table2")
     return result
 
 
 if __name__ == "__main__":
 	config = gpubdb_argparser()
-	client, bc = attach_to_cluster(config)
-	run_query(config=config, client=client, query_func=main, blazing_context=bc)
+	client, c = attach_to_cluster(config)
+	run_query(config=config, client=client, query_func=main, sql_context=c)

@@ -51,7 +51,7 @@ date_cols = ["d_date_sk", "d_year", "d_moy"]
 customer_address_cols = ["ca_address_sk", "ca_gmt_offset"]
 promotion_cols = ["p_channel_email", "p_channel_dmail", "p_channel_tv", "p_promo_sk"]
 
-def read_tables(data_dir, bc, config):
+def read_tables(data_dir, c, config):
     table_reader = build_reader(
         data_format=config["file_format"],
         basepath=config["data_dir"],
@@ -68,25 +68,17 @@ def read_tables(data_dir, bc, config):
     )
     promotion_df = table_reader.read("promotion", relevant_cols=promotion_cols)
 
-    bc.create_table("store_sales", store_sales_df, persist=False)
-    bc.create_table("item", item_df, persist=False)
-    bc.create_table("customer", customer_df, persist=False)
-    bc.create_table("store", store_df, persist=False)
-    bc.create_table("date_dim", date_dim_df, persist=False)
-    bc.create_table("customer_address", customer_address_df, persist=False)
-    bc.create_table("promotion", promotion_df, persist=False)
-
-    # bc.create_table("store_sales", os.path.join(data_dir, "store_sales/*.parquet"))
-    # bc.create_table("item", os.path.join(data_dir, "item/*.parquet"))
-    # bc.create_table("customer", os.path.join(data_dir, "customer/*.parquet"))
-    # bc.create_table("store", os.path.join(data_dir, "store/*.parquet"))
-    # bc.create_table("date_dim", os.path.join(data_dir, "date_dim/*.parquet"))
-    # bc.create_table("customer_address", os.path.join(data_dir, "customer_address/*.parquet"))
-    # bc.create_table("promotion", os.path.join(data_dir, "promotion/*.parquet"))
+    c.create_table("store_sales", store_sales_df, persist=False)
+    c.create_table("item", item_df, persist=False)
+    c.create_table("customer", customer_df, persist=False)
+    c.create_table("store", store_df, persist=False)
+    c.create_table("date_dim", date_dim_df, persist=False)
+    c.create_table("customer_address", customer_address_df, persist=False)
+    c.create_table("promotion", promotion_df, persist=False)
 
 
-def main(data_dir, client, bc, config):
-    benchmark(read_tables, data_dir, bc, config, dask_profile=config["dask_profile"])
+def main(data_dir, client, c, config):
+    benchmark(read_tables, data_dir, c, config, dask_profile=config["dask_profile"])
 
     query_date = f"""
         select min(d_date_sk) as min_d_date_sk,
@@ -95,7 +87,7 @@ def main(data_dir, client, bc, config):
         where d_year = {q17_year}
         and d_moy = {q17_month}
     """
-    dates_result = bc.sql(query_date).compute()
+    dates_result = c.sql(query_date).compute()
 
     min_date_sk_val = dates_result["min_d_date_sk"][0]
     max_date_sk_val = dates_result["max_d_date_sk"][0]
@@ -129,11 +121,11 @@ def main(data_dir, client, bc, config):
         ) sum_promotional
         -- we don't need a 'ON' join condition. result is just two numbers.
     """
-    result = bc.sql(query)
+    result = c.sql(query)
     return result
 
 
 if __name__ == "__main__":
     config = gpubdb_argparser()
-    client, bc = attach_to_cluster(config)
-    run_query(config=config, client=client, query_func=main, blazing_context=bc)
+    client, c = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main, sql_context=c)

@@ -44,7 +44,7 @@ q19_returns_dates_IN = ["2004-03-08", "2004-08-02", "2004-11-15", "2004-12-20"]
 eol_char = "è"
 
 
-def read_tables(data_dir, bc, config):
+def read_tables(data_dir, c, config):
     table_reader = build_reader(
         data_format=config["file_format"], basepath=config["data_dir"],
     )
@@ -69,19 +69,14 @@ def read_tables(data_dir, bc, config):
         "product_reviews", relevant_cols=product_reviews_cols
     )
     
-    bc.create_table('web_returns', web_returns_df, persist=False)
-    bc.create_table('date_dim', date_dim_df, persist=False)
-    bc.create_table('product_reviews', product_reviews_df, persist=False)
-    bc.create_table('store_returns', store_returns_df, persist=False)
-    
-    # bc.create_table('web_returns', os.path.join(data_dir, "web_returns/*.parquet"))
-    # bc.create_table('date_dim', os.path.join(data_dir, "date_dim/*.parquet"))
-    # bc.create_table('product_reviews', os.path.join(data_dir, "product_reviews/*.parquet"))
-    # bc.create_table('store_returns', os.path.join(data_dir, "store_returns/*.parquet"))
+    c.create_table('web_returns', web_returns_df, persist=False)
+    c.create_table('date_dim', date_dim_df, persist=False)
+    c.create_table('product_reviews', product_reviews_df, persist=False)
+    c.create_table('store_returns', store_returns_df, persist=False)
 
 
-def main(data_dir, client, bc, config):
-    benchmark(read_tables, data_dir, bc, config, dask_profile=config["dask_profile"])
+def main(data_dir, client, c, config):
+    benchmark(read_tables, data_dir, c, config, dask_profile=config["dask_profile"])
 
     query = f"""
         WITH dateFilter AS
@@ -127,7 +122,7 @@ def main(data_dir, client, bc, config):
         SELECT * FROM extract_sentiment
         ORDER BY pr_item_sk, pr_review_content, pr_review_sk
     """
-    merged_df = bc.sql(query)
+    merged_df = c.sql(query)
 
     # second step -- Sentiment Word Extraction
     merged_df["pr_review_sk"] = merged_df["pr_review_sk"].astype("int32")
@@ -152,19 +147,19 @@ def main(data_dir, client, bc, config):
     # Need to pass the absolute path for this txt file
     sentiment_dir = os.path.join(config["data_dir"], "sentiment_files")
     ns_df = dask_cudf.read_csv(os.path.join(sentiment_dir, "negativeSentiment.txt"), names=["sentiment_word"])
-    bc.create_table('sent_df', ns_df, persist=False)
+    c.create_table('sent_df', ns_df, persist=False)
 
     sentences = sentences.persist()
     wait(sentences)
-    bc.create_table('sentences_df', sentences, persist=False)
+    c.create_table('sentences_df', sentences, persist=False)
 
     word_df = word_df.persist()
     wait(word_df)
-    bc.create_table('word_df', word_df, persist=False)
+    c.create_table('word_df', word_df, persist=False)
 
     merged_df = merged_df.persist()
     wait(merged_df)
-    bc.create_table('merged_df', merged_df, persist=False)
+    c.create_table('merged_df', merged_df, persist=False)
 
     query = """
         WITH negativesent AS
@@ -194,13 +189,13 @@ def main(data_dir, client, bc, config):
         INNER JOIN merged_df ON pr_review_sk = review_idx_global_pos
         ORDER BY pr_item_sk, review_sentence, sentiment_word
     """
-    result = bc.sql(query)
+    result = c.sql(query)
 
-    bc.drop_table("sentences_df")
+    c.drop_table("sentences_df")
     del sentences
-    bc.drop_table("word_df")
+    c.drop_table("word_df")
     del word_df
-    bc.drop_table("merged_df")
+    c.drop_table("merged_df")
     del merged_df
 
     return result
@@ -208,5 +203,5 @@ def main(data_dir, client, bc, config):
 
 if __name__ == "__main__":
     config = gpubdb_argparser()
-    client, bc = attach_to_cluster(config)
-    run_query(config=config, client=client, query_func=main, blazing_context=bc)
+    client, c = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main, sql_context=c)

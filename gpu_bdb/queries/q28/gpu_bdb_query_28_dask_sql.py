@@ -299,7 +299,7 @@ def post_etl_processing(client, train_data, test_data):
     return final_data, acc, prec, cmat
 
 
-def read_tables(data_dir, bc, config):
+def read_tables(data_dir, c, config):
     ### splitting by row groups for better parallelism
     table_reader = build_reader(
         data_format=config["file_format"],
@@ -314,13 +314,11 @@ def read_tables(data_dir, bc, config):
     ]
     pr_df = table_reader.read("product_reviews", relevant_cols=columns)
 
-    bc.create_table("product_reviews", pr_df, persist=False)
-
-    # bc.create_table("product_reviews", os.path.join(data_dir, "product_reviews/*.parquet"))
+    c.create_table("product_reviews", pr_df, persist=False)
 
 
-def main(data_dir, client, bc, config):
-    benchmark(read_tables, data_dir, bc, config, dask_profile=config["dask_profile"])
+def main(data_dir, client, c, config):
+    benchmark(read_tables, data_dir, c, config, dask_profile=config["dask_profile"])
 
     # 10 % of data
     query1 = """
@@ -333,7 +331,7 @@ def main(data_dir, client, bc, config):
         AND pr_review_content IS NOT NULL
         ORDER BY pr_review_sk
     """
-    test_data = bc.sql(query1)
+    test_data = c.sql(query1)
 
     # 90 % of data
     query2 = """
@@ -346,7 +344,7 @@ def main(data_dir, client, bc, config):
         AND pr_review_content IS NOT NULL
         ORDER BY pr_review_sk
     """
-    train_data = bc.sql(query2)
+    train_data = c.sql(query2)
 
     final_data, acc, prec, cmat = post_etl_processing(
         client=client, train_data=train_data, test_data=test_data
@@ -365,5 +363,5 @@ def main(data_dir, client, bc, config):
 
 if __name__ == "__main__":
     config = gpubdb_argparser()
-    client, bc = attach_to_cluster(config)
-    run_query(config=config, client=client, query_func=main, blazing_context=bc)
+    client, c = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main, sql_context=c)

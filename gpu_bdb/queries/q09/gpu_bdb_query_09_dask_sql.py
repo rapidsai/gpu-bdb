@@ -60,7 +60,7 @@ q09_part3_sales_price_min = 150
 q09_part3_sales_price_max = 200
 
 
-def read_tables(data_dir, bc, config):
+def read_tables(data_dir, c, config):
     table_reader = build_reader(
         data_format=config["file_format"],
         basepath=config["data_dir"],
@@ -93,23 +93,15 @@ def read_tables(data_dir, bc, config):
     s_columns = ["s_store_sk"]
     store = table_reader.read("store", relevant_cols=s_columns)
 
-    bc.create_table("store_sales", store_sales, persist=False)
-    bc.create_table("customer_address", customer_address, persist=False)
-    bc.create_table("customer_demographics", customer_demographics, persist=False)
-    bc.create_table("date_dim", date_dim, persist=False)
-    bc.create_table("store", store, persist=False)
-
-    # bc.create_table("store_sales", os.path.join(data_dir, "store_sales/*.parquet"))
-    # bc.create_table("customer_address", os.path.join(data_dir, "customer_address/*.parquet"))
-    # bc.create_table(
-    #     "customer_demographics", os.path.join(data_dir, "customer_demographics/*.parquet"
-    # ))
-    # bc.create_table("date_dim", os.path.join(data_dir, "date_dim/*.parquet"))
-    # bc.create_table("store", os.path.join(data_dir, "store/*.parquet"))
+    c.create_table("store_sales", store_sales, persist=False)
+    c.create_table("customer_address", customer_address, persist=False)
+    c.create_table("customer_demographics", customer_demographics, persist=False)
+    c.create_table("date_dim", date_dim, persist=False)
+    c.create_table("store", store, persist=False)
 
 
-def main(data_dir, client, bc, config):
-    benchmark(read_tables, data_dir, bc, config, dask_profile=config["dask_profile"])
+def main(data_dir, client, c, config):
+    benchmark(read_tables, data_dir, c, config, dask_profile=config["dask_profile"])
 
     query = f"""
         SELECT SUM(ss1.ss_quantity)
@@ -170,12 +162,12 @@ def main(data_dir, client, bc, config):
             )
         )
     """
-    result = bc.sql(query)
+    result = c.sql(query)
     result.columns = ["sum(ss_quantity)"]
     return result
 
 
 if __name__ == "__main__":
     config = gpubdb_argparser()
-    client, bc = attach_to_cluster(config)
-    run_query(config=config, client=client, query_func=main, blazing_context=bc)
+    client, c = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main, sql_context=c)

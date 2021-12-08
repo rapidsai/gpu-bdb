@@ -37,7 +37,7 @@ q22_i_current_price_min = "0.98"
 q22_i_current_price_max = "1.5"
 
 
-def read_tables(data_dir, bc, config):
+def read_tables(data_dir, c, config):
     table_reader = build_reader(
         data_format=config["file_format"],
         basepath=config["data_dir"],
@@ -61,19 +61,14 @@ def read_tables(data_dir, bc, config):
     date_dim = table_reader.read("date_dim", relevant_cols=dd_columns)
     date_dim = date_dim.map_partitions(convert_datestring_to_days)
 
-    bc.create_table('inventory', inventory, persist=False)
-    bc.create_table('item', item, persist=False)
-    bc.create_table('warehouse', warehouse, persist=False)
-    bc.create_table('date_dim', date_dim, persist=False)
-
-    # bc.create_table('inventory', os.path.join(data_dir, "inventory/*.parquet"))
-    # bc.create_table('item', os.path.join(data_dir, "item/*.parquet"))
-    # bc.create_table('warehouse', os.path.join(data_dir, "warehouse/*.parquet"))
-    # bc.create_table('date_dim', os.path.join(data_dir, "date_dim/*.parquet"))
+    c.create_table('inventory', inventory, persist=False)
+    c.create_table('item', item, persist=False)
+    c.create_table('warehouse', warehouse, persist=False)
+    c.create_table('date_dim', date_dim, persist=False)
 
 
-def main(data_dir, client, bc, config):
-    benchmark(read_tables, data_dir, bc, config, dask_profile=config["dask_profile"])
+def main(data_dir, client, c, config):
+    benchmark(read_tables, data_dir, c, config, dask_profile=config["dask_profile"])
 
     # Filter limit in days
     min_date = np.datetime64(q22_date, "D").astype(int) - 30
@@ -100,8 +95,8 @@ def main(data_dir, client, bc, config):
         AND d_date <= {max_date}
         GROUP BY w_warehouse_name, i_item_id
     """
-    intermediate = bc.sql(query)
-    bc.create_table("intermediate", intermediate ,persist=False)
+    intermediate = c.sql(query)
+    c.create_table("intermediate", intermediate ,persist=False)
 
     query_2 = f"""
         SELECT
@@ -116,11 +111,11 @@ def main(data_dir, client, bc, config):
         ORDER BY w_warehouse_name, i_item_id
         LIMIT 100
     """
-    result = bc.sql(query_2)
+    result = c.sql(query_2)
     return result
 
 
 if __name__ == "__main__":
     config = gpubdb_argparser()
-    client, bc = attach_to_cluster(config)
-    run_query(config=config, client=client, query_func=main, blazing_context=bc)
+    client, c = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main, sql_context=c)

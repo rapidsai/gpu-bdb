@@ -30,7 +30,7 @@ from bdb_tools.utils import (
 from bdb_tools.readers import build_reader
 
 
-def read_tables(data_dir, bc, config):
+def read_tables(data_dir, c, config):
 	table_reader = build_reader(
         data_format=config["file_format"],
         basepath=config["data_dir"],
@@ -53,21 +53,15 @@ def read_tables(data_dir, bc, config):
 		"customer_address", relevant_cols=customer_address_cols
 	)
 
-	bc.create_table("item", item_df, persist=False)
-	bc.create_table("customer", customer_df, persist=False)
-	bc.create_table("store_sales", store_sales_df, persist=False)
-	bc.create_table("date_dim", date_dim_df, persist=False)
-	bc.create_table("customer_address", customer_address_df, persist=False)
-
-    # bc.create_table("item", os.path.join(data_dir, "item/*.parquet"))
-    # bc.create_table("customer", os.path.join(data_dir, "customer/*.parquet"))
-    # bc.create_table("store_sales", os.path.join(data_dir, "store_sales/*.parquet"))
-    # bc.create_table("date_dim", os.path.join(data_dir, "date_dim/*.parquet"))
-    # bc.create_table("customer_address", os.path.join(data_dir, "customer_address/*.parquet"))
+	c.create_table("item", item_df, persist=False)
+	c.create_table("customer", customer_df, persist=False)
+	c.create_table("store_sales", store_sales_df, persist=False)
+	c.create_table("date_dim", date_dim_df, persist=False)
+	c.create_table("customer_address", customer_address_df, persist=False)
 
 
-def main(data_dir, client, bc, config):
-    benchmark(read_tables, data_dir, bc, config, dask_profile=config["dask_profile"])
+def main(data_dir, client, c, config):
+    benchmark(read_tables, data_dir, c, config, dask_profile=config["dask_profile"])
 
     query = """
 		WITH temp_table as 
@@ -106,11 +100,11 @@ def main(data_dir, client, bc, config):
 		LIMIT 10
 	"""
 
-    result = bc.sql(query)
+    result = c.sql(query)
     return result
 
 
 if __name__ == "__main__":
 	config = gpubdb_argparser()
-	client, bc = attach_to_cluster(config)
-	run_query(config=config, client=client, query_func=main, blazing_context=bc)
+	client, c = attach_to_cluster(config)
+	run_query(config=config, client=client, query_func=main, sql_context=c)

@@ -144,7 +144,7 @@ def prep_for_sessionization(df, review_cat_code):
     return df_filtered
 
 
-def read_tables(data_dir, bc, config):
+def read_tables(data_dir, c, config):
     table_reader = build_reader(
         data_format=config["file_format"],
         basepath=config["data_dir"],
@@ -167,19 +167,14 @@ def read_tables(data_dir, bc, config):
     web_sales_df = table_reader.read("web_sales", relevant_cols=web_sales_cols)
     wcs_df = table_reader.read("web_clickstreams", relevant_cols=wcs_cols)
 
-    bc.create_table("web_clickstreams", wcs_df, persist=False)
-    bc.create_table("web_sales", web_sales_df, persist=False)
-    bc.create_table("web_page", web_page_df, persist=False)
-    bc.create_table("date_dim", date_dim_df, persist=False)
-
-    # bc.create_table("web_clickstreams", os.path.join(data_dir, "web_clickstreams/*.parquet"))
-    # bc.create_table("web_sales", os.path.join(data_dir, "web_sales/*.parquet"))
-    # bc.create_table("web_page", os.path.join(data_dir, "web_page/*.parquet"))
-    # bc.create_table("date_dim", os.path.join(data_dir, "date_dim/*.parquet"))
+    c.create_table("web_clickstreams", wcs_df, persist=False)
+    c.create_table("web_sales", web_sales_df, persist=False)
+    c.create_table("web_page", web_page_df, persist=False)
+    c.create_table("date_dim", date_dim_df, persist=False)
 
 
-def main(data_dir, client, bc, config):
-    benchmark(read_tables, data_dir, bc, config, dask_profile=config["dask_profile"])
+def main(data_dir, client, c, config):
+    benchmark(read_tables, data_dir, c, config, dask_profile=config["dask_profile"])
 
     query_1 = f"""
         SELECT d_date_sk
@@ -188,7 +183,7 @@ def main(data_dir, client, bc, config):
                                        date '{q08_ENDDATE}')
         ORDER BY CAST(d_date as date) asc
     """
-    result_dates_sk_filter = bc.sql(query_1).compute()
+    result_dates_sk_filter = c.sql(query_1).compute()
 
     # because `result_dates_sk_filter` has repetitive index
     result_dates_sk_filter.index = list(range(0, result_dates_sk_filter.shape[0]))
@@ -201,7 +196,7 @@ def main(data_dir, client, bc, config):
             wp_type
         FROM web_page
     """
-    web_page_df = bc.sql(query_aux)
+    web_page_df = c.sql(query_aux)
 
     # cast to minimum viable dtype
     web_page_df["wp_type"] = web_page_df["wp_type"].map_partitions(
@@ -222,7 +217,7 @@ def main(data_dir, client, bc, config):
 
     web_page_df = web_page_df.persist()
     wait(web_page_df)
-    bc.create_table('web_page_2', web_page_df, persist=False)
+    c.create_table('web_page_2', web_page_df, persist=False)
 
     query_2 = f"""
         SELECT
@@ -237,9 +232,9 @@ def main(data_dir, client, bc, config):
         --in the future we want to remove this ORDER BY
         DISTRIBUTE BY wcs_user_sk
     """
-    merged_df = bc.sql(query_2)
+    merged_df = c.sql(query_2)
 
-    bc.drop_table("web_page_2")
+    c.drop_table("web_page_2")
     del web_page_df
 
     merged_df = merged_df.shuffle(on=["wcs_user_sk"])
@@ -259,7 +254,7 @@ def main(data_dir, client, bc, config):
 
     unique_review_sales = unique_review_sales.persist()
     wait(unique_review_sales)
-    bc.create_table("reviews", unique_review_sales, persist=False)
+    c.create_table("reviews", unique_review_sales, persist=False)
     last_query = f"""
         SELECT
             CAST(review_total AS BIGINT) AS q08_review_sales_amount,
@@ -274,13 +269,13 @@ def main(data_dir, client, bc, config):
             WHERE ws_sold_date_sk between {q08_start_dt} AND {q08_end_dt}
         )
     """
-    result = bc.sql(last_query)
+    result = c.sql(last_query)
 
-    bc.drop_table("reviews")
+    c.drop_table("reviews")
     return result
 
 
 if __name__ == "__main__":
     config = gpubdb_argparser()
-    client, bc = attach_to_cluster(config)
-    run_query(config=config, client=client, query_func=main, blazing_context=bc)
+    client, c = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main, sql_context=c)

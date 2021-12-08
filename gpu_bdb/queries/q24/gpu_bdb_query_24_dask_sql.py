@@ -40,7 +40,7 @@ imp_cols = [
 ]
 ss_cols = ["ss_item_sk", "ss_sold_date_sk", "ss_quantity"]
 
-def read_tables(data_dir, bc, config):
+def read_tables(data_dir, c, config):
 	table_reader = build_reader(
 		data_format=config["file_format"],
 		basepath=config["data_dir"],
@@ -52,19 +52,14 @@ def read_tables(data_dir, bc, config):
 	imp_df = table_reader.read("item_marketprices", relevant_cols=imp_cols)
 	ss_df = table_reader.read("store_sales", relevant_cols=ss_cols)
 
-	bc.create_table("web_sales", ws_df, persist=False)
-	bc.create_table("item", item_df, persist=False)
-	bc.create_table("item_marketprices", imp_df, persist=False)
-	bc.create_table("store_sales", ss_df, persist=False)
-
-	# bc.create_table("web_sales", os.path.join(data_dir, "web_sales/*.parquet"))
-    # bc.create_table("item", os.path.join(data_dir, "item/*.parquet"))
-    # bc.create_table("item_marketprices", os.path.join(data_dir, "item_marketprices/*.parquet"))
-    # bc.create_table("store_sales", os.path.join(data_dir, "store_sales/*.parquet"))
+	c.create_table("web_sales", ws_df, persist=False)
+	c.create_table("item", item_df, persist=False)
+	c.create_table("item_marketprices", imp_df, persist=False)
+	c.create_table("store_sales", ss_df, persist=False)
 
 
-def main(data_dir, client, bc, config):
-    benchmark(read_tables, data_dir, bc, config, dask_profile=config["dask_profile"])
+def main(data_dir, client, c, config):
+    benchmark(read_tables, data_dir, c, config, dask_profile=config["dask_profile"])
 
     query = """
 		WITH temp_table as 
@@ -111,11 +106,11 @@ def main(data_dir, client, bc, config):
 		GROUP BY  ws.ws_item_sk
   	"""
 
-    result = bc.sql(query)
+    result = c.sql(query)
     return result
 
 
 if __name__ == "__main__":
     config = gpubdb_argparser()
-    client, bc = attach_to_cluster(config)
-    run_query(config=config, client=client, query_func=main, blazing_context=bc)
+    client, c = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main, sql_context=c)

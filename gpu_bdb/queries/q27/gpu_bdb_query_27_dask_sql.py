@@ -43,7 +43,7 @@ q27_pr_item_sk = 10002
 EOL_CHAR = "."
 
 
-def read_tables(data_dir, bc, config):
+def read_tables(data_dir, c, config):
     ### splitting by row groups for better parallelism
     table_reader = build_reader(
         data_format=config["file_format"],
@@ -55,9 +55,7 @@ def read_tables(data_dir, bc, config):
         "product_reviews", relevant_cols=product_reviews_cols
     )
 
-    bc.create_table("product_reviews", product_reviews_df, persist=False)
-
-    # bc.create_table("product_reviews", os.path.join(data_dir, "product_reviews/*.parquet"))
+    c.create_table("product_reviews", product_reviews_df, persist=False)
 
 
 def ner_parser(df, col_string, batch_size=256):
@@ -74,8 +72,8 @@ def ner_parser(df, col_string, batch_size=256):
     return df
 
 
-def main(data_dir, client, bc, config):
-    benchmark(read_tables, data_dir, bc, config, dask_profile=config["dask_profile"])
+def main(data_dir, client, c, config):
+    benchmark(read_tables, data_dir, c, config, dask_profile=config["dask_profile"])
 
     import dask_cudf
 
@@ -84,7 +82,7 @@ def main(data_dir, client, bc, config):
         FROM product_reviews
         WHERE pr_item_sk = {q27_pr_item_sk}
     """
-    product_reviews_df = bc.sql(query)
+    product_reviews_df = c.sql(query)
 
     sentences = product_reviews_df.map_partitions(
         create_sentences_from_reviews,
@@ -119,11 +117,11 @@ def main(data_dir, client, bc, config):
     # recombine
     repeated_names = repeated_names.persist()
     wait(repeated_names)
-    bc.create_table('repeated_names', repeated_names, persist=False)
+    c.create_table('repeated_names', repeated_names, persist=False)
 
     ner_parsed = ner_parsed.persist()
     wait(ner_parsed)
-    bc.create_table('ner_parsed', ner_parsed, persist=False)
+    c.create_table('ner_parsed', ner_parsed, persist=False)
 
     query = f"""
         SELECT review_idx_global_pos as review_sk,
@@ -134,10 +132,10 @@ def main(data_dir, client, bc, config):
         ON sentence_idx_global_pos = sentence_tokenized_global_pos
         ORDER BY review_idx_global_pos, item_sk, word, sentence
     """
-    recombined = bc.sql(query)
+    recombined = c.sql(query)
 
-    bc.drop_table("repeated_names")
-    bc.drop_table("ner_parsed")
+    c.drop_table("repeated_names")
+    c.drop_table("ner_parsed")
     del ner_parsed
     del repeated_names
     return recombined
@@ -145,6 +143,6 @@ def main(data_dir, client, bc, config):
 
 if __name__ == "__main__":
     config = gpubdb_argparser()
-    client, bc = attach_to_cluster(config)
-    run_query(config=config, client=client, query_func=main, blazing_context=bc)
+    client, c = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main, sql_context=c)
 

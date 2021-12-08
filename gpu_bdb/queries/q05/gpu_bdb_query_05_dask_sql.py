@@ -47,7 +47,7 @@ items_columns = ["i_item_sk", "i_category", "i_category_id"]
 customer_columns = ["c_customer_sk", "c_current_cdemo_sk"]
 customer_dem_columns = ["cd_demo_sk", "cd_gender", "cd_education_status"]
 
-def read_tables(data_dir, bc, config):
+def read_tables(data_dir, c, config):
     table_reader = build_reader(
         data_format=config["file_format"],
         basepath=config["data_dir"],
@@ -65,17 +65,10 @@ def read_tables(data_dir, bc, config):
         "web_clickstreams", relevant_cols=wcs_columns, index=False
     )
 
-    bc.create_table("web_clickstreams", wcs_ddf, persist=False)
-    bc.create_table("customer", customer_ddf, persist=False)
-    bc.create_table("item", item_ddf, persist=False)
-    bc.create_table("customer_demographics", customer_dem_ddf, persist=False)
-
-    # bc.create_table("web_clickstreams", os.path.join(data_dir, "web_clickstreams/*.parquet"))
-    # bc.create_table("customer", os.path.join(data_dir, "customer/*.parquet"))
-    # bc.create_table("item", os.path.join(data_dir, "item/*.parquet"))
-    # bc.create_table(
-    #     "customer_demographics", os.path.join(data_dir, "customer_demographics/*.parquet"
-    # ))
+    c.create_table("web_clickstreams", wcs_ddf, persist=False)
+    c.create_table("customer", customer_ddf, persist=False)
+    c.create_table("item", item_ddf, persist=False)
+    c.create_table("customer_demographics", customer_dem_ddf, persist=False)
 
 
 def build_and_predict_model(ml_input_df):
@@ -119,8 +112,8 @@ def build_and_predict_model(ml_input_df):
     return results_dict
 
 
-def main(data_dir, client, bc, config):
-    benchmark(read_tables, data_dir, bc, config, dask_profile=config["dask_profile"])
+def main(data_dir, client, c, config):
+    benchmark(read_tables, data_dir, c, config, dask_profile=config["dask_profile"])
 
     query = """
         SELECT
@@ -160,7 +153,7 @@ def main(data_dir, client, bc, config):
         INNER JOIN customer_demographics ON c_current_cdemo_sk = cd_demo_sk
     """
 
-    cust_and_clicks_ddf = bc.sql(query)
+    cust_and_clicks_ddf = c.sql(query)
 
     cust_and_clicks_ddf = cust_and_clicks_ddf.repartition(npartitions=1)
 
@@ -184,5 +177,5 @@ def main(data_dir, client, bc, config):
 
 if __name__ == "__main__":
     config = gpubdb_argparser()
-    client, bc = attach_to_cluster(config)
-    run_query(config=config, client=client, query_func=main, blazing_context=bc)
+    client, c = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main, sql_context=c)

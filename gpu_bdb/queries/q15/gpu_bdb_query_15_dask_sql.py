@@ -41,7 +41,7 @@ date_cols = ["d_date", "d_date_sk"]
 item_cols = ["i_item_sk", "i_category_id"]
 
 
-def read_tables(data_dir, bc, config):
+def read_tables(data_dir, c, config):
     table_reader = build_reader(
         data_format=config["file_format"],
         basepath=config["data_dir"],
@@ -52,13 +52,13 @@ def read_tables(data_dir, bc, config):
     date_dim_df = table_reader.read("date_dim", relevant_cols=date_cols)
     item_df = table_reader.read("item", relevant_cols=item_cols)
     
-    bc.create_table("store_sales", store_sales_df, persist=False)
-    bc.create_table("date_dim", date_dim_df, persist=False)
-    bc.create_table("item", item_df, persist=False)
+    c.create_table("store_sales", store_sales_df, persist=False)
+    c.create_table("date_dim", date_dim_df, persist=False)
+    c.create_table("item", item_df, persist=False)
 
 
-def main(data_dir, client, bc, config):
-    benchmark(read_tables, data_dir, bc, config, dask_profile=config["dask_profile"])
+def main(data_dir, client, c, config):
+    benchmark(read_tables, data_dir, c, config, dask_profile=config["dask_profile"])
 
     query = f"""
         SELECT *
@@ -90,11 +90,11 @@ def main(data_dir, client, bc, config):
         WHERE slope <= 0.0
         ORDER BY cat
     """
-    result = bc.sql(query)
+    result = c.sql(query)
     return result
 
 
 if __name__ == "__main__":
     config = gpubdb_argparser()
-    client, bc = attach_to_cluster(config)
-    run_query(config=config, client=client, query_func=main, blazing_context=bc)
+    client, c = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main, sql_context=c)

@@ -5,7 +5,7 @@ import gc
 import time
 import uuid
 
-N_REPEATS = 1
+N_REPEATS = 5
 
 
 def get_qnum_from_filename(name):
@@ -23,8 +23,13 @@ def load_query(qnum, fn):
 
 dask_qnums = [str(i).zfill(2) for i in range(1, 31)]
 dask_qnums = []
-bsql_qnums = [str(i).zfill(2) for i in range(1, 31)]
-bsql_qnums = ['01', '05', '08', '26', '27']
+sql_qnums = [str(i).zfill(2) for i in range(1, 31)]
+#exclude = ['20']
+exclude = ['05']
+#exclude = ['05', '06', '07', '08', '09']
+for query in exclude:
+  sql_qnums = [q for q in sql_qnums if q != query]
+print(sql_qnums)
 
 
 if __name__ == "__main__":
@@ -34,50 +39,50 @@ if __name__ == "__main__":
     import_query_libs()
     config = gpubdb_argparser()
     config["run_id"] = uuid.uuid4().hex
-    include_blazing = config.get("benchmark_runner_include_bsql")
+    include_sql = config.get("benchmark_runner_include_sql")
 
     dask_queries = {
         qnum: load_query(qnum, f"queries/q{qnum}/gpu_bdb_query_{qnum}.py")
         for qnum in dask_qnums
     }
 
-    include_blazing = True
-    if include_blazing:
-        bsql_queries = {
+    include_sql = True
+    if include_sql:
+        sql_queries = {
             qnum: load_query(qnum, f"queries/q{qnum}/gpu_bdb_query_{qnum}_dask_sql.py")
-            for qnum in bsql_qnums
+            for qnum in sql_qnums
         }
 
-    client, bc = attach_to_cluster(config, create_blazing_context=include_blazing)
+    client, c = attach_to_cluster(config, create_sql_context=include_sql)
     # Preload required libraries for queries on all workers
     client.run(import_query_libs)
 
     base_path = os.getcwd()
 
-    # Run BSQL Queries
-    if include_blazing and len(bsql_qnums) > 0:
-        print("Blazing Queries")
-        for qnum, q_func in bsql_queries.items():
-            print(qnum)
+    # Run Dask SQL Queries
+    if include_sql and len(sql_qnums) > 0:
+        print("Dask SQL Queries")
+        for r in range(N_REPEATS):
+          for qnum, q_func in sql_queries.items():
+                print(f"{r}: {qnum}")
 
-            qpath = f"{base_path}/queries/q{qnum}/"
-            os.chdir(qpath)
-            if os.path.exists("current_query_num.txt"):
-                os.remove("current_query_num.txt")
-            with open("current_query_num.txt", "w") as fp:
-                fp.write(qnum)
+                qpath = f"{base_path}/queries/q{qnum}/"
+                os.chdir(qpath)
+                if os.path.exists("current_query_num.txt"):
+                    os.remove("current_query_num.txt")
+                with open("current_query_num.txt", "w") as fp:
+                    fp.write(qnum)
 
-            for r in range(N_REPEATS):
-                run_query(
-                    config=config,
-                    client=client,
-                    query_func=q_func,
-                    blazing_context=bc,
-                )
-                client.run(gc.collect)
-                client.run_on_scheduler(gc.collect)
-                gc.collect()
-                time.sleep(3)
+                    run_query(
+                        config=config,
+                        client=client,
+                        query_func=q_func,
+                        sql_context=c,
+                    )
+                    client.run(gc.collect)
+                    client.run_on_scheduler(gc.collect)
+                    gc.collect()
+                    time.sleep(3)
 
     # Run Pure Dask Queries
     if len(dask_qnums) > 0:

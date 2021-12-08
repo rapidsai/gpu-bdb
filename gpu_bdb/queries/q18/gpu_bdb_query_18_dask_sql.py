@@ -120,7 +120,7 @@ def find_relevant_reviews(df, targets, str_col_name="pr_review_content"):
     return combined
 
 
-def read_tables(data_dir, bc, config):
+def read_tables(data_dir, c, config):
     table_reader = build_reader(
         data_format=config["file_format"], basepath=config["data_dir"],
     )
@@ -149,19 +149,14 @@ def read_tables(data_dir, bc, config):
         "product_reviews", relevant_cols=product_reviews_cols,
     )
 
-    bc.create_table("store", store, persist=False)
-    bc.create_table("store_sales", store_sales, persist=False)
-    bc.create_table("date_dim", date_dim, persist=False)
-    bc.create_table("product_reviews", product_reviews, persist=False)
-
-    # bc.create_table("store", os.path.join(data_dir, "store/*.parquet"))
-    # bc.create_table("store_sales", os.path.join(data_dir, "store_sales/*.parquet"))
-    # bc.create_table("date_dim", os.path.join(data_dir, "date_dim/*.parquet"))
-    # bc.create_table("product_reviews", os.path.join(data_dir, "product_reviews/*.parquet"))
+    c.create_table("store", store, persist=False)
+    c.create_table("store_sales", store_sales, persist=False)
+    c.create_table("date_dim", date_dim, persist=False)
+    c.create_table("product_reviews", product_reviews, persist=False)
 
 
-def main(data_dir, client, bc, config):
-    benchmark(read_tables, data_dir, bc, config, dask_profile=config["dask_profile"])
+def main(data_dir, client, c, config):
+    benchmark(read_tables, data_dir, c, config, dask_profile=config["dask_profile"])
 
     query_1 = f"""
         WITH temp_table1 AS
@@ -202,7 +197,7 @@ def main(data_dir, client, bc, config):
         )
         SELECT * FROM temp_table1
     """
-    stores_with_regression = bc.sql(query_1)
+    stores_with_regression = c.sql(query_1)
 
     query_2 = """
         SELECT pr_review_date,
@@ -212,7 +207,7 @@ def main(data_dir, client, bc, config):
         WHERE pr_review_content IS NOT NULL
         ORDER BY pr_review_date, pr_review_content, pr_review_sk
     """
-    no_nulls = bc.sql(query_2)
+    no_nulls = c.sql(query_2)
 
     targets = (
         stores_with_regression.s_store_name.str.lower()
@@ -254,11 +249,11 @@ def main(data_dir, client, bc, config):
 
     stores_with_regression = stores_with_regression.persist()
     wait(stores_with_regression)
-    bc.create_table("stores_with_regression", stores_with_regression, persist=False)
+    c.create_table("stores_with_regression", stores_with_regression, persist=False)
     
     combined = combined.persist()
     wait(combined)
-    bc.create_table("combined", combined, persist=False)
+    c.create_table("combined", combined, persist=False)
 
     query_3 = """
         SELECT store_ID,
@@ -267,12 +262,12 @@ def main(data_dir, client, bc, config):
         FROM stores_with_regression
         INNER JOIN combined ON s_store_name = word
     """
-    temp_table2 = bc.sql(query_3)
+    temp_table2 = c.sql(query_3)
 
-    bc.drop_table("stores_with_regression")
+    c.drop_table("stores_with_regression")
     del stores_with_regression
 
-    bc.drop_table("combined")
+    c.drop_table("combined")
     del combined
 
     # REAL QUERY
@@ -293,19 +288,19 @@ def main(data_dir, client, bc, config):
     # Need to pass the absolute path for this txt file
     sentiment_dir = os.path.join(config["data_dir"], "sentiment_files")
     ns_df = dask_cudf.read_csv(os.path.join(sentiment_dir, "negativeSentiment.txt"), names=["sentiment_word"])
-    bc.create_table('sent_df', ns_df, persist=False)
+    c.create_table('sent_df', ns_df, persist=False)
 
     word_df = word_df.persist()
     wait(word_df)
-    bc.create_table("word_df", word_df, persist=False)
+    c.create_table("word_df", word_df, persist=False)
     
     sentences = sentences.persist()
     wait(sentences)
-    bc.create_table("sentences", sentences, persist=False)
+    c.create_table("sentences", sentences, persist=False)
     
     temp_table2 = temp_table2.persist()
     wait(temp_table2)
-    bc.create_table("temp_table2", temp_table2, persist=False)
+    c.create_table("temp_table2", temp_table2, persist=False)
 
     query_4 = """
         WITH sentences_table AS
@@ -343,18 +338,18 @@ def main(data_dir, client, bc, config):
         ON wsswsi.review_idx_global_pos = tt2.pr_review_sk
         ORDER BY s_name, r_date, r_sentence, sentiment_word
     """
-    result = bc.sql(query_4)
+    result = c.sql(query_4)
 
-    bc.drop_table("word_df")
+    c.drop_table("word_df")
     del word_df
-    bc.drop_table("sentences")
+    c.drop_table("sentences")
     del sentences
-    bc.drop_table("temp_table2")
+    c.drop_table("temp_table2")
     del temp_table2
     return result
 
 
 if __name__ == "__main__":
     config = gpubdb_argparser()
-    client, bc = attach_to_cluster(config)
-    run_query(config=config, client=client, query_func=main, blazing_context=bc)
+    client, c = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main, sql_context=c)
