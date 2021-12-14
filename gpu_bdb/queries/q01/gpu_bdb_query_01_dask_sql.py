@@ -1,6 +1,5 @@
 #
 # Copyright (c) 2019-2020, NVIDIA CORPORATION.
-# Copyright (c) 2019-2020, BlazingSQL, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -42,7 +41,7 @@ item_cols = ["i_item_sk", "i_category_id"]
 ss_cols = ["ss_item_sk", "ss_store_sk", "ss_ticket_number"]
 
 
-def read_tables(data_dir, bc, config):
+def read_tables(data_dir, c, config):
     table_reader = build_reader(
         data_format=config["file_format"],
         basepath=config["data_dir"],
@@ -52,15 +51,11 @@ def read_tables(data_dir, bc, config):
     item_df = table_reader.read("item", relevant_cols=item_cols)
     ss_df = table_reader.read("store_sales", relevant_cols=ss_cols)
 
-    bc.create_table("item", item_df, persist=False)
-    bc.create_table("store_sales", ss_df, persist=False)
+    c.create_table("item", item_df, persist=False)
+    c.create_table("store_sales", ss_df, persist=False)
 
-    # bc.create_table("item", os.path.join(data_dir, "item/*.parquet"))
-    # bc.create_table("store_sales", os.path.join(data_dir, "store_sales/*.parquet"))
-
-
-def main(data_dir, client, bc, config):
-    benchmark(read_tables, data_dir, bc, config, dask_profile=config["dask_profile"])
+def main(data_dir, client, c, config):
+    benchmark(read_tables, data_dir, c, config, dask_profile=config["dask_profile"])
 
     query_distinct = f"""
         SELECT DISTINCT ss_item_sk, ss_ticket_number
@@ -69,11 +64,11 @@ def main(data_dir, client, bc, config):
         AND i.i_category_id IN ({q01_i_category_id_IN})
         AND s.ss_store_sk IN ({q01_ss_store_sk_IN})
     """
-    result_distinct = bc.sql(query_distinct)
+    result_distinct = c.sql(query_distinct)
 
     result_distinct = result_distinct.persist()
     wait(result_distinct)
-    bc.create_table("distinct_table", result_distinct, persist=False)
+    c.create_table("distinct_table", result_distinct, persist=False)
 
     query = f"""
         SELECT item_sk_1, item_sk_2, COUNT(*) AS cnt
@@ -92,13 +87,13 @@ def main(data_dir, client, bc, config):
                  CAST(item_sk_2 AS VARCHAR)
         LIMIT {q01_limit}
     """
-    result = bc.sql(query)
+    result = c.sql(query)
 
-    bc.drop_table("distinct_table")
+    c.drop_table("distinct_table")
     return result
 
 
 if __name__ == "__main__":
     config = gpubdb_argparser()
-    client, bc = attach_to_cluster(config)
-    run_query(config=config, client=client, query_func=main, blazing_context=bc)
+    client, c = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main, sql_context=c)

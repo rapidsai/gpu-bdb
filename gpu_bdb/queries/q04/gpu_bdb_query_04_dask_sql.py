@@ -85,7 +85,7 @@ def reduction_function(df, keep_cols, DYNAMIC_CAT_CODE, ORDER_CAT_CODE):
     return df
 
 
-def read_tables(data_dir, bc, config):
+def read_tables(data_dir, c, config):
     table_reader = build_reader(
         data_format=config["file_format"],
         basepath=config["data_dir"],
@@ -104,22 +104,18 @@ def read_tables(data_dir, bc, config):
     ]
     wcs_df = table_reader.read("web_clickstreams", relevant_cols=wcs_cols)
 
-    bc.create_table('web_page_wo_categorical', wp_df, persist=False)
-    bc.create_table('web_clickstreams', wcs_df, persist=False)
-
-    # bc.create_table('web_page_wo_categorical', os.path.join(data_dir, "web_page/*.parquet"))
-    # bc.create_table('web_clickstreams',
-    #                 os.path.join(data_dir, "web_clickstreams/*.parquet"))
+    c.create_table('web_page_wo_categorical', wp_df, persist=False)
+    c.create_table('web_clickstreams', wcs_df, persist=False)
 
 
-def main(data_dir, client, bc, config):
-    benchmark(read_tables, data_dir, bc, config, dask_profile=config["dask_profile"])
+def main(data_dir, client, c, config):
+    benchmark(read_tables, data_dir, c, config, dask_profile=config["dask_profile"])
 
     query_web_page = """
         SELECT wp_type, wp_web_page_sk
         FROM web_page_wo_categorical
     """
-    wp = bc.sql(query_web_page)
+    wp = c.sql(query_web_page)
 
     # Convert wp_type to categorical and get cat_id of review and dynamic type
     wp["wp_type"] = wp["wp_type"].map_partitions(
@@ -143,7 +139,7 @@ def main(data_dir, client, bc, config):
 
     wp = wp.persist()
     wait(wp)
-    bc.create_table('web_page', wp, persist=False)
+    c.create_table('web_page', wp, persist=False)
 
     query = """
         SELECT
@@ -157,7 +153,7 @@ def main(data_dir, client, bc, config):
         AND   c.wcs_sales_sk    IS NULL --abandoned implies: no sale
         DISTRIBUTE BY wcs_user_sk
     """
-    merged_df = bc.sql(query)
+    merged_df = c.sql(query)
 
     keep_cols = ["wcs_user_sk", "wp_type_codes", "tstamp_inSec"]
     result_df = merged_df.map_partitions(
@@ -170,11 +166,11 @@ def main(data_dir, client, bc, config):
 
     result = result.compute()
     result_df = cudf.DataFrame({"sum(pagecount)/count(*)": [result]})
-    bc.drop_table("web_page")
+    c.drop_table("web_page")
     return result_df
 
 
 if __name__ == "__main__":
     config = gpubdb_argparser()
-    client, bc = attach_to_cluster(config)
-    run_query(config=config, client=client, query_func=main, blazing_context=bc)
+    client, c = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main, sql_context=c)

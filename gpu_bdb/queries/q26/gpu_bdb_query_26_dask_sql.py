@@ -63,7 +63,7 @@ def get_clusters(client, kmeans_input_df):
     return results_dict
 
 
-def read_tables(data_dir, bc, config):
+def read_tables(data_dir, c, config):
     table_reader = build_reader(
         data_format=config["file_format"],
         basepath=config["data_dir"],
@@ -76,15 +76,12 @@ def read_tables(data_dir, bc, config):
     ss_ddf = table_reader.read("store_sales", relevant_cols=ss_cols, index=False)
     items_ddf = table_reader.read("item", relevant_cols=items_cols, index=False)
 
-    bc.create_table("store_sales", ss_ddf, persist=False)
-    bc.create_table("item", items_ddf, persist=False)
-
-    # bc.create_table("store_sales", os.path.join(data_dir, "store_sales/*.parquet"))
-    # bc.create_table("item", os.path.join(data_dir, "item/*.parquet"))
+    c.create_table("store_sales", ss_ddf, persist=False)
+    c.create_table("item", items_ddf, persist=False)
 
 
-def main(data_dir, client, bc, config):
-    benchmark(read_tables, data_dir, bc, config, dask_profile=config["dask_profile"])
+def main(data_dir, client, c, config):
+    benchmark(read_tables, data_dir, c, config, dask_profile=config["dask_profile"])
 
     query = f"""
         SELECT
@@ -116,7 +113,7 @@ def main(data_dir, client, bc, config):
         HAVING count(ss.ss_item_sk) > {q26_count_ss_item_sk}
         ORDER BY cid
     """
-    result = bc.sql(query)
+    result = c.sql(query)
     result = result.repartition(npartitions=1)
     result_ml = result.set_index('cid')
     ml_result_dict = get_clusters(client=client, kmeans_input_df=result_ml)
@@ -126,4 +123,4 @@ def main(data_dir, client, bc, config):
 if __name__ == "__main__":
     config = gpubdb_argparser()
     client, c = attach_to_cluster(config)
-    run_query(config=config, client=client, query_func=main, blazing_context=c)
+    run_query(config=config, client=client, query_func=main, sql_context=c)

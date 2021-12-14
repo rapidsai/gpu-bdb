@@ -35,7 +35,7 @@ q06_LIMIT = 100
 q06_YEAR = 2001
 
 
-def read_tables(data_dir, bc, config):
+def read_tables(data_dir, c, config):
     table_reader = build_reader(
         data_format=config["file_format"],
         basepath=config["data_dir"],
@@ -75,19 +75,14 @@ def read_tables(data_dir, bc, config):
     date_df = table_reader.read("date_dim", relevant_cols=date_cols)
     customer_df = table_reader.read("customer", relevant_cols=customer_cols)
 
-    bc.create_table('web_sales', ws_df, persist=False)
-    bc.create_table('store_sales', ss_df, persist=False)
-    bc.create_table('date_dim', date_df, persist=False)
-    bc.create_table('customer', customer_df, persist=False)
-
-    # bc.create_table('web_sales', os.path.join(data_dir, "web_sales/*.parquet"))
-    # bc.create_table('store_sales', os.path.join(data_dir, "store_sales/*.parquet"))
-    # bc.create_table('date_dim', os.path.join(data_dir, "date_dim/*.parquet"))
-    # bc.create_table('customer', os.path.join(data_dir, "customer/*.parquet"))
+    c.create_table('web_sales', ws_df, persist=False)
+    c.create_table('store_sales', ss_df, persist=False)
+    c.create_table('date_dim', date_df, persist=False)
+    c.create_table('customer', customer_df, persist=False)
 
 
-def main(data_dir, client, bc, config):
-    benchmark(read_tables, data_dir, bc, config, dask_profile=config["dask_profile"])
+def main(data_dir, client, c, config):
+    benchmark(read_tables, data_dir, c, config, dask_profile=config["dask_profile"])
 
     query = f"""
         WITH temp_table_1 as
@@ -150,12 +145,12 @@ def main(data_dir, client, bc, config):
             c_login
         LIMIT {q06_LIMIT}
     """
-    result = bc.sql(query)
+    result = c.sql(query)
     return result
 
 
 if __name__ == "__main__":
     config = gpubdb_argparser()
-    client, bc = attach_to_cluster(config)
-    run_query(config=config, client=client, query_func=main, blazing_context=bc)
+    client, c = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main, sql_context=c)
 

@@ -37,7 +37,7 @@ store_sales_cols = ["ss_item_sk", "ss_sold_date_sk", "ss_customer_sk"]
 wcs_cols = ["wcs_user_sk", "wcs_click_date_sk", "wcs_item_sk", "wcs_sales_sk"]
 
 
-def read_tables(data_dir, bc, config):
+def read_tables(data_dir, c, config):
     table_reader = build_reader(
         data_format=config["file_format"],
         basepath=config["data_dir"],
@@ -48,19 +48,13 @@ def read_tables(data_dir, bc, config):
     store_sales_df = table_reader.read("store_sales", relevant_cols=store_sales_cols)
     wcs_df = table_reader.read("web_clickstreams", relevant_cols=wcs_cols)
     
-    bc.create_table("web_clickstreams", wcs_df, persist=False)
-    bc.create_table("store_sales", store_sales_df, persist=False)
-    bc.create_table("item", item_df, persist=False)
-
-    # bc.create_table("web_clickstreams",
-    #                 os.path.join(data_dir, "web_clickstreams/*.parquet"))
-    # bc.create_table("store_sales",
-    #                 os.path.join(data_dir, "store_sales/*.parquet"))
-    # bc.create_table("item", os.path.join(data_dir, "item/*.parquet"))
+    c.create_table("web_clickstreams", wcs_df, persist=False)
+    c.create_table("store_sales", store_sales_df, persist=False)
+    c.create_table("item", item_df, persist=False)
 
 
-def main(data_dir, client, bc, config):
-    benchmark(read_tables, data_dir, bc, config, dask_profile=config["dask_profile"])
+def main(data_dir, client, c, config):
+    benchmark(read_tables, data_dir, c, config, dask_profile=config["dask_profile"])
 
     query = f"""
         SELECT DISTINCT wcs_user_sk
@@ -90,11 +84,11 @@ def main(data_dir, client, bc, config):
         AND wcs_click_date_sk < ss_sold_date_sk
         ORDER BY wcs_user_sk
     """
-    result = bc.sql(query)
+    result = c.sql(query)
     return result
 
 
 if __name__ == "__main__":
     config = gpubdb_argparser()
-    client, bc = attach_to_cluster(config)
-    run_query(config=config, client=client, query_func=main, blazing_context=bc)
+    client, c = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main, sql_context=c)

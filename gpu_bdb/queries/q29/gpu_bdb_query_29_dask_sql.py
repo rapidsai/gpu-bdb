@@ -35,7 +35,7 @@ from dask.distributed import wait
 q29_limit = 100
 
 
-def read_tables(data_dir, bc, config):
+def read_tables(data_dir, c, config):
     table_reader = build_reader(
         data_format=config["file_format"], basepath=config["data_dir"],
     )
@@ -45,12 +45,12 @@ def read_tables(data_dir, bc, config):
     ws_cols = ["ws_order_number", "ws_item_sk"]
     ws_df = table_reader.read("web_sales", relevant_cols=ws_cols)
 
-    bc.create_table('item', item_df, persist=False)
-    bc.create_table('web_sales', ws_df, persist=False)
+    c.create_table('item', item_df, persist=False)
+    c.create_table('web_sales', ws_df, persist=False)
 
 
-def main(data_dir, client, bc, config):
-    benchmark(read_tables, data_dir, bc, config, dask_profile=config["dask_profile"])
+def main(data_dir, client, c, config):
+    benchmark(read_tables, data_dir, c, config, dask_profile=config["dask_profile"])
     n_workers = len(client.scheduler_info()["workers"])
 
     join_query = """
@@ -65,7 +65,7 @@ def main(data_dir, client, bc, config):
         WHERE ws.ws_item_sk = i.i_item_sk
         AND i.i_category_id IS NOT NULL
     """
-    result = bc.sql(join_query)
+    result = c.sql(join_query)
     
     # Distinct Calculatiin
     result_distinct = result.drop_duplicates(split_out=n_workers,ignore_index=True)
@@ -73,7 +73,7 @@ def main(data_dir, client, bc, config):
     ## TODO Raise a issue for this
     result_distinct = result_distinct.reset_index(drop=True)
     ### Persiting cause Order by causes execution
-    bc.create_table('distinct_table', result_distinct, persist=True)
+    c.create_table('distinct_table', result_distinct, persist=True)
 
     query = f"""
         SELECT category_id_1, category_id_2, COUNT (*) AS cnt
@@ -90,15 +90,15 @@ def main(data_dir, client, bc, config):
         ORDER BY cnt DESC, category_id_1, category_id_2
         LIMIT {q29_limit}
     """
-    result = bc.sql(query)
+    result = c.sql(query)
     result = result.persist()
     wait(result);
 
-    bc.drop_table("distinct_table")
+    c.drop_table("distinct_table")
     return result
 
 
 if __name__ == "__main__":
     config = gpubdb_argparser()
-    client, bc = attach_to_cluster(config)
-    run_query(config=config, client=client, query_func=main, blazing_context=bc)
+    client, c = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main, sql_context=c)

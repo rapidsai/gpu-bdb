@@ -24,7 +24,7 @@ refresh_tables = [
 tables = [table.split(".")[0] for table in os.listdir(spark_schema_dir)]
 
 scale = [x for x in config["data_dir"].split("/") if "sf" in x][0]
-part_size = 3
+part_size = 2
 chunksize = "128 MiB"
 
 # Spark uses different names for column types, and RAPIDS doesn't yet support Decimal types.
@@ -127,7 +127,7 @@ def repartition(table, outdir, npartitions=None, chunksize=None, compression="sn
     )
     read_csv_table(table, chunksize).repartition(
         npartitions=npartitions
-    ).to_parquet(outdir + table, compression=compression)
+    ).to_parquet(outdir + table, compression=compression, index=False)
 
 
 def main(client, config):

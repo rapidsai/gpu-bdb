@@ -64,7 +64,7 @@ def get_clusters(client, ml_input_df, feature_cols):
     return results_dict
 
 
-def read_tables(data_dir, bc, config):
+def read_tables(data_dir, c, config):
     table_reader = build_reader(
         data_format=config["file_format"],
         basepath=config["data_dir"],
@@ -89,15 +89,12 @@ def read_tables(data_dir, bc, config):
         "store_returns", relevant_cols=store_returns_cols
     )
 
-    bc.create_table("store_sales", store_sales_df, persist=False)
-    bc.create_table("store_returns", store_returns_df, persist=False)
-
-    # bc.create_table("store_sales", os.path.join(data_dir, "store_sales/*.parquet"))
-    # bc.create_table("store_returns", os.path.join(data_dir, "store_returns/*.parquet"))
+    c.create_table("store_sales", store_sales_df, persist=False)
+    c.create_table("store_returns", store_returns_df, persist=False)
 
 
-def main(data_dir, client, bc, config):
-    benchmark(read_tables, data_dir, bc, config, dask_profile=config["dask_profile"])
+def main(data_dir, client, c, config):
+    benchmark(read_tables, data_dir, c, config, dask_profile=config["dask_profile"])
 
     query = """
         SELECT
@@ -142,7 +139,7 @@ def main(data_dir, client, bc, config):
             GROUP BY sr_customer_sk
         ) returned ON ss_customer_sk=sr_customer_sk
     """
-    final_df = bc.sql(query)
+    final_df = c.sql(query)
 
     final_df = final_df.fillna(0)
     final_df = final_df.repartition(npartitions=1).persist()
@@ -163,5 +160,5 @@ def main(data_dir, client, bc, config):
 
 if __name__ == "__main__":
     config = gpubdb_argparser()
-    client, bc = attach_to_cluster(config)
-    run_query(config=config, client=client, query_func=main, blazing_context=bc)
+    client, c = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main, sql_context=c)
