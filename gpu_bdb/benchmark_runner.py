@@ -22,11 +22,8 @@ def load_query(qnum, fn):
 
 
 dask_qnums = [str(i).zfill(2) for i in range(1, 31)]
-dask_qnums = []
 sql_qnums = [str(i).zfill(2) for i in range(1, 31)]
-#exclude = ['20']
-exclude = ['05']
-#exclude = ['05', '06', '07', '08', '09']
+
 for query in exclude:
   sql_qnums = [q for q in sql_qnums if q != query]
 print(sql_qnums)

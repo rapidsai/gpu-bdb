@@ -958,7 +958,6 @@ def train_clustering_model(training_df, n_clusters, max_iter, n_init):
             random_state=np.random.randint(0, 500),
             init="k-means++",
         )
-        print('fitting')
         model.fit(training_df)
 
         score = model.inertia_
@@ -970,7 +969,6 @@ def train_clustering_model(training_df, n_clusters, max_iter, n_init):
         elif abs(score) < abs(best_sse):
             best_sse = score
             best_model = model
-        print(f'done fitting: {i}')
 
     return {
         "cid_labels": best_model.labels_,
