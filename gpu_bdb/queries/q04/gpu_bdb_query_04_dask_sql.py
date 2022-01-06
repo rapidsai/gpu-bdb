@@ -18,7 +18,6 @@ import sys
 import os
 
 from bdb_tools.cluster_startup import attach_to_cluster
-from bdb_tools.sessionization import get_sessions
 
 from bdb_tools.utils import (
     benchmark,
@@ -28,60 +27,12 @@ from bdb_tools.utils import (
 
 from bdb_tools.readers import build_reader
 
+from bdb_tools.q04_utils import (
+    abandonedShoppingCarts,
+    reduction_function
+)
+
 from dask.distributed import wait
-
-
-def abandonedShoppingCarts(df, DYNAMIC_CAT_CODE, ORDER_CAT_CODE):
-    import cudf
-    # work around for https://github.com/rapidsai/cudf/issues/5470
-    df.reset_index(drop=True, inplace=True)
-
-    # Select groups where last dynamic row comes after last order row
-    filtered_df = df[
-        (df["wp_type_codes"] == ORDER_CAT_CODE)
-        | (df["wp_type_codes"] == DYNAMIC_CAT_CODE)
-    ]
-    # work around for https://github.com/rapidsai/cudf/issues/5470
-    filtered_df.reset_index(drop=True, inplace=True)
-    # Create a new column that is the concatenation of timestamp and wp_type_codes
-    # (eg:123456:3, 234567:5)
-    filtered_df["wp_type_codes"] = (
-        filtered_df["tstamp_inSec"]
-        .astype("str")
-        .str.cat(filtered_df["wp_type_codes"].astype("str"), sep=":")
-    )
-    # This gives the last occurrence (by timestamp) within the "order", "dynamic" wp_types
-    filtered_df = filtered_df.groupby(
-        ["wcs_user_sk", "session_id"], as_index=False, sort=False
-    ).agg({"wp_type_codes": "max"})
-    # If the max contains dynamic, keep the row else discard.
-    last_dynamic_df = filtered_df[
-        filtered_df["wp_type_codes"].str.contains(
-            ":" + str(DYNAMIC_CAT_CODE), regex=False
-        )
-    ]
-    del filtered_df
-
-    # Find counts for each group
-    grouped_count_df = df.groupby(
-        ["wcs_user_sk", "session_id"], as_index=False, sort=False
-    ).agg({"tstamp_inSec": "count"})
-    # Merge counts with the "dynamic" shopping cart groups
-    result = last_dynamic_df.merge(
-        grouped_count_df, on=["wcs_user_sk", "session_id"], how="inner"
-    )
-    del (last_dynamic_df, grouped_count_df)
-    return cudf.DataFrame(
-        {"pagecount": result.tstamp_inSec.sum(), "count": len(result)}
-    )
-
-
-def reduction_function(df, keep_cols, DYNAMIC_CAT_CODE, ORDER_CAT_CODE):
-    df = get_sessions(df, keep_cols=keep_cols)
-    df = abandonedShoppingCarts(
-        df, DYNAMIC_CAT_CODE=DYNAMIC_CAT_CODE, ORDER_CAT_CODE=ORDER_CAT_CODE
-    )
-    return df
 
 
 def read_tables(data_dir, c, config):
@@ -120,9 +71,7 @@ def main(data_dir, client, c, config):
     wp["wp_type"] = wp["wp_type"].map_partitions(
                                     lambda ser: ser.astype("category"))
     
-    cpu_categories = wp["wp_type"].compute().cat.categories
-    if hasattr(cpu_categories, "to_pandas"):
-        cpu_categories = cpu_categories.to_pandas()
+    cpu_categories = wp["wp_type"].compute().cat.categories.to_pandas()
 
     DYNAMIC_CAT_CODE = cpu_categories.get_loc("dynamic")
     ORDER_CAT_CODE = cpu_categories.get_loc("order")
@@ -171,5 +120,5 @@ def main(data_dir, client, c, config):
 
 if __name__ == "__main__":
     config = gpubdb_argparser()
-    client, c = attach_to_cluster(config)
+    client, c = attach_to_cluster(config, create_sql_context=True)
     run_query(config=config, client=client, query_func=main, sql_context=c)

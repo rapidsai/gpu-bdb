@@ -24,10 +24,6 @@ def load_query(qnum, fn):
 dask_qnums = [str(i).zfill(2) for i in range(1, 31)]
 sql_qnums = [str(i).zfill(2) for i in range(1, 31)]
 
-for query in exclude:
-  sql_qnums = [q for q in sql_qnums if q != query]
-print(sql_qnums)
-
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster, import_query_libs
@@ -43,7 +39,6 @@ if __name__ == "__main__":
         for qnum in dask_qnums
     }
 
-    include_sql = True
     if include_sql:
         sql_queries = {
             qnum: load_query(qnum, f"queries/q{qnum}/gpu_bdb_query_{qnum}_dask_sql.py")
@@ -84,19 +79,19 @@ if __name__ == "__main__":
     # Run Pure Dask Queries
     if len(dask_qnums) > 0:
         print("Pure Dask Queries")
-        for qnum, q_func in dask_queries.items():
-            print(qnum)
+        for r in range(N_REPEATS):
+            for qnum, q_func in dask_queries.items():
+                print(f"{r}: {qnum}")
 
-            qpath = f"{base_path}/queries/q{qnum}/"
-            os.chdir(qpath)
-            if os.path.exists("current_query_num.txt"):
-                os.remove("current_query_num.txt")
-            with open("current_query_num.txt", "w") as fp:
-                fp.write(qnum)
+                qpath = f"{base_path}/queries/q{qnum}/"
+                os.chdir(qpath)
+                if os.path.exists("current_query_num.txt"):
+                    os.remove("current_query_num.txt")
+                with open("current_query_num.txt", "w") as fp:
+                    fp.write(qnum)
 
-            for r in range(N_REPEATS):
-                run_query(config=config, client=client, query_func=q_func)
-                client.run(gc.collect)
-                client.run_on_scheduler(gc.collect)
-                gc.collect()
-                time.sleep(3)
+                    run_query(config=config, client=client, query_func=q_func)
+                    client.run(gc.collect)
+                    client.run_on_scheduler(gc.collect)
+                    gc.collect()
+                    time.sleep(3)

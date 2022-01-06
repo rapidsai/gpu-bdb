@@ -99,5 +99,5 @@ def main(data_dir, client, c, config):
 
 if __name__ == "__main__":
     config = gpubdb_argparser()
-    client, c = attach_to_cluster(config)
+    client, c = attach_to_cluster(config, create_sql_context=True)
     run_query(config=config, client=client, query_func=main, sql_context=c)

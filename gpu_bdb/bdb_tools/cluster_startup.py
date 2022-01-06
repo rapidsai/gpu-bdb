@@ -102,7 +102,6 @@ def attach_to_cluster(config, create_sql_context=False):
     config["80GB_workers"] = worker_counts.get("80GB", 0)
 
     c = None
-    create_sql_context = True
     if create_sql_context:
         from dask_sql import Context
         c = Context()
@@ -159,12 +158,6 @@ def import_query_libs():
         "numpy",
         "spacy",
     ]
-
-    # optionally include blazingsql
-    # this is brittle, but it resolves breaking change
-    # issues as we can control the environment
-    if os.environ.get("RUNNER_INCLUDE_BSQL"):
-        library_list.append("blazingsql")
 
     for lib in library_list:
         importlib.import_module(lib)

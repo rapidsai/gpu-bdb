@@ -73,8 +73,6 @@ def main(data_dir, client, c, config):
     item_df = item_df.persist()
     wait(item_df)
     c.create_table("item_df", item_df, persist=False)
-    # print(len(item_df))
-    # print(len(item_df.columns))
 
     query_2 = """
         SELECT wcs_user_sk,
@@ -122,5 +120,5 @@ def main(data_dir, client, c, config):
 
 if __name__ == "__main__":
     config = gpubdb_argparser()
-    client, c = attach_to_cluster(config)
+    client, c = attach_to_cluster(config, create_sql_context=True)
     run_query(config=config, client=client, query_func=main, sql_context=c)
