@@ -88,7 +88,6 @@ def apply_find_items_viewed(df, item_mappings):
     # we know this can be int32, since it's going to contain item_sks
     out_arr = cuda.device_array(size * N, dtype=df["wcs_item_sk"].dtype)
 
-    load_q03()
     find_items_viewed_before_purchase_kernel.forall(size)(
         sample["relevant_idx_pos"],
         df["wcs_user_sk"],
@@ -111,18 +110,4 @@ def apply_find_items_viewed(df, item_mappings):
         right_on=["i_item_sk"],
     )
     return filtered
-
-
-def load_q03():
-    import importlib, types
-
-    fn = os.path.join(os.getcwd(), "gpu_bdb_query_03_dask_sql.py")
-    if not os.path.isfile(fn):
-        fn = os.path.join(os.getcwd(), "queries/q03/gpu_bdb_query_03_dask_sql.py")
-
-    loader = importlib.machinery.SourceFileLoader("03", fn)
-    mod = types.ModuleType(loader.name)
-    loader.exec_module(mod)
-    sys.modules[loader.name] = mod
-    return mod.main
 
