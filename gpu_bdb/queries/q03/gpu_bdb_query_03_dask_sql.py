@@ -19,7 +19,8 @@ import sys
 import os
 
 from bdb_tools.cluster_startup import attach_to_cluster
-from numba import cuda
+# from numba import cuda
+from numba import jit
 
 from bdb_tools.utils import (
     benchmark,
@@ -41,7 +42,7 @@ q03_purchased_item_category_IN = "2,3"
 q03_limit = 100
 
 
-@cuda.jit
+@jit(nopython=True)
 def find_items_viewed_before_purchase_kernel(
     relevant_idx_col, user_col, timestamp_col, item_col, out_col, N
 ):
@@ -49,10 +50,10 @@ def find_items_viewed_before_purchase_kernel(
     Find the past N items viewed after a relevant purchase was made,
     as defined by the configuration of this query.
     """
-    i = cuda.grid(1)
+#     i = cuda.grid(1)
     relevant_item = q03_purchased_item_IN
 
-    if i < (relevant_idx_col.size):  # boundary guard
+    for i in range(relevant_idx_col.size):  # boundary guard
         # every relevant row gets N rows in the output, so we need to map the indexes
         # back into their position in the original array
         orig_idx = relevant_idx_col[i]
@@ -80,8 +81,9 @@ def find_items_viewed_before_purchase_kernel(
 
 
 def apply_find_items_viewed(df, item_mappings):
-    import cudf
-
+    import pandas as cudf
+    import numpy as np
+    
     # need to sort descending to ensure that the
     # next N rows are the previous N clicks
     df = df.sort_values(
@@ -102,13 +104,17 @@ def apply_find_items_viewed(df, item_mappings):
     size = len(sample)
 
     # we know this can be int32, since it's going to contain item_sks
-    out_arr = cuda.device_array(size * N, dtype=df["wcs_item_sk"].dtype)
-
-    find_items_viewed_before_purchase_kernel.forall(size)(
-        sample["relevant_idx_pos"],
-        df["wcs_user_sk"],
-        df["tstamp"],
-        df["wcs_item_sk"],
+#     out_arr = cuda.device_array(size * N, dtype=df["wcs_item_sk"].dtype)
+    if os.getenv("DASK_CPU") == "True":
+        out_arr = cuda.device_array(size * N, dtype=df["wcs_item_sk"].dtype)
+    else: 
+        out_arr = np.zeros(size * N, dtype=df["wcs_item_sk"].dtype, like=df["wcs_item_sk"].values)
+    
+    find_items_viewed_before_purchase_kernel(
+        sample["relevant_idx_pos"].to_numpy(),
+        df["wcs_user_sk"].to_numpy(),
+        df["tstamp"].to_numpy(),
+        df["wcs_item_sk"].to_numpy(),
         out_arr,
         N,
     )
@@ -146,7 +152,7 @@ def read_tables(data_dir, bc, config):
 
     item_df = table_reader.read("item", relevant_cols=item_cols)
     wcs_df = table_reader.read("web_clickstreams", relevant_cols=wcs_cols)
-
+#     print(type(wcs_df))
     bc.create_table("web_clickstreams", wcs_df, persist=False)
     bc.create_table("item", item_df, persist=False)
 
@@ -160,7 +166,7 @@ def main(data_dir, client, bc, config):
         FROM item
     """
     item_df = bc.sql(query_1)
-
+#     print(type(item_df))
     item_df = item_df.persist()
     wait(item_df)
     bc.create_table("item_df", item_df, persist=False)

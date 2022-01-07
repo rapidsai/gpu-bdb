@@ -31,7 +31,7 @@ from bdb_tools.utils import (
 from bdb_tools.readers import build_reader
 from bdb_tools.cupy_metrics import cupy_precision_score
 from sklearn.metrics import roc_auc_score
-import cupy as cp
+import numpy as cp
 
 
 # Logistic Regression params
@@ -83,7 +83,8 @@ def build_and_predict_model(ml_input_df):
     Create a standardized feature matrix X and target array y.
     Returns the model and accuracy statistics
     """
-    import cuml
+    import sklearn as cuml
+    #import numpy as np
     from cuml.metrics import confusion_matrix
 
     feature_names = ["college_education", "male"] + [
@@ -94,10 +95,9 @@ def build_and_predict_model(ml_input_df):
     X = (X - X.mean()) / X.std()
     y = ml_input_df["clicks_in_category"]
 
-    model = cuml.LogisticRegression(
+    model = cuml.linear_model.LogisticRegression(
         tol=convergence_tol,
         penalty="none",
-        solver="qn",
         fit_intercept=True,
         max_iter=iterations,
         C=C,
@@ -110,7 +110,7 @@ def build_and_predict_model(ml_input_df):
     results_dict = {}
     y_pred = model.predict(X)
 
-    results_dict["auc"] = roc_auc_score(y.to_array(), y_pred.to_array())
+    results_dict["auc"] = roc_auc_score(cp.array(y), cp.array(y_pred))
     results_dict["precision"] = cupy_precision_score(cp.asarray(y), cp.asarray(y_pred))
     results_dict["confusion_matrix"] = confusion_matrix(
         cp.asarray(y, dtype="int32"), cp.asarray(y_pred, dtype="int32")
@@ -178,7 +178,7 @@ def main(data_dir, client, bc, config):
 
     ml_tasks = [delayed(build_and_predict_model)(df) for df in ml_input_df.to_delayed()]
     results_dict = client.compute(*ml_tasks, sync=True)
-
+    
     return results_dict
 
 

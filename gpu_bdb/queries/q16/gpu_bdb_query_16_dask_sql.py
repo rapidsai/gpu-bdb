@@ -86,7 +86,7 @@ def main(data_dir, client, bc, config):
 
     dates = bc.sql(date_query)
 
-    cpu_dates = dates["d_date_sk"].compute().to_pandas()
+    cpu_dates = dates["d_date_sk"].compute()
     cpu_dates.index = list(range(0, cpu_dates.shape[0]))
 
     last_query = f"""

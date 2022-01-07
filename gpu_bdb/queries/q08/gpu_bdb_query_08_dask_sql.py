@@ -19,9 +19,10 @@ import sys
 import os
 
 from bdb_tools.cluster_startup import attach_to_cluster
-import cupy as cp
+import numpy as cp
 import numpy as np
-import cudf
+import pandas as cudf
+import dask.dataframe as dd
 
 from bdb_tools.utils import (
     benchmark,
@@ -47,7 +48,7 @@ def get_session_id_from_session_boundary(session_change_df, last_session_len):
     """
         This function returns session starts given a session change df
     """
-    import cudf
+    import pandas as cudf
 
     user_session_ids = session_change_df.tstamp_inSec
 
@@ -113,9 +114,9 @@ def get_unique_sales_keys_from_sessions(sessionized, review_cat_code):
         .query(f"wp_type_codes != {review_cat_code}")
         .wcs_sales_sk.unique()
     )
-
-    return unique_sales_sk
-
+    
+    return cudf.Series(unique_sales_sk, dtype="int64", name="wcs_sales_sk")
+    
 
 def prep_for_sessionization(df, review_cat_code):
     df = df.fillna(NA_FLAG)
@@ -208,10 +209,10 @@ def main(data_dir, client, bc, config):
         lambda ser: ser.astype("category")
     )
 
-    cpu_categories = web_page_df["wp_type"].compute().cat.categories.to_pandas()
+    cpu_categories = web_page_df["wp_type"].compute().cat.categories
     REVIEW_CAT_CODE = cpu_categories.get_loc("review")
 
-    codes_min_signed_type = cudf.utils.dtypes.min_signed_type(len(cpu_categories))
+    codes_min_signed_type = np.min_scalar_type(-(len(cpu_categories))-1)
 
     web_page_df["wp_type_codes"] = web_page_df["wp_type"].cat.codes.astype(
         codes_min_signed_type
@@ -254,9 +255,11 @@ def main(data_dir, client, bc, config):
     unique_review_sales = sessionized.map_partitions(
         get_unique_sales_keys_from_sessions, review_cat_code=REVIEW_CAT_CODE
     )
+
     
     unique_review_sales = unique_review_sales.to_frame()
 
+    
     unique_review_sales = unique_review_sales.persist()
     wait(unique_review_sales)
     bc.create_table("reviews", unique_review_sales, persist=False)

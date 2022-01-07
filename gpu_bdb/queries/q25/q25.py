@@ -41,35 +41,24 @@ N_ITER = 5
 
 
 def get_clusters(client, ml_input_df):
-    import dask.dataframe as dask_cudf
-    import pandas as pd
-
+    import dask_cudf
+    import cudf
+    
     ml_tasks = [
         delayed(train_clustering_model)(df, N_CLUSTERS, CLUSTER_ITERATIONS, N_ITER)
         for df in ml_input_df.to_delayed()
     ]
     results_dict = client.compute(*ml_tasks, sync=True)
-#     print(len(results_dict))
-#     print(results_dict)
+    print(type(results_dict["cid_labels"]))
     
-    
-#     s = pd.Series(results_dict)
-#     s1 = s.map(s)
-#     print(s1)
-#     df = pd.DataFrame.from_dict(results_dict)
-#     print(df.dtypes)
-#     ddf = dask_cudf.from_pandas(df, npartitions=1)
-    
-    
-#     r_dict =  pd.DataFrame(results_dict)
-#     print(type(r_dict))
-#     print(type(results_dict["cid_labels"]))
+#     df = cudf.DataFrame(results_dict)
+#     ddf = dask_cudf.from_cudf(df, npartitions=2)
+#     print(ddf.compute())
     
     output = ml_input_df.index.to_frame().reset_index(drop=True)
-    
-    
-    labels_final = dask_cudf.from_pandas(
-        pd.Series(results_dict["cid_labels"]), npartitions=output.npartitions
+    print(type(results_dict))
+    labels_final = dask_cudf.from_cudf(
+        results_dict["cid_labels"], npartitions=output.npartitions
     )
     output["label"] = labels_final.reset_index()[0]
 

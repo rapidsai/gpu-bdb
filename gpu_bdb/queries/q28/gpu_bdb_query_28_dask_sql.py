@@ -20,11 +20,12 @@ import os
 import time
 
 from bdb_tools.cluster_startup import attach_to_cluster
-from cuml.feature_extraction.text import HashingVectorizer
-import cupy
+import sklearn as cuml
+from sklearn.feature_extraction.text import HashingVectorizer
+import numpy as cupy
 import dask
 from distributed import wait
-import cupy as cp
+import numpy as cp
 import numpy as np
 
 from bdb_tools.utils import (
@@ -38,7 +39,7 @@ from bdb_tools.readers import build_reader
 
 N_FEATURES = 2 ** 23  # Spark is doing 2^20
 ngram_range = (1, 2)
-preprocessor = lambda s:s.str.lower()
+preprocessor = lambda s:s.lower()
 norm = None
 alternate_sign = False
 
@@ -54,37 +55,67 @@ def gpu_hashing_vectorizer(x):
 
 
 def map_labels(ser):
-    import cudf
-    output_ser = cudf.Series(cudf.core.column.full(size=len(ser), fill_value=2, dtype=np.int32))
-    zero_flag = (ser==1) | (ser==2)
-    output_ser.loc[zero_flag]=0
+    import pandas as cudf
+    output_ser = cudf.Series(2, index=np.arange(len(ser)), dtype=np.int32)
 
+    zero_flag = (ser==1)|(ser==2)
+
+    output_ser.loc[zero_flag]=0
+    
     three_flag = (ser==3)
     output_ser.loc[three_flag]=1
-
+    
     return output_ser
 
 
 def build_features(t):
+    import scipy.sparse
+    import dask.array
     X = t["pr_review_content"]
     X = X.map_partitions(
         gpu_hashing_vectorizer,
         meta=dask.array.from_array(
-            cupy.sparse.csr_matrix(cupy.zeros(1, dtype=cp.float32))
+            scipy.sparse.csr_matrix(cupy.zeros(1, dtype=cp.float32))
+            #cupy.sparse.csr_matrix(cupy.zeros(1, dtype=cp.float32))
         ),
     )
 
     X = X.astype(np.float32).persist()
+#     print(type(X))
     X.compute_chunk_sizes()
 
     return X
 
 
 def build_labels(reviews_df):
-    y = reviews_df["pr_review_rating"].map_partitions(map_labels)
-    y = y.map_partitions(lambda x: cupy.asarray(x, cupy.int32)).persist()
+    import dask.array as da
+    from dask.distributed import wait
+#     print(map_labels(reviews_df["pr_review_rating"]))
+    print(reviews_df["pr_review_rating"].compute())
+    print(type(reviews_df))
+    y = reviews_df["pr_review_rating"].map_partitions(map_labels, meta=reviews_df)
+#     y = y.map_partitions(np.asarray)
+#     y.compute_chunk_sizes()
+#     print(type(reviews_df))
+#     print(y.compute())
+    
+    y = y.map_partitions(lambda x: cupy.asarray(x, cupy.int32), meta=y,).persist()
+    _ = wait(y)
+    
+#     print(y.compute())
+#     print(len(y.columns))
+# #     y = y.map_partitions(lambda x: x.to_records(), meta=y,).persist()
+# #     y.map_partitions(cupy.asarray)
+#     print(type(y))
+#     y = y.reset_index()
+    y = y.to_dask_array()
+#     print(type(y))
+# #     print(type(y))
+# #     y.compute()
     y.compute_chunk_sizes()
-
+# #     print(type(y))
+# #     y.to_dask_array(lengths=True)
+# #     print(y['pr_review_content'].compute())
     return y
 
 
@@ -249,8 +280,8 @@ def accuracy_score(client, y, y_hat):
 
 
 def post_etl_processing(client, train_data, test_data):
-    import cudf
-    from cuml.dask.naive_bayes import MultinomialNB as DistMNB
+    import pandas as cudf
+    from sklearn.naive_bayes import MultinomialNB as DistMNB
     from cuml.dask.common import to_dask_cudf
     from cuml.dask.common.input_utils import DistributedDataHandler
 

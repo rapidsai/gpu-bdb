@@ -33,7 +33,7 @@ from dask.distributed import wait
 
 
 def abandonedShoppingCarts(df, DYNAMIC_CAT_CODE, ORDER_CAT_CODE):
-    import cudf
+    import pandas as cudf
     # work around for https://github.com/rapidsai/cudf/issues/5470
     df.reset_index(drop=True, inplace=True)
 
@@ -73,7 +73,7 @@ def abandonedShoppingCarts(df, DYNAMIC_CAT_CODE, ORDER_CAT_CODE):
     )
     del (last_dynamic_df, grouped_count_df)
     return cudf.DataFrame(
-        {"pagecount": result.tstamp_inSec.sum(), "count": len(result)}
+        {"pagecount": [result.tstamp_inSec.sum()], "count": [len(result)]}
     )
 
 
@@ -133,9 +133,9 @@ def main(data_dir, client, bc, config):
     ORDER_CAT_CODE = cpu_categories.get_loc("order")
 
     # ### cast to minimum viable dtype
-    import cudf
-    codes_min_signed_type = cudf.utils.dtypes.min_signed_type(
-                                                    len(cpu_categories))
+    import pandas as cudf
+    import numpy as np
+    codes_min_signed_type = np.min_scalar_type(-len(cpu_categories)-1)
     wp["wp_type_codes"] = wp["wp_type"].cat.codes.astype(codes_min_signed_type)
     wp["wp_type"] = wp["wp_type"].cat.codes.astype(codes_min_signed_type)
     cols_2_keep = ["wp_web_page_sk", "wp_type_codes"]

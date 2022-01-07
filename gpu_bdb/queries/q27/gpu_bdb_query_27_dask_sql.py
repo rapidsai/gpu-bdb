@@ -61,15 +61,20 @@ def read_tables(data_dir, bc, config):
 
 
 def ner_parser(df, col_string, batch_size=256):
-    spacy.require_gpu()
+    #import spacy
+    #print(df)
     nlp = spacy.load("en_core_web_sm")
     docs = nlp.pipe(df[col_string], disable=["tagger", "parser"], batch_size=batch_size)
+    #print(docs)
     out = []
     for doc in docs:
+        #print(doc)
         l = [ent.text for ent in doc.ents if ent.label_ == "ORG"]
+        #print(l)
         val = ", "
         l = val.join(l)
         out.append(l)
+        #print(out)
     df["company_name_list"] = out
     return df
 
@@ -77,34 +82,38 @@ def ner_parser(df, col_string, batch_size=256):
 def main(data_dir, client, bc, config):
     benchmark(read_tables, data_dir, bc, config, dask_profile=config["dask_profile"])
 
-    import dask_cudf
-
+    import dask.dataframe as dask_cudf
+    import pandas as cudf
+    import numpy as np
+    
     query = f"""
         SELECT pr_review_sk, pr_item_sk, pr_review_content
         FROM product_reviews
         WHERE pr_item_sk = {q27_pr_item_sk}
     """
     product_reviews_df = bc.sql(query)
+    #print(product_reviews_df.index.compute().is_unique)
+    
 
     sentences = product_reviews_df.map_partitions(
         create_sentences_from_reviews,
         review_column="pr_review_content",
         end_of_line_char=EOL_CHAR,
     )
-
+    #print(sentences.compute())
+    
     # need the global position in the sentence tokenized df
     sentences["x"] = 1
     sentences["sentence_tokenized_global_pos"] = sentences.x.cumsum()
     del sentences["x"]
     del product_reviews_df
-
+    
+    
     # Do the NER
-    sentences = sentences.to_dask_dataframe()
     ner_parsed = sentences.map_partitions(ner_parser, "sentence")
-    ner_parsed = dask_cudf.from_dask_dataframe(ner_parsed)
     ner_parsed = ner_parsed.persist()
     wait(ner_parsed)
-
+    #print(ner_parsed.compute())
     ner_parsed = ner_parsed[ner_parsed.company_name_list != ""]
 
     # separate NER results into one row per found company
@@ -135,11 +144,13 @@ def main(data_dir, client, bc, config):
         ORDER BY review_idx_global_pos, item_sk, word, sentence
     """
     recombined = bc.sql(query)
+    #print(recombined.compute())
 
     bc.drop_table("repeated_names")
     bc.drop_table("ner_parsed")
     del ner_parsed
     del repeated_names
+    recombined.compute()
     return recombined
 
 

@@ -45,7 +45,9 @@ def get_clusters(client, ml_input_df, feature_cols):
     Takes the dask client, kmeans_input_df and feature columns.
     Returns a dictionary matching the output required for q20
     """
-    import dask_cudf
+    import dask.dataframe as dask_cudf
+    import pandas as pd
+    
     ml_tasks = [
         delayed(train_clustering_model)(df, N_CLUSTERS, CLUSTER_ITERATIONS, N_ITER)
         for df in ml_input_df[feature_cols].to_delayed()
@@ -54,13 +56,13 @@ def get_clusters(client, ml_input_df, feature_cols):
     results_dict = client.compute(*ml_tasks, sync=True)
 
     labels = results_dict["cid_labels"]
-
-    labels_final = dask_cudf.from_cudf(labels, npartitions=ml_input_df.npartitions)
+    labels_final = dask_cudf.from_pandas(pd.Series(labels), npartitions=ml_input_df.npartitions)
     ml_input_df["label"] = labels_final.reset_index()[0]
 
     output = ml_input_df[["user_sk", "label"]]
 
     results_dict["cid_labels"] = output
+ 
     return results_dict
 
 

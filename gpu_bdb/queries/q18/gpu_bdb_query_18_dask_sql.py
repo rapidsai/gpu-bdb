@@ -20,9 +20,9 @@ import os
 
 from bdb_tools.cluster_startup import attach_to_cluster
 import numpy as np
-import cupy as cp
+import numpy as cp
 
-import dask_cudf
+import dask.dataframe as dask_cudf
 
 from bdb_tools.text import create_sentences_from_reviews, create_words_from_sentences
 
@@ -53,7 +53,7 @@ def create_found_reshaped_with_global_pos(found, targets):
 
     Having these as two separate functions makes managing dask metadata easier.
     """
-    import cudf
+    import pandas as cudf
 
     target_df = cudf.DataFrame({"word": targets}).reset_index(drop=False)
     target_df.columns = ["word_mapping", "word"]
@@ -81,16 +81,20 @@ def find_targets_in_reviews_helper(ddf, targets, str_col_name="pr_review_content
     At the end, any row with non-zero values is returned.
     
     """
-    import cudf
-    from cudf._lib.strings import find_multiple
-
+    import pandas as cudf
+#     from cudf._lib.strings import find_multiple
+    
     lowered = ddf[str_col_name].str.lower()
-
+    out = []
+    
+    for target in targets:
+        a = lowered.str.find(target).values
+        out.append(a)
+    
+    
     ## TODO: Do the replace/any in cupy land before going to cuDF
     resdf = cudf.DataFrame(
-        cp.asarray(
-            find_multiple.find_multiple(lowered._column, targets._column)
-        ).reshape(-1, len(targets))
+        np.array(out).flatten(order='F').reshape(-1, len(targets))
     )
 
     resdf = resdf.replace([0, -1], [1, 0])
@@ -105,7 +109,7 @@ def find_relevant_reviews(df, targets, str_col_name="pr_review_content"):
      This function finds the  reviews containg target stores and returns the 
      relevant reviews
     """
-    import cudf
+    import pandas as cudf
 
     targets = cudf.Series(targets)
     targets_lower = targets.str.lower()
@@ -218,14 +222,13 @@ def main(data_dir, client, bc, config):
         stores_with_regression.s_store_name.str.lower()
         .unique()
         .compute()
-        .to_arrow()
-        .to_pylist()
+        .tolist()
     )
 
     # perssiting because no_nulls is used twice
     no_nulls = no_nulls.persist()
 
-    import cudf
+    import pandas as cudf
 
     temp_table2_meta_empty_df = cudf.DataFrame(
         {
@@ -241,8 +244,7 @@ def main(data_dir, client, bc, config):
     )
 
     no_nulls["pr_review_content"] = no_nulls.pr_review_content.str.replace(
-        [". ", "? ", "! "], [EOL_CHAR], regex=False
-    )
+        "|".join(["\. ", "\? ", "! "]), EOL_CHAR, regex=True)
 
     stores_with_regression["store_ID"] = stores_with_regression.s_store_sk.astype(
         "str"
