@@ -14,12 +14,10 @@
 # limitations under the License.
 #
 
-import sys
 import os
 
 from bdb_tools.cluster_startup import attach_to_cluster
 import numpy as np
-import cupy as cp
 
 import dask_cudf
 
@@ -33,6 +31,8 @@ from bdb_tools.utils import (
 
 from bdb_tools.readers import build_reader
 
+from bdb_tools.q18_utils import find_relevant_reviews
+
 from dask.distributed import wait
 
 
@@ -42,81 +42,6 @@ q18_startDate = "2001-05-02"
 q18_endDate = "2001-09-02"
 
 EOL_CHAR = "è"
-
-
-def create_found_reshaped_with_global_pos(found, targets):
-    """Given the dataframe created by mapping find_targets_in_reviews,
-    create a new dataframe in which the nonzero values in each row are exploded
-    to get their own row. Each row will contain the word, its mapping in the column order,
-    and the pr_review_sk for the review from which it came.
-
-    Having these as two separate functions makes managing dask metadata easier.
-    """
-    import cudf
-
-    target_df = cudf.DataFrame({"word": targets}).reset_index(drop=False)
-    target_df.columns = ["word_mapping", "word"]
-
-    df_clean = found.drop(["pr_review_sk"], axis=1)
-
-    row_idxs, col_idxs = df_clean.values.nonzero()
-
-    found_reshaped = cudf.DataFrame(
-        {"word_mapping": col_idxs, "pr_review_sk": found["pr_review_sk"].iloc[row_idxs]}
-    )
-    found_reshaped = found_reshaped.merge(target_df, on="word_mapping", how="inner")[
-        ["word", "pr_review_sk"]
-    ]
-    return found_reshaped
-
-
-def find_targets_in_reviews_helper(ddf, targets, str_col_name="pr_review_content"):
-    """returns a N x K matrix, where N is the number of rows in ddf that
-    contain one of the target words and K is the number of words in targets.
-    
-    If a target word is found in a review, the value in that row, column
-    is non-zero.
-    
-    At the end, any row with non-zero values is returned.
-    
-    """
-    import cudf
-    from cudf._lib.strings import find_multiple
-
-    lowered = ddf[str_col_name].str.lower()
-
-    ## TODO: Do the replace/any in cupy land before going to cuDF
-    resdf = cudf.DataFrame(
-        cp.asarray(
-            find_multiple.find_multiple(lowered._column, targets._column)
-        ).reshape(-1, len(targets))
-    )
-
-    resdf = resdf.replace([0, -1], [1, 0])
-    found_mask = resdf.any(axis=1)
-    resdf["pr_review_sk"] = ddf["pr_review_sk"]
-    found = resdf.loc[found_mask]
-    return create_found_reshaped_with_global_pos(found, targets)
-
-
-def find_relevant_reviews(df, targets, str_col_name="pr_review_content"):
-    """
-     This function finds the  reviews containg target stores and returns the 
-     relevant reviews
-    """
-    import cudf
-
-    targets = cudf.Series(targets)
-    targets_lower = targets.str.lower()
-    reviews_found = find_targets_in_reviews_helper(df, targets_lower)[
-        ["word", "pr_review_sk"]
-    ]
-
-    combined = reviews_found.merge(
-        df[["pr_review_date", "pr_review_sk"]], how="inner", on=["pr_review_sk"]
-    )
-
-    return combined
 
 
 def read_tables(data_dir, c, config):

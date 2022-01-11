@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019-2020, NVIDIA CORPORATION.
+# Copyright (c) 2019-2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,26 +14,26 @@
 # limitations under the License.
 #
 
-import sys
 import time
 import argparse
-
-import spacy
-import rmm
-import cupy as cp
-import distributed
 
 from bdb_tools.utils import (
     benchmark,
     gpubdb_argparser,
     left_semi_join,
-    run_query,
+    run_query
 )
 
-from bdb_tools.text import create_sentences_from_reviews, create_words_from_sentences
+from bdb_tools.text import (
+    create_sentences_from_reviews,
+    create_words_from_sentences
+)
+
 from bdb_tools.readers import build_reader
-from dask_cuda import LocalCUDACluster
-from dask.distributed import Client, wait
+
+from bdb_tools.q27_utils import ner_parser
+
+from dask.distributed import wait
 
 
 # -------- Q27 -----------
@@ -53,20 +53,6 @@ def read_tables(config):
         "product_reviews", relevant_cols=product_reviews_cols
     )
     return product_reviews_df
-
-
-def ner_parser(df, col_string, batch_size=256):
-    spacy.require_gpu()
-    nlp = spacy.load("en_core_web_sm")
-    docs = nlp.pipe(df[col_string], disable=["tagger", "parser"], batch_size=batch_size)
-    out = []
-    for doc in docs:
-        l = [ent.text for ent in doc.ents if ent.label_ == "ORG"]
-        val = ", "
-        l = val.join(l)
-        out.append(l)
-    df["company_name_list"] = out
-    return df
 
 
 def main(client, config):

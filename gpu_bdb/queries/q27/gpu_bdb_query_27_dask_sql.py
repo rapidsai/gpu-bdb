@@ -14,9 +14,6 @@
 # limitations under the License.
 #
 
-import sys
-import os
-
 from bdb_tools.text import (
     create_sentences_from_reviews,
     create_words_from_sentences
@@ -24,7 +21,6 @@ from bdb_tools.text import (
 
 from bdb_tools.cluster_startup import attach_to_cluster
 from dask.distributed import wait
-import spacy
 
 from bdb_tools.utils import (
     benchmark,
@@ -33,6 +29,8 @@ from bdb_tools.utils import (
 )
 
 from bdb_tools.readers import build_reader
+
+from bdb_tools.q27_utils import ner_parser
 
 from dask.distributed import wait
 
@@ -55,20 +53,6 @@ def read_tables(data_dir, c, config):
     )
 
     c.create_table("product_reviews", product_reviews_df, persist=False)
-
-
-def ner_parser(df, col_string, batch_size=256):
-    spacy.require_gpu()
-    nlp = spacy.load("en_core_web_sm")
-    docs = nlp.pipe(df[col_string], disable=["tagger", "parser"], batch_size=batch_size)
-    out = []
-    for doc in docs:
-        l = [ent.text for ent in doc.ents if ent.label_ == "ORG"]
-        val = ", "
-        l = val.join(l)
-        out.append(l)
-    df["company_name_list"] = out
-    return df
 
 
 def main(data_dir, client, c, config):
