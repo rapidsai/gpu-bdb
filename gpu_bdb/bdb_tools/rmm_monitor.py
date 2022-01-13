@@ -47,7 +47,9 @@ class RMMResourceMonitor:
 
         def _rmmlogstart( basedir, prefix ):
             import os
-            rmm.enable_logging( log_file_name=os.path.join( basedir,  f"{prefix}_" + str(os.getpid())+".log"))
+            fname=f"{prefix}_{os.getpid()}.log"
+            rmm.enable_logging( log_file_name=os.path.join( basedir,  fname))
+            return fname
 
         self.__dispatch__( _rmmlogstart, prefix=prefix, basedir=self.get_remote_output_dir())
 
