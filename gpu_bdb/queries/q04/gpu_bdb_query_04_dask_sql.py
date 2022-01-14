@@ -27,10 +27,60 @@ from bdb_tools.utils import (
 
 from bdb_tools.readers import build_reader
 
+<<<<<<< HEAD
 from bdb_tools.q04_utils import (
     abandonedShoppingCarts,
     reduction_function
 )
+=======
+from dask.distributed import wait
+
+
+def abandonedShoppingCarts(df, DYNAMIC_CAT_CODE, ORDER_CAT_CODE):
+    import pandas as cudf
+    # work around for https://github.com/rapidsai/cudf/issues/5470
+    df.reset_index(drop=True, inplace=True)
+
+    # Select groups where last dynamic row comes after last order row
+    filtered_df = df[
+        (df["wp_type_codes"] == ORDER_CAT_CODE)
+        | (df["wp_type_codes"] == DYNAMIC_CAT_CODE)
+    ]
+    # work around for https://github.com/rapidsai/cudf/issues/5470
+    filtered_df.reset_index(drop=True, inplace=True)
+    # Create a new column that is the concatenation of timestamp and wp_type_codes
+    # (eg:123456:3, 234567:5)
+    filtered_df["wp_type_codes"] = (
+        filtered_df["tstamp_inSec"]
+        .astype("str")
+        .str.cat(filtered_df["wp_type_codes"].astype("str"), sep=":")
+    )
+    # This gives the last occurrence (by timestamp) within the "order", "dynamic" wp_types
+    filtered_df = filtered_df.groupby(
+        ["wcs_user_sk", "session_id"], as_index=False, sort=False
+    ).agg({"wp_type_codes": "max"})
+    # If the max contains dynamic, keep the row else discard.
+    last_dynamic_df = filtered_df[
+        filtered_df["wp_type_codes"].str.contains(
+            ":" + str(DYNAMIC_CAT_CODE), regex=False
+        )
+    ]
+    del filtered_df
+
+    # Find counts for each group
+    grouped_count_df = df.groupby(
+        ["wcs_user_sk", "session_id"], as_index=False, sort=False
+    ).agg({"tstamp_inSec": "count"})
+    # Merge counts with the "dynamic" shopping cart groups
+    result = last_dynamic_df.merge(
+        grouped_count_df, on=["wcs_user_sk", "session_id"], how="inner"
+    )
+    del (last_dynamic_df, grouped_count_df)
+    return cudf.DataFrame(
+        {"pagecount": [result.tstamp_inSec.sum()], "count": [len(result)]}
+    )
+
+>>>>>>> e643645ea033098affa0dbe8fec8de71ddf94fb3
 
 from dask.distributed import wait
 
@@ -77,9 +127,9 @@ def main(data_dir, client, c, config):
     ORDER_CAT_CODE = cpu_categories.get_loc("order")
 
     # ### cast to minimum viable dtype
-    import cudf
-    codes_min_signed_type = cudf.utils.dtypes.min_signed_type(
-                                                    len(cpu_categories))
+    import pandas as cudf
+    import numpy as np
+    codes_min_signed_type = np.min_scalar_type(-len(cpu_categories)-1)
     wp["wp_type_codes"] = wp["wp_type"].cat.codes.astype(codes_min_signed_type)
     wp["wp_type"] = wp["wp_type"].cat.codes.astype(codes_min_signed_type)
     cols_2_keep = ["wp_web_page_sk", "wp_type_codes"]

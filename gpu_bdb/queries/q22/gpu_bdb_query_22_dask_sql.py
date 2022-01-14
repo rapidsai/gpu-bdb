@@ -58,7 +58,7 @@ def read_tables(data_dir, c, config):
 
     dd_columns = ["d_date_sk", "d_date"]
     date_dim = table_reader.read("date_dim", relevant_cols=dd_columns)
-    date_dim = date_dim.map_partitions(convert_datestring_to_days)
+    date_dim = date_dim.map_partitions(convert_datestring_to_days, meta=date_dim._meta)
 
     c.create_table('inventory', inventory, persist=False)
     c.create_table('item', item, persist=False)

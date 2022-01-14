@@ -41,19 +41,20 @@ N_ITER = 5
 
 
 def get_clusters(client, kmeans_input_df):
-    import dask_cudf
-
+    import dask.dataframe as dask_cudf
+    import pandas as pd
+    
     ml_tasks = [
         delayed(train_clustering_model)(df, N_CLUSTERS, CLUSTER_ITERATIONS, N_ITER)
         for df in kmeans_input_df.to_delayed()
     ]
 
     results_dict = client.compute(*ml_tasks, sync=True)
-
+    #print(type(results_dict)) returns dict
     output = kmeans_input_df.index.to_frame().reset_index(drop=True)
 
-    labels_final = dask_cudf.from_cudf(
-        results_dict["cid_labels"], npartitions=output.npartitions
+    labels_final = dask_cudf.from_pandas( # changed from_cudf to from_pandas
+        pd.DataFrame(results_dict["cid_labels"]), npartitions=output.npartitions
     )
     output["label"] = labels_final.reset_index()[0]
 

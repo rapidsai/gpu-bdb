@@ -30,9 +30,44 @@ from bdb_tools.utils import (
 
 from bdb_tools.readers import build_reader
 
+<<<<<<< HEAD
 from bdb_tools.q20_utils import get_clusters
 
 from dask_sql import Context
+=======
+from dask_sql import Context
+
+# q20 parameters
+N_CLUSTERS = 8
+CLUSTER_ITERATIONS = 20
+N_ITER = 5
+
+
+def get_clusters(client, ml_input_df, feature_cols):
+    """
+    Takes the dask client, kmeans_input_df and feature columns.
+    Returns a dictionary matching the output required for q20
+    """
+    import dask.dataframe as dask_cudf
+    import pandas as pd
+    
+    ml_tasks = [
+        delayed(train_clustering_model)(df, N_CLUSTERS, CLUSTER_ITERATIONS, N_ITER)
+        for df in ml_input_df[feature_cols].to_delayed()
+    ]
+
+    results_dict = client.compute(*ml_tasks, sync=True)
+
+    labels = results_dict["cid_labels"]
+    labels_final = dask_cudf.from_pandas(pd.Series(labels), npartitions=ml_input_df.npartitions)
+    ml_input_df["label"] = labels_final.reset_index()[0]
+
+    output = ml_input_df[["user_sk", "label"]]
+
+    results_dict["cid_labels"] = output
+ 
+    return results_dict
+>>>>>>> e643645ea033098affa0dbe8fec8de71ddf94fb3
 
 
 def read_tables(data_dir, c, config):

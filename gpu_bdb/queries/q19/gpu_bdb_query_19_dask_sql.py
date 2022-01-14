@@ -17,7 +17,7 @@
 import sys
 import os
 
-import dask_cudf
+import dask.dataframe as dask_cudf
 
 from bdb_tools.cluster_startup import attach_to_cluster
 
@@ -127,7 +127,7 @@ def main(data_dir, client, c, config):
     merged_df["pr_review_sk"] = merged_df["pr_review_sk"].astype("int32")
     merged_df["pr_review_content"] = merged_df.pr_review_content.str.lower()
     merged_df["pr_review_content"] = merged_df.pr_review_content.str.replace(
-        [".", "?", "!"], [eol_char], regex=False
+        '\.|\?|!', eol_char, regex=True 
     )
 
     sentences = merged_df.map_partitions(create_sentences_from_reviews)

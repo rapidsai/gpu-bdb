@@ -17,7 +17,7 @@
 import sys
 import os
 
-import dask_cudf
+import dask.dataframe as dask_cudf
 
 from bdb_tools.cluster_startup import attach_to_cluster
 
@@ -66,24 +66,31 @@ def main(data_dir, client, c, config):
             pr_review_sk
         FROM product_reviews
         where pr_review_content IS NOT NULL
-        ORDER BY pr_item_sk, pr_review_content, pr_review_sk
+        
     """
+<<<<<<< HEAD
     product_reviews_df = c.sql(query_1)
 
+=======
+    product_reviews_df = bc.sql(query_1)
+    
+   
+>>>>>>> e643645ea033098affa0dbe8fec8de71ddf94fb3
     product_reviews_df[
         "pr_review_content"
     ] = product_reviews_df.pr_review_content.str.lower()
+    
     product_reviews_df[
         "pr_review_content"
     ] = product_reviews_df.pr_review_content.str.replace(
-        [".", "?", "!"], [eol_char], regex=False
+        '\.|\?|!', eol_char, regex=True 
     )
-
+    
     sentences = product_reviews_df.map_partitions(create_sentences_from_reviews)
-
+    
     product_reviews_df = product_reviews_df[["pr_item_sk", "pr_review_sk"]]
     product_reviews_df["pr_review_sk"] = product_reviews_df["pr_review_sk"].astype("int32")
-
+    
     # need the global position in the sentence tokenized df
     sentences["x"] = 1
     sentences["sentence_tokenized_global_pos"] = sentences.x.cumsum()
@@ -93,11 +100,18 @@ def main(data_dir, client, c, config):
         create_words_from_sentences,
         global_position_column="sentence_tokenized_global_pos",
     )
-
+ 
+   
     product_reviews_df = product_reviews_df.persist()
+    
     wait(product_reviews_df)
+<<<<<<< HEAD
     c.create_table('product_reviews_df', product_reviews_df, persist=False)
     
+=======
+    bc.create_table('product_reviews_df', product_reviews_df, persist=False)
+
+>>>>>>> e643645ea033098affa0dbe8fec8de71ddf94fb3
     sentences = sentences.persist()
     wait(sentences)
     c.create_table('sentences', sentences, persist=False)
@@ -106,6 +120,7 @@ def main(data_dir, client, c, config):
     # We extracted them from bigbenchqueriesmr.jar
     # Need to pass the absolute path for these txt files
     sentiment_dir = os.path.join(config["data_dir"], "sentiment_files")
+<<<<<<< HEAD
     ns_df = dask_cudf.read_csv(os.path.join(sentiment_dir, "negativeSentiment.txt"), names=["sentiment_word"], persist=False)
     c.create_table('negative_sentiment', ns_df, persist=False)
     ps_df = dask_cudf.read_csv(os.path.join(sentiment_dir, "positiveSentiment.txt"), names=["sentiment_word"], persist=False)
@@ -115,6 +130,17 @@ def main(data_dir, client, c, config):
     wait(word_df)
     c.create_table('word_df', word_df, persist=False)
 
+=======
+    ns_df = dask_cudf.read_csv(os.path.join(sentiment_dir, "negativeSentiment.txt"), names=["sentiment_word"])
+    bc.create_table('negative_sentiment', ns_df, persist=False)
+    ps_df = dask_cudf.read_csv(os.path.join(sentiment_dir, "positiveSentiment.txt"), names=["sentiment_word"])
+    bc.create_table('positive_sentiment', ps_df, persist=False)
+
+    word_df = word_df.persist()
+    wait(word_df)
+    bc.create_table('word_df', word_df, persist=False)
+   
+>>>>>>> e643645ea033098affa0dbe8fec8de71ddf94fb3
     query = '''
         SELECT pr_item_sk as item_sk,
             sentence as review_sentence,
@@ -155,7 +181,7 @@ def main(data_dir, client, c, config):
     del sentences
     c.drop_table("word_df")
     del word_df
-
+   
     return result
 
 

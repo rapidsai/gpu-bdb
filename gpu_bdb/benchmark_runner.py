@@ -22,14 +22,18 @@ def load_query(qnum, fn):
 
 
 dask_qnums = [str(i).zfill(2) for i in range(1, 31)]
-sql_qnums = [str(i).zfill(2) for i in range(1, 31)]
+<<<<<<< HEAD
+bsql_qnums = [str(i).zfill(2) for i in range(1, 31)]
+=======
+
+>>>>>>> e643645ea033098affa0dbe8fec8de71ddf94fb3
 
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster, import_query_libs
     from bdb_tools.utils import run_query, gpubdb_argparser
 
-    import_query_libs()
+#     import_query_libs()
     config = gpubdb_argparser()
     config["run_id"] = uuid.uuid4().hex
     include_sql = config.get("benchmark_runner_include_sql")

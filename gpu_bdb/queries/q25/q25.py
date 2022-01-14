@@ -1,5 +1,6 @@
 #
-# Copyright (c) 2019-2022, NVIDIA CORPORATION.
+# Copyright (c) 2019-2020, NVIDIA CORPORATION.
+# Copyright (c) 2019-2020, BlazingSQL, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -40,35 +41,24 @@ N_ITER = 5
 
 
 def get_clusters(client, ml_input_df):
-    import dask.dataframe as dask_cudf
-    import pandas as pd
-
+    import dask_cudf
+    import cudf
+    
     ml_tasks = [
         delayed(train_clustering_model)(df, N_CLUSTERS, CLUSTER_ITERATIONS, N_ITER)
         for df in ml_input_df.to_delayed()
     ]
     results_dict = client.compute(*ml_tasks, sync=True)
-#     print(len(results_dict))
-#     print(results_dict)
+    print(type(results_dict["cid_labels"]))
     
-    
-#     s = pd.Series(results_dict)
-#     s1 = s.map(s)
-#     print(s1)
-#     df = pd.DataFrame.from_dict(results_dict)
-#     print(df.dtypes)
-#     ddf = dask_cudf.from_pandas(df, npartitions=1)
-    
-    
-#     r_dict =  pd.DataFrame(results_dict)
-#     print(type(r_dict))
-#     print(type(results_dict["cid_labels"]))
+#     df = cudf.DataFrame(results_dict)
+#     ddf = dask_cudf.from_cudf(df, npartitions=2)
+#     print(ddf.compute())
     
     output = ml_input_df.index.to_frame().reset_index(drop=True)
-    
-    
-    labels_final = dask_cudf.from_pandas(
-        pd.Series(results_dict["cid_labels"]), npartitions=output.npartitions
+    print(type(results_dict))
+    labels_final = dask_cudf.from_cudf(
+        results_dict["cid_labels"], npartitions=output.npartitions
     )
     output["label"] = labels_final.reset_index()[0]
 
@@ -77,7 +67,7 @@ def get_clusters(client, ml_input_df):
     return results_dict
 
 
-def read_tables(data_dir, c, config):
+def read_tables(data_dir, bc, config):
     table_reader = build_reader(
         data_format=config["file_format"],
         basepath=config["data_dir"],
@@ -97,9 +87,9 @@ def read_tables(data_dir, c, config):
     ws_ddf = table_reader.read("web_sales", relevant_cols=ws_cols, index=False)
     datedim_ddf = table_reader.read("date_dim", relevant_cols=datedim_cols, index=False)
 
-    c.create_table("web_sales", ws_ddf, persist=False)
-    c.create_table("store_sales", ss_ddf, persist=False)
-    c.create_table("date_dim", datedim_ddf, persist=False)
+    bc.create_table("web_sales", ws_ddf, persist=False)
+    bc.create_table("store_sales", ss_ddf, persist=False)
+    bc.create_table("date_dim", datedim_ddf, persist=False)
 
 
 def agg_count_distinct(df, group_key, counted_key):
@@ -118,8 +108,8 @@ def agg_count_distinct(df, group_key, counted_key):
     unique_df = unique_df.groupby(group_key)[counted_key].count()
     return unique_df.reset_index(drop=False)
 
-def main(data_dir, client, c, config):
-    benchmark(read_tables, data_dir, c, config, dask_profile=config["dask_profile"])
+def main(data_dir, client, bc, config):
+    benchmark(read_tables, data_dir, bc, config, dask_profile=config["dask_profile"])
 
     q25_date = "2002-01-02"
     ss_join_query= f"""
@@ -155,11 +145,11 @@ def main(data_dir, client, c, config):
             ws_bill_customer_sk IS NOT NULL
     """
 
-    ss_merged_df = c.sql(ss_join_query)
-    ws_merged_df = c.sql(ws_join_query)
+    ss_merged_df = bc.sql(ss_join_query)
+    ws_merged_df = bc.sql(ws_join_query)
 
-    c.create_table('ss_merged_table', ss_merged_df, persist=False)
-    c.create_table('ws_merged_table', ws_merged_df, persist=False)
+    bc.create_table('ss_merged_table', ss_merged_df, persist=False)
+    bc.create_table('ws_merged_table', ws_merged_df, persist=False)
 
     ss_agg_query = """
         SELECT
@@ -183,19 +173,19 @@ def main(data_dir, client, c, config):
     ss_distinct_count_agg = agg_count_distinct(ss_merged_df,'ss_customer_sk','ss_ticket_number')
     ss_distinct_count_agg = ss_distinct_count_agg.rename(columns={'ss_customer_sk':'cid',
                                                                   'ss_ticket_number':'frequency'})
-    ss_agg_df = c.sql(ss_agg_query)
+    ss_agg_df = bc.sql(ss_agg_query)
     ### add distinct count
     ss_agg_df = ss_agg_df.merge(ss_distinct_count_agg)
 
     ws_distinct_count_agg =  agg_count_distinct(ws_merged_df,'ws_bill_customer_sk','ws_order_number')
     ws_distinct_count_agg =  ws_distinct_count_agg.rename(columns={'ws_bill_customer_sk':'cid',
                                                                    'ws_order_number':'frequency'})
-    ws_agg_df = c.sql(ws_agg_query)
+    ws_agg_df = bc.sql(ws_agg_query)
     ### add distinct count
     ws_agg_df = ws_agg_df.merge(ws_distinct_count_agg)
 
-    c.create_table('ss_agg_df', ss_agg_df, persist=False)
-    c.create_table('ws_agg_df', ws_agg_df, persist=False)
+    bc.create_table('ss_agg_df', ss_agg_df, persist=False)
+    bc.create_table('ws_agg_df', ws_agg_df, persist=False)
 
 
     result_query = '''
@@ -215,7 +205,7 @@ def main(data_dir, client, c, config):
             GROUP BY cid
             ORDER BY cid
             '''
-    cluster_input_ddf = c.sql(result_query)
+    cluster_input_ddf = bc.sql(result_query)
 
     # Prepare df for KMeans clustering
     cluster_input_ddf["recency"] = cluster_input_ddf["recency"].astype("int64")
@@ -230,5 +220,5 @@ def main(data_dir, client, c, config):
 
 if __name__ == "__main__":
     config = gpubdb_argparser()
-    client, c = attach_to_cluster(config, create_sql_context=True)
-    run_query(config=config, client=client, query_func=main, sql_context=c)
+    client, bc = attach_to_cluster(config)
+    run_query(config=config, client=client, query_func=main, blazing_context=bc)

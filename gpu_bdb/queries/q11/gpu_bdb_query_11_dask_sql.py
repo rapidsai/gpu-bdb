@@ -18,7 +18,7 @@ import sys
 
 from bdb_tools.cluster_startup import attach_to_cluster
 import os
-import cudf
+import pandas as cudf
 
 from bdb_tools.utils import (
     benchmark,
@@ -79,8 +79,8 @@ def main(data_dir, client, c, config):
             FROM web_sales ws
             INNER JOIN date_dim d ON ws.ws_sold_date_sk = d.d_date_sk
             WHERE ws_item_sk IS NOT null
-            AND CAST(d.d_date AS DATE) >= DATE '2003-01-02'
-            AND CAST(d.d_date AS DATE) <= DATE '2003-02-02'
+            AND CAST(d.d_date AS DATE) >= CAST('2003-01-02' AS DATE)
+            AND CAST(d.d_date AS DATE) <= CAST('2003-02-02' AS DATE)
             GROUP BY ws_item_sk
         )
         SELECT p.r_count    AS x,

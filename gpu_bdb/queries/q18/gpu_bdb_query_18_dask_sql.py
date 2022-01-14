@@ -18,8 +18,12 @@ import os
 
 from bdb_tools.cluster_startup import attach_to_cluster
 import numpy as np
+<<<<<<< HEAD
+=======
+import numpy as cp
+>>>>>>> e643645ea033098affa0dbe8fec8de71ddf94fb3
 
-import dask_cudf
+import dask.dataframe as dask_cudf
 
 from bdb_tools.text import create_sentences_from_reviews, create_words_from_sentences
 
@@ -44,7 +48,90 @@ q18_endDate = "2001-09-02"
 EOL_CHAR = "è"
 
 
+<<<<<<< HEAD
 def read_tables(data_dir, c, config):
+=======
+def create_found_reshaped_with_global_pos(found, targets):
+    """Given the dataframe created by mapping find_targets_in_reviews,
+    create a new dataframe in which the nonzero values in each row are exploded
+    to get their own row. Each row will contain the word, its mapping in the column order,
+    and the pr_review_sk for the review from which it came.
+
+    Having these as two separate functions makes managing dask metadata easier.
+    """
+    import pandas as cudf
+
+    target_df = cudf.DataFrame({"word": targets}).reset_index(drop=False)
+    target_df.columns = ["word_mapping", "word"]
+
+    df_clean = found.drop(["pr_review_sk"], axis=1)
+
+    row_idxs, col_idxs = df_clean.values.nonzero()
+
+    found_reshaped = cudf.DataFrame(
+        {"word_mapping": col_idxs, "pr_review_sk": found["pr_review_sk"].iloc[row_idxs]}
+    )
+    found_reshaped = found_reshaped.merge(target_df, on="word_mapping", how="inner")[
+        ["word", "pr_review_sk"]
+    ]
+    return found_reshaped
+
+
+def find_targets_in_reviews_helper(ddf, targets, str_col_name="pr_review_content"):
+    """returns a N x K matrix, where N is the number of rows in ddf that
+    contain one of the target words and K is the number of words in targets.
+    
+    If a target word is found in a review, the value in that row, column
+    is non-zero.
+    
+    At the end, any row with non-zero values is returned.
+    
+    """
+    import pandas as cudf
+#     from cudf._lib.strings import find_multiple
+    
+    lowered = ddf[str_col_name].str.lower()
+    out = []
+    
+    for target in targets:
+        a = lowered.str.find(target).values
+        out.append(a)
+    
+    
+    ## TODO: Do the replace/any in cupy land before going to cuDF
+    resdf = cudf.DataFrame(
+        np.array(out).flatten(order='F').reshape(-1, len(targets))
+    )
+
+    resdf = resdf.replace([0, -1], [1, 0])
+    found_mask = resdf.any(axis=1)
+    resdf["pr_review_sk"] = ddf["pr_review_sk"]
+    found = resdf.loc[found_mask]
+    return create_found_reshaped_with_global_pos(found, targets)
+
+
+def find_relevant_reviews(df, targets, str_col_name="pr_review_content"):
+    """
+     This function finds the  reviews containg target stores and returns the 
+     relevant reviews
+    """
+    import pandas as cudf
+
+    targets = cudf.Series(targets)
+    targets_lower = targets.str.lower()
+    reviews_found = find_targets_in_reviews_helper(df, targets_lower)[
+        ["word", "pr_review_sk"]
+    ]
+
+    combined = reviews_found.merge(
+        df[["pr_review_date", "pr_review_sk"]], how="inner", on=["pr_review_sk"]
+    )
+
+    return combined
+
+
+def read_tables(data_dir, bc, config):
+>>>>>>> e643645ea033098affa0dbe8fec8de71ddf94fb3
     table_reader = build_reader(
         data_format=config["file_format"], basepath=config["data_dir"],
     )
@@ -137,14 +224,13 @@ def main(data_dir, client, c, config):
         stores_with_regression.s_store_name.str.lower()
         .unique()
         .compute()
-        .to_arrow()
-        .to_pylist()
+        .tolist()
     )
 
     # perssiting because no_nulls is used twice
     no_nulls = no_nulls.persist()
 
-    import cudf
+    import pandas as cudf
 
     temp_table2_meta_empty_df = cudf.DataFrame(
         {
@@ -160,8 +246,7 @@ def main(data_dir, client, c, config):
     )
 
     no_nulls["pr_review_content"] = no_nulls.pr_review_content.str.replace(
-        [". ", "? ", "! "], [EOL_CHAR], regex=False
-    )
+        "|".join(["\. ", "\? ", "! "]), EOL_CHAR, regex=True)
 
     stores_with_regression["store_ID"] = stores_with_regression.s_store_sk.astype(
         "str"

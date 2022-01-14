@@ -24,7 +24,14 @@ from bdb_tools.utils import (
     run_query,
 )
 from bdb_tools.readers import build_reader
+<<<<<<< HEAD
 from bdb_tools.q05_utils import build_and_predict_model
+=======
+from bdb_tools.cupy_metrics import cupy_precision_score
+from sklearn.metrics import roc_auc_score
+import numpy as cp
+
+>>>>>>> e643645ea033098affa0dbe8fec8de71ddf94fb3
 
 
 wcs_columns = ["wcs_item_sk", "wcs_user_sk"]
@@ -50,10 +57,65 @@ def read_tables(data_dir, c, config):
         "web_clickstreams", relevant_cols=wcs_columns, index=False
     )
 
+<<<<<<< HEAD
     c.create_table("web_clickstreams", wcs_ddf, persist=False)
     c.create_table("customer", customer_ddf, persist=False)
     c.create_table("item", item_ddf, persist=False)
     c.create_table("customer_demographics", customer_dem_ddf, persist=False)
+=======
+    bc.create_table("web_clickstreams", wcs_ddf, persist=False)
+    bc.create_table("customer", customer_ddf, persist=False)
+    bc.create_table("item", item_ddf, persist=False)
+    bc.create_table("customer_demographics", customer_dem_ddf, persist=False)
+
+    # bc.create_table("web_clickstreams", os.path.join(data_dir, "web_clickstreams/*.parquet"))
+    # bc.create_table("customer", os.path.join(data_dir, "customer/*.parquet"))
+    # bc.create_table("item", os.path.join(data_dir, "item/*.parquet"))
+    # bc.create_table(
+    #     "customer_demographics", os.path.join(data_dir, "customer_demographics/*.parquet"
+    # ))
+
+
+def build_and_predict_model(ml_input_df):
+    """
+    Create a standardized feature matrix X and target array y.
+    Returns the model and accuracy statistics
+    """
+    import sklearn as cuml
+    #import numpy as np
+    from cuml.metrics import confusion_matrix
+
+    feature_names = ["college_education", "male"] + [
+        "clicks_in_%d" % i for i in range(1, 8)
+    ]
+    X = ml_input_df[feature_names]
+    # Standardize input matrix
+    X = (X - X.mean()) / X.std()
+    y = ml_input_df["clicks_in_category"]
+
+    model = cuml.linear_model.LogisticRegression(
+        tol=convergence_tol,
+        penalty="none",
+        fit_intercept=True,
+        max_iter=iterations,
+        C=C,
+    )
+    model.fit(X, y)
+    #
+    # Predict and evaluate accuracy
+    # (Should be 1.0) at SF-1
+    #
+    results_dict = {}
+    y_pred = model.predict(X)
+
+    results_dict["auc"] = roc_auc_score(cp.array(y), cp.array(y_pred))
+    results_dict["precision"] = cupy_precision_score(cp.asarray(y), cp.asarray(y_pred))
+    results_dict["confusion_matrix"] = confusion_matrix(
+        cp.asarray(y, dtype="int32"), cp.asarray(y_pred, dtype="int32")
+    )
+    results_dict["output_type"] = "supervised"
+    return results_dict
+>>>>>>> e643645ea033098affa0dbe8fec8de71ddf94fb3
 
 
 def main(data_dir, client, c, config):
@@ -115,7 +177,7 @@ def main(data_dir, client, c, config):
 
     ml_tasks = [delayed(build_and_predict_model)(df) for df in ml_input_df.to_delayed()]
     results_dict = client.compute(*ml_tasks, sync=True)
-
+    
     return results_dict
 
 

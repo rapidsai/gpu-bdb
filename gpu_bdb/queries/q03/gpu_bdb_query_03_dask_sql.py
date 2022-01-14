@@ -15,6 +15,11 @@
 #
 
 from bdb_tools.cluster_startup import attach_to_cluster
+<<<<<<< HEAD
+=======
+# from numba import cuda
+from numba import jit
+>>>>>>> e643645ea033098affa0dbe8fec8de71ddf94fb3
 
 from bdb_tools.utils import (
     benchmark,
@@ -40,7 +45,103 @@ q03_purchased_item_category_IN = "2,3"
 q03_limit = 100
 
 
+<<<<<<< HEAD
 def read_tables(data_dir, c, config):
+=======
+@jit(nopython=True)
+def find_items_viewed_before_purchase_kernel(
+    relevant_idx_col, user_col, timestamp_col, item_col, out_col, N
+):
+    """
+    Find the past N items viewed after a relevant purchase was made,
+    as defined by the configuration of this query.
+    """
+#     i = cuda.grid(1)
+    relevant_item = q03_purchased_item_IN
+
+    for i in range(relevant_idx_col.size):  # boundary guard
+        # every relevant row gets N rows in the output, so we need to map the indexes
+        # back into their position in the original array
+        orig_idx = relevant_idx_col[i]
+        current_user = user_col[orig_idx]
+
+        # look at the previous N clicks (assume sorted descending)
+        rows_to_check = N
+        remaining_rows = user_col.size - orig_idx
+
+        if remaining_rows <= rows_to_check:
+            rows_to_check = remaining_rows - 1
+
+        for k in range(1, rows_to_check + 1):
+            if current_user != user_col[orig_idx + k]:
+                out_col[i * N + k - 1] = 0
+
+            # only checking relevant purchases via the relevant_idx_col
+            elif (timestamp_col[orig_idx + k] <= timestamp_col[orig_idx]) & (
+                timestamp_col[orig_idx + k]
+                >= (timestamp_col[orig_idx] - q03_days_in_sec_before_purchase)
+            ):
+                out_col[i * N + k - 1] = item_col[orig_idx + k]
+            else:
+                out_col[i * N + k - 1] = 0
+
+
+def apply_find_items_viewed(df, item_mappings):
+    import pandas as cudf
+    import numpy as np
+    
+    # need to sort descending to ensure that the
+    # next N rows are the previous N clicks
+    df = df.sort_values(
+        by=["wcs_user_sk", "tstamp", "wcs_sales_sk", "wcs_item_sk"],
+        ascending=[False, False, False, False],
+    )
+    df.reset_index(drop=True, inplace=True)
+    df["relevant_flag"] = (df.wcs_sales_sk != 0) & (
+        df.wcs_item_sk == q03_purchased_item_IN
+    )
+    df["relevant_idx_pos"] = df.index.to_series()
+    df.reset_index(drop=True, inplace=True)
+    # only allocate output for the relevant rows
+    sample = df.loc[df.relevant_flag == True]
+    sample.reset_index(drop=True, inplace=True)
+
+    N = q03_views_before_purchase
+    size = len(sample)
+
+    # we know this can be int32, since it's going to contain item_sks
+#     out_arr = cuda.device_array(size * N, dtype=df["wcs_item_sk"].dtype)
+    if os.getenv("DASK_CPU") == "True":
+        out_arr = cuda.device_array(size * N, dtype=df["wcs_item_sk"].dtype)
+    else: 
+        out_arr = np.zeros(size * N, dtype=df["wcs_item_sk"].dtype, like=df["wcs_item_sk"].values)
+    
+    find_items_viewed_before_purchase_kernel(
+        sample["relevant_idx_pos"].to_numpy(),
+        df["wcs_user_sk"].to_numpy(),
+        df["tstamp"].to_numpy(),
+        df["wcs_item_sk"].to_numpy(),
+        out_arr,
+        N,
+    )
+
+    result = cudf.DataFrame({"prior_item_viewed": out_arr})
+
+    del out_arr
+    del df
+    del sample
+
+    filtered = result.merge(
+        item_mappings,
+        how="inner",
+        left_on=["prior_item_viewed"],
+        right_on=["i_item_sk"],
+    )
+    return filtered
+
+
+def read_tables(data_dir, bc, config):
+>>>>>>> e643645ea033098affa0dbe8fec8de71ddf94fb3
     table_reader = build_reader(
         data_format=config["file_format"],
         basepath=config["data_dir"],
@@ -58,9 +159,15 @@ def read_tables(data_dir, c, config):
 
     item_df = table_reader.read("item", relevant_cols=item_cols)
     wcs_df = table_reader.read("web_clickstreams", relevant_cols=wcs_cols)
+<<<<<<< HEAD
 
     c.create_table("web_clickstreams", wcs_df, persist=False)
     c.create_table("item", item_df, persist=False)
+=======
+#     print(type(wcs_df))
+    bc.create_table("web_clickstreams", wcs_df, persist=False)
+    bc.create_table("item", item_df, persist=False)
+>>>>>>> e643645ea033098affa0dbe8fec8de71ddf94fb3
 
 
 def main(data_dir, client, c, config):
@@ -71,8 +178,13 @@ def main(data_dir, client, c, config):
             CAST(i_category_id AS TINYINT) AS i_category_id
         FROM item
     """
+<<<<<<< HEAD
     item_df = c.sql(query_1)
 
+=======
+    item_df = bc.sql(query_1)
+#     print(type(item_df))
+>>>>>>> e643645ea033098affa0dbe8fec8de71ddf94fb3
     item_df = item_df.persist()
     wait(item_df)
     c.create_table("item_df", item_df, persist=False)

@@ -1,5 +1,6 @@
 #
-# Copyright (c) 2019-2022, NVIDIA CORPORATION.
+# Copyright (c) 2019-2020, NVIDIA CORPORATION.
+# Copyright (c) 2019-2020, BlazingSQL, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -40,35 +41,20 @@ N_ITER = 5
 
 
 def get_clusters(client, ml_input_df):
-    import dask.dataframe as dask_cudf
-    import pandas as pd
+    import dask_cudf
 
     ml_tasks = [
         delayed(train_clustering_model)(df, N_CLUSTERS, CLUSTER_ITERATIONS, N_ITER)
         for df in ml_input_df.to_delayed()
     ]
     results_dict = client.compute(*ml_tasks, sync=True)
-#     print(len(results_dict))
-#     print(results_dict)
-    
-    
-#     s = pd.Series(results_dict)
-#     s1 = s.map(s)
-#     print(s1)
-#     df = pd.DataFrame.from_dict(results_dict)
-#     print(df.dtypes)
-#     ddf = dask_cudf.from_pandas(df, npartitions=1)
-    
-    
-#     r_dict =  pd.DataFrame(results_dict)
-#     print(type(r_dict))
-#     print(type(results_dict["cid_labels"]))
+    print(results_dict)
     
     output = ml_input_df.index.to_frame().reset_index(drop=True)
     
-    
-    labels_final = dask_cudf.from_pandas(
-        pd.Series(results_dict["cid_labels"]), npartitions=output.npartitions
+    print(type(results_dict["cid_labels"]))
+    labels_final = dask_cudf.from_cudf(
+        results_dict["cid_labels"], npartitions=output.npartitions
     )
     output["label"] = labels_final.reset_index()[0]
 
@@ -230,5 +216,5 @@ def main(data_dir, client, c, config):
 
 if __name__ == "__main__":
     config = gpubdb_argparser()
-    client, c = attach_to_cluster(config, create_sql_context=True)
+    client, c = attach_to_cluster(config)
     run_query(config=config, client=client, query_func=main, sql_context=c)
