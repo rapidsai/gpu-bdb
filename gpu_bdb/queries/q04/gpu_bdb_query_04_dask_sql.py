@@ -17,6 +17,8 @@
 import sys
 import os
 
+import cudf
+
 from bdb_tools.cluster_startup import attach_to_cluster
 
 from bdb_tools.utils import (
@@ -77,11 +79,7 @@ def main(data_dir, client, c, config):
     ORDER_CAT_CODE = cpu_categories.get_loc("order")
 
     # ### cast to minimum viable dtype
-    import cudf
-    codes_min_signed_type = cudf.utils.dtypes.min_signed_type(
-                                                    len(cpu_categories))
-    wp["wp_type_codes"] = wp["wp_type"].cat.codes.astype(codes_min_signed_type)
-    wp["wp_type"] = wp["wp_type"].cat.codes.astype(codes_min_signed_type)
+    wp["wp_type_codes"] = wp["wp_type"].cat.codes
     cols_2_keep = ["wp_web_page_sk", "wp_type_codes"]
     wp = wp[cols_2_keep]
 

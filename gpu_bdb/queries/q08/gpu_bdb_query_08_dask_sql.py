@@ -16,8 +16,6 @@
 
 import os
 
-import cudf
-
 from bdb_tools.cluster_startup import attach_to_cluster
 
 from bdb_tools.utils import (
@@ -104,11 +102,7 @@ def main(data_dir, client, c, config):
     cpu_categories = web_page_df["wp_type"].compute().cat.categories.to_pandas()
     REVIEW_CAT_CODE = cpu_categories.get_loc("review")
 
-    codes_min_signed_type = cudf.utils.dtypes.min_signed_type(len(cpu_categories))
-
-    web_page_df["wp_type_codes"] = web_page_df["wp_type"].cat.codes.astype(
-        codes_min_signed_type
-    )
+    web_page_df["wp_type_codes"] = web_page_df["wp_type"].cat.codes
 
     web_page_newcols = ["wp_web_page_sk", "wp_type_codes"]
     web_page_df = web_page_df[web_page_newcols]
