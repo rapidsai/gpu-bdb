@@ -14,8 +14,7 @@
 # limitations under the License.
 #
 
-import sys
-
+import cudf
 
 from bdb_tools.utils import (
     benchmark,
@@ -32,7 +31,6 @@ q11_start_date = "2003-01-02"
 q11_end_date = "2003-02-02"
 
 def main(client, config):
-    import cudf
 
     pr_df, ws_df, date_df = benchmark(
         read_tables,
@@ -95,8 +93,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

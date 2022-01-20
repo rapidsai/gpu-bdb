@@ -14,9 +14,6 @@
 # limitations under the License.
 #
 
-import os
-import sys
-
 import cudf
 
 from numba import cuda
@@ -63,7 +60,6 @@ def find_items_viewed_before_purchase_kernel(
     as defined by the configuration of this query.
     """
     i = cuda.grid(1)
-    relevant_item = q03_purchased_item_IN
 
     if i < (relevant_idx_col.size):  # boundary guard
         # every relevant row gets N rows in the output, so we need to map the indexes

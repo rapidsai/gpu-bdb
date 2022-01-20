@@ -14,8 +14,7 @@
 # limitations under the License.
 #
 
-from dask.distributed import Client
-import sys
+import cudf
 
 from bdb_tools.utils import (
     benchmark,
@@ -50,7 +49,6 @@ from bdb_tools.q09_utils import (
 )
 
 def main(client, config):
-    import cudf
 
     q09_part1_ca_state_IN = "KY", "GA", "NM"
     q09_part2_ca_state_IN = "MT", "OR", "IN"
@@ -169,8 +167,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

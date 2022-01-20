@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 
-import sys
+import cudf
 
 from bdb_tools.utils import (
     benchmark,
@@ -60,7 +60,6 @@ def get_before_after_sales(df, q16_timestamp):
 
 
 def main(client, config):
-    import cudf
 
     web_sales_df, web_returns_df, date_dim_df, item_df, warehouse_df = benchmark(
         read_tables,
@@ -236,8 +235,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

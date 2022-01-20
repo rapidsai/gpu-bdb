@@ -14,8 +14,6 @@
 # limitations under the License.
 #
 
-import sys
-
 from bdb_tools.utils import (
     benchmark,
     gpubdb_argparser,
@@ -25,8 +23,6 @@ from bdb_tools.q29_utils import (
     q29_limit,
     read_tables
 )
-from bdb_tools.utils import benchmark
-from distributed import wait
 
 ### Implementation Notes:
 # * `drop_duplicates` and `groupby` by default brings result to single partition
@@ -135,8 +131,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

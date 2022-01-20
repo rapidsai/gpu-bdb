@@ -14,8 +14,6 @@
 # limitations under the License.
 #
 
-import time
-
 import numpy as np
 import cupy as cp
 import cupy
@@ -273,7 +271,6 @@ def post_etl_processing(client, train_data, test_data):
     model.fit(X_train, y_train)
 
     ### this regression seems to be coming from here
-    test_pred_st = time.time()
     y_hat = model.predict(X_test).persist()
 
     # Compute distributed performance metrics
@@ -286,10 +283,8 @@ def post_etl_processing(client, train_data, test_data):
     cmat = confusion_matrix(client, y_test, y_hat)
 
     print("Confusion Matrix: " + str(cmat))
-    metric_et = time.time()
 
     # Place results back in original Dataframe
-
     ddh = DistributedDataHandler.create(y_hat)
     test_preds = to_dask_cudf(
         [client.submit(cudf.Series, part) for w, part in ddh.gpu_futures]

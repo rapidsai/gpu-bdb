@@ -14,10 +14,6 @@
 # limitations under the License.
 #
 
-import sys
-from collections import OrderedDict
-
-
 from bdb_tools.utils import (
     benchmark,
     gpubdb_argparser,
@@ -33,7 +29,6 @@ from bdb_tools.q15_utils import (
 )
 
 import datetime
-import numpy as np
 
 def main(client, config):
 
@@ -148,8 +143,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

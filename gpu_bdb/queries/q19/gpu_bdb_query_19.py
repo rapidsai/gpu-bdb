@@ -14,8 +14,10 @@
 # limitations under the License.
 #
 
-import sys
 import os
+
+import cudf
+import dask_cudf
 
 from bdb_tools.utils import (
     benchmark,
@@ -28,14 +30,11 @@ from bdb_tools.q19_utils import (
     read_tables
 )
 
-from dask.distributed import Client, wait
-import distributed
+from dask.distributed import wait
 
 q19_returns_dates = ["2004-03-08", "2004-08-02", "2004-11-15", "2004-12-20"]
 
 def main(client, config):
-    import cudf
-    import dask_cudf
 
     date_dim_df, store_returns_df, web_returns_df, product_reviews_df = benchmark(
         read_tables,
@@ -177,8 +176,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

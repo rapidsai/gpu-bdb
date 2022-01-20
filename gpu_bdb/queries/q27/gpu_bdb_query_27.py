@@ -14,13 +14,11 @@
 # limitations under the License.
 #
 
-import time
-import argparse
+import dask_cudf
 
 from bdb_tools.utils import (
     benchmark,
     gpubdb_argparser,
-    left_semi_join,
     run_query
 )
 
@@ -39,7 +37,6 @@ from bdb_tools.q27_utils import (
 from dask.distributed import wait
 
 def main(client, config):
-    import dask_cudf
 
     product_reviews_df = benchmark(
         read_tables,
@@ -107,8 +104,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

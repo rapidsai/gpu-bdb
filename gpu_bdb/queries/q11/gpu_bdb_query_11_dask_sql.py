@@ -14,10 +14,7 @@
 # limitations under the License.
 #
 
-import sys
-
 from bdb_tools.cluster_startup import attach_to_cluster
-import os
 import cudf
 
 from bdb_tools.utils import (

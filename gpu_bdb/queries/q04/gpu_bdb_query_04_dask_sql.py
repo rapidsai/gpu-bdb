@@ -14,9 +14,6 @@
 # limitations under the License.
 #
 
-import sys
-import os
-
 import cudf
 
 from bdb_tools.cluster_startup import attach_to_cluster
@@ -28,7 +25,6 @@ from bdb_tools.utils import (
 )
 
 from bdb_tools.q04_utils import (
-    abandonedShoppingCarts,
     reduction_function,
     read_tables
 )

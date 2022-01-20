@@ -24,8 +24,6 @@ from bdb_tools.utils import (
 
 from bdb_tools.q03_utils import (
     apply_find_items_viewed,
-    q03_days_in_sec_before_purchase,
-    q03_views_before_purchase,
     q03_purchased_item_IN,
     q03_limit,
     read_tables

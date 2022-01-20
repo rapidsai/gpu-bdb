@@ -14,10 +14,9 @@
 # limitations under the License.
 #
 
-import sys
-
 import numpy as np
-from numba import cuda
+
+import dask_cudf
 
 from bdb_tools.utils import (
     benchmark,
@@ -52,7 +51,6 @@ def agg_count_distinct(df, group_key, counted_key, client):
 
 
 def get_clusters(client, ml_input_df):
-    import dask_cudf
 
     ml_tasks = [
         delayed(train_clustering_model)(df, N_CLUSTERS, CLUSTER_ITERATIONS, N_ITER)
@@ -75,7 +73,6 @@ def get_clusters(client, ml_input_df):
 
 
 def main(client, config):
-    import dask_cudf
 
     ss_ddf, ws_ddf, datedim_ddf = benchmark(
         read_tables,
@@ -148,8 +145,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

@@ -14,8 +14,7 @@
 # limitations under the License.
 #
 
-import sys
-from collections import OrderedDict
+import cudf
 
 from bdb_tools.utils import (
     benchmark,
@@ -34,7 +33,6 @@ from bdb_tools.q17_utils import (
 q17_i_category_IN = "Books", "Music"
 
 def main(client, config):
-    import cudf
 
     (
         store_sales_df,
@@ -169,8 +167,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

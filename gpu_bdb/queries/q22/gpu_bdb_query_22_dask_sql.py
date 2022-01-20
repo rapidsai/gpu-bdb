@@ -15,8 +15,6 @@
 #
 
 import numpy as np
-import sys
-import os
 
 from bdb_tools.cluster_startup import attach_to_cluster
 

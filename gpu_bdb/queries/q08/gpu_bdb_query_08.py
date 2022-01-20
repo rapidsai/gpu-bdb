@@ -17,6 +17,9 @@
 import os
 import glob
 
+import cudf
+import dask_cudf
+
 from bdb_tools.utils import (
     benchmark,
     gpubdb_argparser,
@@ -38,7 +41,6 @@ from distributed import wait
 from dask import delayed
 
 def etl_wcs(wcs_fn, filtered_date_df, web_page_df):
-    import cudf
 
     filtered_date_df = filtered_date_df
     web_page_df = web_page_df
@@ -91,8 +93,6 @@ def reduction_function(df, REVIEW_CAT_CODE):
 
 
 def main(client, config):
-    import cudf
-    import dask_cudf
 
     (date_dim_df, web_page_df, web_sales_df) = benchmark(
         read_tables,
@@ -205,8 +205,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

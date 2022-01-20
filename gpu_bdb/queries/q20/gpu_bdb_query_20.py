@@ -19,14 +19,12 @@ import numpy as np
 from bdb_tools.utils import (
     benchmark,
     gpubdb_argparser,
-    train_clustering_model,
     run_query,
 )
 from bdb_tools.q20_utils import (
     get_clusters,
     read_tables
 )
-from dask import delayed
 from dask.distributed import wait
 
 def remove_inf_and_nulls(df, column_names, value=0.0):
@@ -164,8 +162,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

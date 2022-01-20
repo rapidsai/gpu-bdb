@@ -16,6 +16,9 @@
 
 import os
 
+import cudf
+import dask_cudf
+
 from bdb_tools.utils import (
     benchmark,
     gpubdb_argparser,
@@ -24,8 +27,6 @@ from bdb_tools.utils import (
 
 from bdb_tools.q03_utils import (
     apply_find_items_viewed,
-    q03_days_in_sec_before_purchase,
-    q03_views_before_purchase,
     q03_purchased_item_IN,
     q03_limit,
     read_tables
@@ -37,11 +38,9 @@ import numpy as np
 import glob
 from dask import delayed
 
-
 q03_purchased_item_category_IN = [2, 3]
 
 def get_wcs_minima(config):
-    import dask_cudf
 
     wcs_df = dask_cudf.read_parquet(
         os.path.join(config["data_dir"], "web_clickstreams/*.parquet"),
@@ -55,7 +54,6 @@ def get_wcs_minima(config):
 
 
 def pre_repartition_task(wcs_fn, item_df, wcs_tstamp_min):
-    import cudf
 
     wcs_cols = [
         "wcs_user_sk",
@@ -109,8 +107,6 @@ def reduction_function(df, item_df_filtered):
 
 
 def main(client, config):
-    import dask_cudf
-    import cudf
 
     item_df = benchmark(
         read_tables,
@@ -190,8 +186,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

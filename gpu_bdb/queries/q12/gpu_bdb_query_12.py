@@ -14,9 +14,11 @@
 # limitations under the License.
 #
 
-import sys
 import os
 import glob
+
+import cudf
+import dask_cudf
 
 from bdb_tools.utils import (
     benchmark,
@@ -71,7 +73,6 @@ def filter_wcs_table(web_clickstreams_fn, filtered_item_df):
         ##    AND wcs_user_sk IS NOT NULL
         ###   AND wcs_sales_sk IS NULL --only views, not purchases
     """
-    import cudf
 
     web_clickstreams_cols = [
         "wcs_user_sk",
@@ -131,7 +132,6 @@ def filter_ss_table(store_sales_df, filtered_item_df):
 
 
 def main(client, config):
-    import cudf, dask_cudf
 
     item_df, store_sales_df = benchmark(
         read_tables,
@@ -223,8 +223,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

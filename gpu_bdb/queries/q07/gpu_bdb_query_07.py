@@ -14,9 +14,6 @@
 # limitations under the License.
 #
 
-import sys
-
-
 from bdb_tools.utils import (
     benchmark,
     gpubdb_argparser,
@@ -120,8 +117,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

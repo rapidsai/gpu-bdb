@@ -14,9 +14,6 @@
 # limitations under the License.
 #
 
-import sys
-import os
-
 from bdb_tools.cluster_startup import attach_to_cluster
 
 from bdb_tools.utils import (

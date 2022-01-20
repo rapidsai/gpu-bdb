@@ -15,18 +15,9 @@
 #
 
 import cupy
-import dask
 
-import distributed
-import numpy as np
-import time
 import cupy as cp
 import copyreg
-import sys, os
-import traceback
-
-from distributed import wait
-from cuml.feature_extraction.text import HashingVectorizer
 
 from bdb_tools.utils import (
     benchmark,
@@ -40,7 +31,6 @@ from bdb_tools.q28_utils import (
 )
 
 def main(client, config):
-    q_st = time.time()
     product_reviews_df = benchmark(
         read_tables,
         config=config,
@@ -80,11 +70,6 @@ def register_serialization():
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-
-    import cudf
-    from cuml.dask.naive_bayes import MultinomialNB as DistMNB
-    from cuml.dask.common.input_utils import DistributedDataHandler
-    from cuml.dask.common import to_dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

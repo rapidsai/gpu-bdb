@@ -14,8 +14,10 @@
 # limitations under the License.
 #
 
-import sys
 import os
+
+import cudf
+import dask_cudf
 
 from bdb_tools.utils import (
     benchmark,
@@ -28,14 +30,9 @@ from bdb_tools.q10_utils import (
     read_tables
 )
 
-import rmm
-import cupy as cp
-import distributed
-
-from dask.distributed import Client, wait
+from dask.distributed import wait
 
 def load_sentiment_words(filename, sentiment):
-    import cudf
 
     with open(filename) as fh:
         sentiment_words = list(map(str.strip, fh.readlines()))
@@ -48,8 +45,6 @@ def load_sentiment_words(filename, sentiment):
 
 
 def main(client, config):
-    import cudf
-    import dask_cudf
 
     product_reviews_df = benchmark(
         read_tables,
@@ -131,8 +126,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

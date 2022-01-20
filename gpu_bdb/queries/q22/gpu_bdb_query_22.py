@@ -14,10 +14,7 @@
 # limitations under the License.
 #
 
-from numba import cuda
 import numpy as np
-import sys
-
 
 from bdb_tools.utils import (
     benchmark,
@@ -134,8 +131,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

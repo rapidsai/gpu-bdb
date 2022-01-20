@@ -70,7 +70,7 @@ def get_session_id_from_session_boundary(session_change_df, last_session_len):
 
     try:
         session_len.iloc[-1] = last_session_len
-    except (AssertionError, IndexError) as e:  # IndexError in numba >= 0.48
+    except (AssertionError, IndexError):  # IndexError in numba >= 0.48
         session_len = cudf.Series([])
 
     session_id_final_series = (
@@ -96,7 +96,7 @@ def get_session_id(df):
     session_change_df = df[df["session_change_flag"]].reset_index(drop=True)
     try:
         last_session_len = len(df) - session_change_df["t_index"].iloc[-1]
-    except (AssertionError, IndexError) as e:  # IndexError in numba >= 0.48
+    except (AssertionError, IndexError):  # IndexError in numba >= 0.48
         last_session_len = 0
 
     session_ids = get_session_id_from_session_boundary(

@@ -17,6 +17,9 @@
 import os
 import glob
 
+import cudf
+import dask_cudf
+
 from bdb_tools.utils import (
     benchmark,
     gpubdb_argparser,
@@ -25,13 +28,12 @@ from bdb_tools.utils import (
 
 from bdb_tools.q05_utils import (
     build_and_predict_model,
+    wcs_columns,
     read_tables
 )
 
-import cupy as cp
 import numpy as np
 from dask import delayed
-import dask
 import pandas as pd
 
 #
@@ -40,13 +42,10 @@ import pandas as pd
 COLLEGE_ED_STRS = ["Advanced Degree", "College", "4 yr Degree", "2 yr Degree"]
 Q05_I_CATEGORY = "Books"
 
-wcs_columns = ["wcs_item_sk", "wcs_user_sk"]
-
 def get_groupby_results(file_list, item_df):
     """
         Functionial approach for better scaling
     """
-    import cudf
 
     sum_by_cat_ddf = None
     for fn in file_list:
@@ -91,8 +90,6 @@ def get_groupby_results(file_list, item_df):
 
 
 def main(client, config):
-    import cudf
-    import dask_cudf
 
     item_ddf, customer_ddf, customer_dem_ddf = benchmark(
         read_tables,
@@ -197,9 +194,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
-    import cuml
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

@@ -14,9 +14,6 @@
 # limitations under the License.
 #
 
-import sys
-import os
-
 from bdb_tools.cluster_startup import attach_to_cluster
 
 from bdb_tools.utils import (
@@ -76,7 +73,6 @@ def agg_count_distinct(df, group_key, counted_key):
 def main(data_dir, client, c, config):
     benchmark(read_tables, config, c, dask_profile=config["dask_profile"])
 
-    q25_date = "2002-01-02"
     ss_join_query= f"""
         SELECT
             ss_customer_sk,

@@ -14,11 +14,9 @@
 # limitations under the License.
 #
 
-from dask.distributed import Client
-
 import numpy as np
-import sys
 
+import cudf
 
 from bdb_tools.utils import (
     benchmark,
@@ -28,7 +26,6 @@ from bdb_tools.utils import (
 from bdb_tools.q14_utils import read_tables
 
 def main(client, config):
-    import cudf
 
     q14_dependents = 5
     q14_morning_startHour = 7
@@ -115,8 +112,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

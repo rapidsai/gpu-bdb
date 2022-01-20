@@ -14,9 +14,6 @@
 # limitations under the License.
 #
 
-import sys
-import os
-
 from bdb_tools.cluster_startup import attach_to_cluster
 
 from bdb_tools.utils import (
@@ -33,9 +30,6 @@ from bdb_tools.q02_utils import (
     q02_session_timeout_inSec,
     read_tables
 )
-
-from dask.distributed import wait
-
 
 def main(data_dir, client, c, config):
     benchmark(read_tables, config, c, dask_profile=config["dask_profile"])

@@ -16,7 +16,8 @@
 
 import os
 
-from collections import OrderedDict
+import cudf
+import dask_cudf
 
 from bdb_tools.utils import (
     benchmark,
@@ -42,8 +43,6 @@ from distributed import wait
 TEMP_TABLE1 = "TEMP_TABLE1"
 
 def main(client, config):
-    import cudf
-    import dask_cudf
 
     store_sales, date_dim, store, product_reviews = benchmark(
         read_tables,
@@ -125,7 +124,6 @@ def main(client, config):
         .to_arrow()
         .to_pylist()
     )
-    n_targets = len(targets)
 
     no_nulls = pr[~pr.pr_review_content.isnull()].reset_index(drop=True)
     no_nulls["pr_review_sk"] = no_nulls["pr_review_sk"].astype("int32")
@@ -226,8 +224,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

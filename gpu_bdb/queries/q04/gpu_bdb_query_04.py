@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 
-import sys
+import cudf
 
 from bdb_tools.utils import (
     benchmark,
@@ -22,10 +22,7 @@ from bdb_tools.utils import (
     run_query,
 )
 
-from bdb_tools.sessionization import get_sessions
-
 from bdb_tools.q04_utils import (
-    abandonedShoppingCarts,
     reduction_function,
     read_tables
 )
@@ -34,7 +31,6 @@ from bdb_tools.q04_utils import (
 q04_session_timeout_inSec = 3600
 
 def main(client, config):
-    import cudf
 
     wp, wcs_df = benchmark(
         read_tables,
@@ -93,8 +89,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

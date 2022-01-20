@@ -14,11 +14,7 @@
 # limitations under the License.
 #
 
-import sys
-
 from bdb_tools.cluster_startup import attach_to_cluster
-from dask.distributed import Client
-import os
 
 from bdb_tools.utils import (
     benchmark,

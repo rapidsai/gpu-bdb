@@ -22,7 +22,6 @@ from bdb_tools.utils import (
 from bdb_tools.sessionization import get_distinct_sessions
 from bdb_tools.q02_utils import (
     q02_item_sk,
-    q02_MAX_ITEMS_PER_BASKET,
     q02_limit,
     q02_session_timeout_inSec,
     read_tables
@@ -62,10 +61,6 @@ def reduction_function(df, q02_session_timeout_inSec):
     del item_series
     grouped_df.columns = ["i_item_sk", "cnt"]
     return grouped_df
-
-
-    wcs_df = table_reader.read("web_clickstreams", relevant_cols=wcs_cols)
-    return wcs_df
 
 
 def pre_repartition_task(wcs_df):
@@ -141,8 +136,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)
