@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019-2020, NVIDIA CORPORATION.
+# Copyright (c) 2019-2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ from bdb_tools.utils import (
     gpubdb_argparser,
     left_semi_join,
     run_query,
-)
+    )
 from bdb_tools.q17_utils import (
     q17_gmt_offset,
     q17_year,

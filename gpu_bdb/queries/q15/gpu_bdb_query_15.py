@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019-2020, NVIDIA CORPORATION.
+# Copyright (c) 2019-2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,7 +24,6 @@ from bdb_tools.utils import (
     run_query,
     convert_datestring_to_days,
 )
-from bdb_tools.readers import build_reader
 from bdb_tools.q15_utils import (
     q15_startDate,
     q15_endDate,

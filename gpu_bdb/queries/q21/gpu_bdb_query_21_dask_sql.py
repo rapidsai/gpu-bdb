@@ -27,8 +27,6 @@ from bdb_tools.utils import (
 
 from bdb_tools.q21_utils import read_tables
 
-from bdb_tools.readers import build_reader
-
 def main(data_dir, client, c, config):
     benchmark(read_tables, config, c, dask_profile=config["dask_profile"])
 

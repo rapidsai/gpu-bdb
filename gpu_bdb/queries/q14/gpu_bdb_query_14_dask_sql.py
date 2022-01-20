@@ -25,8 +25,6 @@ from bdb_tools.utils import (
     run_query,
 )
 
-from bdb_tools.readers import build_reader
-
 from bdb_tools.q14_utils import read_tables
 
 def main(data_dir, client, c, config):

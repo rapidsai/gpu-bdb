@@ -35,8 +35,6 @@ from bdb_tools.q26_utils import (
     read_tables
 )
 
-from bdb_tools.readers import build_reader
-
 from dask import delayed
 
 def get_clusters(client, kmeans_input_df):

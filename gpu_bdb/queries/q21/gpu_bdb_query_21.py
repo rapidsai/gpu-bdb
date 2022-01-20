@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019-2020, NVIDIA CORPORATION.
+# Copyright (c) 2019-2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,7 +25,6 @@ from bdb_tools.merge_util import hash_merge
 
 from bdb_tools.q21_utils import read_tables
 
-from bdb_tools.readers import build_reader
 from dask.distributed import Client, wait
 
 q21_year = 2003

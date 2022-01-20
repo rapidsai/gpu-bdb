@@ -22,8 +22,6 @@ from bdb_tools.utils import (
     run_query,
 )
 
-from bdb_tools.readers import build_reader
-
 from bdb_tools.q03_utils import (
     apply_find_items_viewed,
     q03_days_in_sec_before_purchase,

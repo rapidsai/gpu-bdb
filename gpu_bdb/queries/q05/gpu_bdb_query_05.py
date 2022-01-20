@@ -23,7 +23,6 @@ from bdb_tools.utils import (
     run_query,
 )
 
-from bdb_tools.readers import build_reader
 from bdb_tools.q05_utils import (
     build_and_predict_model,
     read_tables

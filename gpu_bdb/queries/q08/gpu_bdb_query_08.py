@@ -21,9 +21,8 @@ from bdb_tools.utils import (
     benchmark,
     gpubdb_argparser,
     run_query,
-    convert_datestring_to_days,
+    convert_datestring_to_days
 )
-from bdb_tools.readers import build_reader
 from bdb_tools.merge_util import hash_merge
 from bdb_tools.q08_utils import (
     get_sessions,

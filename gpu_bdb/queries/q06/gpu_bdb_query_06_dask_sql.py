@@ -25,8 +25,6 @@ from bdb_tools.utils import (
     run_query,
 )
 
-from bdb_tools.readers import build_reader
-
 from bdb_tools.q06_utils import (
     q06_LIMIT,
     q06_YEAR,

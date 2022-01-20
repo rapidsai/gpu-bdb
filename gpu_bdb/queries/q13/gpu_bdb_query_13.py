@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019-2020, NVIDIA CORPORATION.
+# Copyright (c) 2019-2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,7 +21,6 @@ from bdb_tools.utils import (
     gpubdb_argparser,
     run_query,
 )
-from bdb_tools.readers import build_reader
 from bdb_tools.q13_utils import read_tables
 
 from distributed import wait

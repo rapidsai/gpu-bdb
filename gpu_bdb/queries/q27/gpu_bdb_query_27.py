@@ -29,8 +29,6 @@ from bdb_tools.text import (
     create_words_from_sentences
 )
 
-from bdb_tools.readers import build_reader
-
 from bdb_tools.q27_utils import (
     ner_parser,
     q27_pr_item_sk,

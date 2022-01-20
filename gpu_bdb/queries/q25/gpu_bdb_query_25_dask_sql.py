@@ -36,8 +36,6 @@ from bdb_tools.q25_utils import (
 
 from dask import delayed
 
-from bdb_tools.readers import build_reader
-
 def get_clusters(client, ml_input_df):
     import dask_cudf
 

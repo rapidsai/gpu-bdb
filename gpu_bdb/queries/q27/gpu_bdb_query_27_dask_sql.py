@@ -28,8 +28,6 @@ from bdb_tools.utils import (
     run_query,
 )
 
-from bdb_tools.readers import build_reader
-
 from bdb_tools.q27_utils import (
     ner_parser,
     q27_pr_item_sk,

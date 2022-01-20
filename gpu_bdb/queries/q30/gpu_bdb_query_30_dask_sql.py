@@ -36,8 +36,6 @@ from bdb_tools.q30_utils import (
     read_tables
 )
 
-from bdb_tools.readers import build_reader
-
 from dask.distributed import wait
 
 def main(data_dir, client, c, config):

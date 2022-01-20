@@ -22,7 +22,6 @@ from bdb_tools.utils import (
     train_clustering_model,
     run_query,
 )
-from bdb_tools.readers import build_reader
 from bdb_tools.q20_utils import (
     get_clusters,
     read_tables

@@ -22,8 +22,6 @@ from bdb_tools.utils import (
     run_query,
 )
 
-from bdb_tools.readers import build_reader
-
 from bdb_tools.q28_utils import (
     post_etl_processing,
     read_tables

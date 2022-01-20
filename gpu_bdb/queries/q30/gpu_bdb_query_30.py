@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019-2020, NVIDIA CORPORATION.
+# Copyright (c) 2019-2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,7 +28,6 @@ from bdb_tools.q30_utils import (
     q30_limit,
     read_tables
 )
-from bdb_tools.readers import build_reader
 from bdb_tools.sessionization import get_session_id, get_distinct_sessions, get_pairs
 
 from dask import delayed

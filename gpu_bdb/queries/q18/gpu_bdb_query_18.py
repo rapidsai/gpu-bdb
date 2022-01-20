@@ -24,7 +24,6 @@ from bdb_tools.utils import (
     left_semi_join,
     run_query,
 )
-from bdb_tools.readers import build_reader
 from bdb_tools.text import (
     create_sentences_from_reviews,
     create_words_from_sentences,

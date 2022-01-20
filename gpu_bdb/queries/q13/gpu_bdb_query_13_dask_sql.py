@@ -26,8 +26,6 @@ from bdb_tools.utils import (
     run_query,
 )
 
-from bdb_tools.readers import build_reader
-
 from bdb_tools.q13_utils import read_tables
 
 from dask.distributed import wait

@@ -24,8 +24,6 @@ from bdb_tools.utils import (
     run_query,
 )
 
-from bdb_tools.readers import build_reader
-
 from bdb_tools.q08_utils import (
     get_sessions,
     get_unique_sales_keys_from_sessions,

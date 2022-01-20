@@ -29,8 +29,6 @@ from bdb_tools.utils import (
     run_query,
 )
 
-from bdb_tools.readers import build_reader
-
 from bdb_tools.q18_utils import (
     find_relevant_reviews,
     q18_startDate,

@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019-2020, NVIDIA CORPORATION.
+# Copyright (c) 2019-2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,7 +25,6 @@ from bdb_tools.q29_utils import (
     q29_limit,
     read_tables
 )
-from bdb_tools.readers import build_reader
 from bdb_tools.utils import benchmark
 from distributed import wait
 

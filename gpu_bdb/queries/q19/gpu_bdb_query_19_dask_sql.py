@@ -32,8 +32,6 @@ from bdb_tools.text import (
     create_words_from_sentences
 )
 
-from bdb_tools.readers import build_reader
-
 from bdb_tools.q19_utils import (
     eol_char,
     read_tables

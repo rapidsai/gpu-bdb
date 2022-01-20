@@ -24,7 +24,6 @@ from bdb_tools.utils import (
     gpubdb_argparser,
     run_query,
 )
-from bdb_tools.readers import build_reader
 
 from bdb_tools.q01_utils import (
     q01_viewed_together_count,

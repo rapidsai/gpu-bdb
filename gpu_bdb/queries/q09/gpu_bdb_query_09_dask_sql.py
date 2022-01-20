@@ -25,8 +25,6 @@ from bdb_tools.utils import (
     run_query,
 )
 
-from bdb_tools.readers import build_reader
-
 from bdb_tools.q09_utils import (
     q09_year,
     q09_part1_ca_country,
