@@ -24,6 +24,7 @@ from bdb_tools.utils import (
 )
 from bdb_tools.readers import build_reader
 
+from bdb_tools.q07_utils import read_tables
 
 q07_HIGHER_PRICE_RATIO = 1.2
 # --store_sales date
@@ -51,44 +52,10 @@ def create_high_price_items_df(item_df):
     return high_price_items_df
 
 
-def read_tables(config):
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=config["split_row_groups"],
-    )
-
-    item_cols = ["i_item_sk", "i_current_price", "i_category"]
-    store_sales_cols = ["ss_item_sk", "ss_customer_sk", "ss_sold_date_sk"]
-    store_cols = ["s_store_sk"]
-    date_cols = ["d_date_sk", "d_year", "d_moy"]
-    customer_cols = ["c_customer_sk", "c_current_addr_sk"]
-    customer_address_cols = ["ca_address_sk", "ca_state"]
-
-    item_df = table_reader.read("item", relevant_cols=item_cols)
-    store_sales_df = table_reader.read("store_sales", relevant_cols=store_sales_cols)
-    store_df = table_reader.read("store", relevant_cols=store_cols)
-    date_dim_df = table_reader.read("date_dim", relevant_cols=date_cols)
-    customer_df = table_reader.read("customer", relevant_cols=customer_cols)
-    customer_address_df = table_reader.read(
-        "customer_address", relevant_cols=customer_address_cols
-    )
-
-    return (
-        item_df,
-        store_sales_df,
-        store_df,
-        date_dim_df,
-        customer_df,
-        customer_address_df,
-    )
-
-
 def main(client, config):
     (
         item_df,
         store_sales_df,
-        store_df,
         date_dim_df,
         customer_df,
         customer_address_df,

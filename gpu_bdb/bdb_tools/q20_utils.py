@@ -20,10 +20,44 @@ from dask import delayed
 
 from bdb_tools.utils import train_clustering_model
 
+from bdb_tools.readers import build_reader
+
 # q20 parameters
 N_CLUSTERS = 8
 CLUSTER_ITERATIONS = 20
 N_ITER = 5
+
+def read_tables(config, c=None):
+    table_reader = build_reader(
+        data_format=config["file_format"],
+        basepath=config["data_dir"],
+        split_row_groups=config["split_row_groups"],
+    )
+
+    store_sales_cols = [
+        "ss_customer_sk",
+        "ss_ticket_number",
+        "ss_item_sk",
+        "ss_net_paid",
+    ]
+    store_returns_cols = [
+        "sr_item_sk",
+        "sr_customer_sk",
+        "sr_ticket_number",
+        "sr_return_amt",
+    ]
+
+    store_sales_df = table_reader.read("store_sales", relevant_cols=store_sales_cols)
+    store_returns_df = table_reader.read(
+        "store_returns", relevant_cols=store_returns_cols
+    )
+
+    if c:
+        c.create_table("store_sales", store_sales_df, persist=False)
+        c.create_table("store_returns", store_returns_df, persist=False)
+
+    return store_sales_df, store_returns_df
+
 
 def get_clusters(client, ml_input_df, feature_cols):
     """

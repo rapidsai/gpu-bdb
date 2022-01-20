@@ -17,6 +17,11 @@
 from bdb_tools.utils import benchmark, gpubdb_argparser, run_query
 from bdb_tools.readers import build_reader
 
+from bdb_tools.q01_utils import (
+    q01_viewed_together_count,
+    q01_limit,
+    read_tables
+)
 
 ### Implementation Notes:
 # `drop_duplicates` and `groupby` by default brings result to single partition
@@ -26,30 +31,8 @@ from bdb_tools.readers import build_reader
 ### Future Notes:
 # Settinng  index + merge using  map_parition can be a work-around if dask native merge is slow
 
-
-# -------- Q1 -----------
-q01_i_category_id_IN = [1, 2, 3]
-# -- sf1 -> 11 stores, 90k sales in 820k lines
-q01_ss_store_sk_IN = [10, 20, 33, 40, 50]
-q01_viewed_together_count = 50
-q01_limit = 100
-
-
-item_cols = ["i_item_sk", "i_category_id"]
-ss_cols = ["ss_item_sk", "ss_store_sk", "ss_ticket_number"]
-
-
-def read_tables(config):
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=config["split_row_groups"],
-    )
-
-    item_df = table_reader.read("item", relevant_cols=item_cols)
-    ss_df = table_reader.read("store_sales", relevant_cols=ss_cols)
-    return item_df, ss_df
-
+q01_i_category_id_IN = ["1", "2"," 3"]
+q01_ss_store_sk_IN = ["10", "20", "33", "40", "50"]
 
 ### Inner Self join to get pairs
 #     Select t1.ss_item_sk as item_sk_1 , t2.ss_item_sk as item_sk_2

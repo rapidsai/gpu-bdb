@@ -25,31 +25,17 @@ from bdb_tools.utils import (
     run_query,
 )
 
+from bdb_tools.q29_utils import (
+    q29_limit,
+    read_tables
+)
+
 from bdb_tools.readers import build_reader
 
 from dask.distributed import wait
 
-
-# -------- Q29 -----------
-q29_limit = 100
-
-
-def read_tables(data_dir, c, config):
-    table_reader = build_reader(
-        data_format=config["file_format"], basepath=config["data_dir"],
-    )
-    item_cols = ["i_item_sk", "i_category_id"]
-    item_df = table_reader.read("item", relevant_cols=item_cols)
-
-    ws_cols = ["ws_order_number", "ws_item_sk"]
-    ws_df = table_reader.read("web_sales", relevant_cols=ws_cols)
-
-    c.create_table('item', item_df, persist=False)
-    c.create_table('web_sales', ws_df, persist=False)
-
-
 def main(data_dir, client, c, config):
-    benchmark(read_tables, data_dir, c, config, dask_profile=config["dask_profile"])
+    benchmark(read_tables, config, c, dask_profile=config["dask_profile"])
     n_workers = len(client.scheduler_info()["workers"])
 
     join_query = """

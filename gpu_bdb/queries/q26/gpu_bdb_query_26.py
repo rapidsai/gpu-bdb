@@ -25,33 +25,16 @@ from bdb_tools.utils import (
     train_clustering_model,
     run_query,
 )
+from bdb_tools.q26_utils import (
+    Q26_CATEGORY,
+    Q26_ITEM_COUNT,
+    N_CLUSTERS,
+    CLUSTER_ITERATIONS,
+    N_ITER,
+    read_tables
+)
 from bdb_tools.readers import build_reader
 from dask import delayed
-
-
-# q26 parameters
-Q26_CATEGORY = "Books"
-Q26_ITEM_COUNT = 5
-N_CLUSTERS = 8
-CLUSTER_ITERATIONS = 20
-N_ITER = 5
-
-
-def read_tables(config):
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=config["split_row_groups"],
-    )
-
-    ss_cols = ["ss_customer_sk", "ss_item_sk"]
-    items_cols = ["i_item_sk", "i_category", "i_class_id"]
-
-    ss_ddf = table_reader.read("store_sales", relevant_cols=ss_cols, index=False)
-    items_ddf = table_reader.read("item", relevant_cols=items_cols, index=False)
-
-    return (ss_ddf, items_ddf)
-
 
 def agg_count_distinct(df, group_key, counted_key):
     """Returns a Series that is the result of counting distinct instances of 'counted_key' within each 'group_key'.

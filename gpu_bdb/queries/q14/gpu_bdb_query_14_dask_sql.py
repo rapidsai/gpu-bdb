@@ -27,36 +27,10 @@ from bdb_tools.utils import (
 
 from bdb_tools.readers import build_reader
 
-
-def read_tables(data_dir, c, config):
-	table_reader = build_reader(
-		data_format=config["file_format"],
-		basepath=config["data_dir"],
-		split_row_groups=config["split_row_groups"],
-	)
-
-	ws_columns = ["ws_ship_hdemo_sk", "ws_web_page_sk", "ws_sold_time_sk"]
-	web_sales = table_reader.read("web_sales", relevant_cols=ws_columns)
-
-	hd_columns = ["hd_demo_sk", "hd_dep_count"]
-	household_demographics = table_reader.read(
-		"household_demographics", relevant_cols=hd_columns
-	)
-
-	wp_columns = ["wp_web_page_sk", "wp_char_count"]
-	web_page = table_reader.read("web_page", relevant_cols=wp_columns)
-
-	td_columns = ["t_time_sk", "t_hour"]
-	time_dim = table_reader.read("time_dim", relevant_cols=td_columns)
-
-	c.create_table("household_demographics", household_demographics, persist=False)
-	c.create_table("web_page", web_page, persist=False)
-	c.create_table("web_sales", web_sales, persist=False)
-	c.create_table("time_dim", time_dim, persist=False)
-
+from bdb_tools.q14_utils import read_tables
 
 def main(data_dir, client, c, config):
-    benchmark(read_tables, data_dir, c, config, dask_profile=config["dask_profile"])
+    benchmark(read_tables, config, c, dask_profile=config["dask_profile"])
 
     query = """ 
 		SELECT CASE WHEN pmc > 0.0 THEN CAST (amc AS DOUBLE) / CAST (pmc AS DOUBLE) ELSE -1.0 END AS am_pm_ratio

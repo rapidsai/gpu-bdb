@@ -25,34 +25,14 @@ from bdb_tools.utils import (
     gpubdb_argparser,
     run_query,
 )
+from bdb_tools.q23_utils import (
+    q23_year,
+    q23_month,
+    q23_coefficient,
+    read_tables
+)
 
 from distributed import wait
-
-
-### inventory date
-q23_year = 2001
-q23_month = 1
-q23_coefficient = 1.3
-
-
-def read_tables(config):
-    table_reader = build_reader(
-        data_format=config["file_format"], basepath=config["data_dir"],
-    )
-
-    date_cols = ["d_date_sk", "d_year", "d_moy"]
-    date_df = table_reader.read("date_dim", relevant_cols=date_cols)
-
-    inv_cols = [
-        "inv_warehouse_sk",
-        "inv_item_sk",
-        "inv_date_sk",
-        "inv_quantity_on_hand",
-    ]
-    inv_df = table_reader.read("inventory", relevant_cols=inv_cols)
-
-    return date_df, inv_df
-
 
 def get_iteration1(merged_inv_dates, n_workers):
     grouped_df = merged_inv_dates.groupby(["inv_warehouse_sk", "inv_item_sk", "d_moy"])

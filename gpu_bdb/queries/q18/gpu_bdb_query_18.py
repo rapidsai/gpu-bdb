@@ -24,57 +24,23 @@ from bdb_tools.utils import (
     left_semi_join,
     run_query,
 )
-
 from bdb_tools.readers import build_reader
 from bdb_tools.text import (
     create_sentences_from_reviews,
     create_words_from_sentences,
 )
-from bdb_tools.q18_utils import find_relevant_reviews
+from bdb_tools.q18_utils import (
+    find_relevant_reviews,
+    q18_startDate,
+    q18_endDate,
+    EOL_CHAR,
+    read_tables
+)
+
 import numpy as np
 from distributed import wait
 
-
-# -------- Q18 -----------
-# -- store_sales date range
-q18_startDate = "2001-05-02"
-# --+90days
-q18_endDate = "2001-09-02"
 TEMP_TABLE1 = "TEMP_TABLE1"
-EOL_CHAR = "è"
-
-
-def read_tables(config):
-    table_reader = build_reader(
-        data_format=config["file_format"], basepath=config["data_dir"],
-    )
-
-    store_sales_cols = [
-        "ss_store_sk",
-        "ss_sold_date_sk",
-        "ss_net_paid",
-    ]
-    date_cols = ["d_date_sk", "d_date"]
-    store_cols = ["s_store_sk", "s_store_name"]
-
-    store_sales = table_reader.read("store_sales", relevant_cols=store_sales_cols)
-    date_dim = table_reader.read("date_dim", relevant_cols=date_cols)
-    store = table_reader.read("store", relevant_cols=store_cols)
-
-    ### splitting by row groups for better parallelism
-    pr_table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=True,
-    )
-
-    product_reviews_cols = ["pr_review_date", "pr_review_content", "pr_review_sk"]
-    product_reviews = pr_table_reader.read(
-        "product_reviews", relevant_cols=product_reviews_cols,
-    )
-
-    return store_sales, date_dim, store, product_reviews
-
 
 def main(client, config):
     import cudf

@@ -27,61 +27,14 @@ from bdb_tools.utils import (
 
 from bdb_tools.readers import build_reader
 
-
-# -------- Q6 -----------
-q06_LIMIT = 100
-# --web_sales and store_sales date
-q06_YEAR = 2001
-
-
-def read_tables(data_dir, c, config):
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=config["split_row_groups"],
-    )
-
-    web_sales_cols = [
-        "ws_bill_customer_sk",
-        "ws_sold_date_sk",
-        "ws_ext_list_price",
-        "ws_ext_wholesale_cost",
-        "ws_ext_discount_amt",
-        "ws_ext_sales_price",
-    ]
-    store_sales_cols = [
-        "ss_customer_sk",
-        "ss_sold_date_sk",
-        "ss_ext_list_price",
-        "ss_ext_wholesale_cost",
-        "ss_ext_discount_amt",
-        "ss_ext_sales_price",
-    ]
-    date_cols = ["d_date_sk", "d_year", "d_moy"]
-    customer_cols = [
-        "c_customer_sk",
-        "c_customer_id",
-        "c_email_address",
-        "c_first_name",
-        "c_last_name",
-        "c_preferred_cust_flag",
-        "c_birth_country",
-        "c_login",
-    ]
-
-    ws_df = table_reader.read("web_sales", relevant_cols=web_sales_cols)
-    ss_df = table_reader.read("store_sales", relevant_cols=store_sales_cols)
-    date_df = table_reader.read("date_dim", relevant_cols=date_cols)
-    customer_df = table_reader.read("customer", relevant_cols=customer_cols)
-
-    c.create_table('web_sales', ws_df, persist=False)
-    c.create_table('store_sales', ss_df, persist=False)
-    c.create_table('date_dim', date_df, persist=False)
-    c.create_table('customer', customer_df, persist=False)
-
+from bdb_tools.q06_utils import (
+    q06_LIMIT,
+    q06_YEAR,
+    read_tables
+)
 
 def main(data_dir, client, c, config):
-    benchmark(read_tables, data_dir, c, config, dask_profile=config["dask_profile"])
+    benchmark(read_tables, config, c, dask_profile=config["dask_profile"])
 
     query = f"""
         WITH temp_table_1 as

@@ -26,39 +26,15 @@ from bdb_tools.utils import (
     run_query,
     convert_datestring_to_days,
 )
+from bdb_tools.q25_utils import (
+    q25_date,
+    N_CLUSTERS,
+    CLUSTER_ITERATIONS,
+    N_ITER,
+    read_tables
+)
 from bdb_tools.readers import build_reader
 from dask import delayed
-
-
-# q25 parameters
-Q25_DATE = "2002-01-02"
-N_CLUSTERS = 8
-CLUSTER_ITERATIONS = 20
-N_ITER = 5
-
-
-def read_tables(config):
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=config["split_row_groups"],
-    )
-
-    ss_cols = ["ss_customer_sk", "ss_sold_date_sk", "ss_ticket_number", "ss_net_paid"]
-    ws_cols = [
-        "ws_bill_customer_sk",
-        "ws_sold_date_sk",
-        "ws_order_number",
-        "ws_net_paid",
-    ]
-    datedim_cols = ["d_date_sk", "d_date"]
-
-    ss_ddf = table_reader.read("store_sales", relevant_cols=ss_cols, index=False)
-    ws_ddf = table_reader.read("web_sales", relevant_cols=ws_cols, index=False)
-    datedim_ddf = table_reader.read("date_dim", relevant_cols=datedim_cols, index=False)
-
-    return (ss_ddf, ws_ddf, datedim_ddf)
-
 
 def agg_count_distinct(df, group_key, counted_key, client):
     """Returns a Series that is the result of counting distinct instances of 'counted_key' within each 'group_key'.
@@ -109,7 +85,7 @@ def main(client, config):
         dask_profile=config["dask_profile"],
     )
     datedim_ddf = datedim_ddf.map_partitions(convert_datestring_to_days)
-    min_date = np.datetime64(Q25_DATE, "D").astype(int)
+    min_date = np.datetime64(q25_date, "D").astype(int)
     # Filter by date
     valid_dates_ddf = datedim_ddf[datedim_ddf["d_date"] > min_date].reset_index(
         drop=True

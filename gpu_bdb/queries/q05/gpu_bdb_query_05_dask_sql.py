@@ -24,40 +24,13 @@ from bdb_tools.utils import (
     run_query,
 )
 from bdb_tools.readers import build_reader
-from bdb_tools.q05_utils import build_and_predict_model
-
-
-wcs_columns = ["wcs_item_sk", "wcs_user_sk"]
-items_columns = ["i_item_sk", "i_category", "i_category_id"]
-customer_columns = ["c_customer_sk", "c_current_cdemo_sk"]
-customer_dem_columns = ["cd_demo_sk", "cd_gender", "cd_education_status"]
-
-def read_tables(data_dir, c, config):
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=config["split_row_groups"],
-    )
-
-    item_ddf = table_reader.read("item", relevant_cols=items_columns, index=False)
-    customer_ddf = table_reader.read(
-        "customer", relevant_cols=customer_columns, index=False
-    )
-    customer_dem_ddf = table_reader.read(
-        "customer_demographics", relevant_cols=customer_dem_columns, index=False
-    )
-    wcs_ddf = table_reader.read(
-        "web_clickstreams", relevant_cols=wcs_columns, index=False
-    )
-
-    c.create_table("web_clickstreams", wcs_ddf, persist=False)
-    c.create_table("customer", customer_ddf, persist=False)
-    c.create_table("item", item_ddf, persist=False)
-    c.create_table("customer_demographics", customer_dem_ddf, persist=False)
-
+from bdb_tools.q05_utils import (
+    build_and_predict_model,
+    read_tables
+)
 
 def main(data_dir, client, c, config):
-    benchmark(read_tables, data_dir, c, config, dask_profile=config["dask_profile"])
+    benchmark(read_tables, config, c, dask_profile=config["dask_profile"])
 
     query = """
         SELECT

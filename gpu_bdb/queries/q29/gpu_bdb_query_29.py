@@ -21,6 +21,10 @@ from bdb_tools.utils import (
     gpubdb_argparser,
     run_query,
 )
+from bdb_tools.q29_utils import (
+    q29_limit,
+    read_tables
+)
 from bdb_tools.readers import build_reader
 from bdb_tools.utils import benchmark
 from distributed import wait
@@ -39,24 +43,7 @@ from distributed import wait
 ### Scalabilty problems
 # * The ws_item_join table after distincts has `48M` rows, can cause problems on bigger scale factors
 
-
-# -------- Q29 -----------
-q29_limit = 100
 q29_session_timeout_inSec = 3600
-
-
-def read_tables(config):
-    table_reader = build_reader(
-        data_format=config["file_format"], basepath=config["data_dir"],
-    )
-    item_cols = ["i_item_sk", "i_category_id"]
-    item_df = table_reader.read("item", relevant_cols=item_cols)
-
-    ws_cols = ["ws_order_number", "ws_item_sk"]
-    ws_df = table_reader.read("web_sales", relevant_cols=ws_cols)
-
-    return item_df, ws_df
-
 
 ###
 # Select t1.i_category_id AS category_id_1 , t2.i_category_id AS category_id_2

@@ -23,37 +23,12 @@ from bdb_tools.utils import (
     run_query,
 )
 from bdb_tools.readers import build_reader
-from bdb_tools.q20_utils import get_clusters
+from bdb_tools.q20_utils import (
+    get_clusters,
+    read_tables
+)
 from dask import delayed
 from dask.distributed import wait
-
-
-def read_tables(config):
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=config["split_row_groups"],
-    )
-
-    store_sales_cols = [
-        "ss_customer_sk",
-        "ss_ticket_number",
-        "ss_item_sk",
-        "ss_net_paid",
-    ]
-    store_returns_cols = [
-        "sr_item_sk",
-        "sr_customer_sk",
-        "sr_ticket_number",
-        "sr_return_amt",
-    ]
-
-    store_sales_df = table_reader.read("store_sales", relevant_cols=store_sales_cols)
-    store_returns_df = table_reader.read(
-        "store_returns", relevant_cols=store_returns_cols
-    )
-    return store_sales_df, store_returns_df
-
 
 def remove_inf_and_nulls(df, column_names, value=0.0):
     """

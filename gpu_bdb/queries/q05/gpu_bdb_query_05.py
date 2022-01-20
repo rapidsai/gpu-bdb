@@ -24,7 +24,10 @@ from bdb_tools.utils import (
 )
 
 from bdb_tools.readers import build_reader
-from bdb_tools.q05_utils import build_and_predict_model
+from bdb_tools.q05_utils import (
+    build_and_predict_model,
+    read_tables
+)
 
 import cupy as cp
 import numpy as np
@@ -39,28 +42,6 @@ COLLEGE_ED_STRS = ["Advanced Degree", "College", "4 yr Degree", "2 yr Degree"]
 Q05_I_CATEGORY = "Books"
 
 wcs_columns = ["wcs_item_sk", "wcs_user_sk"]
-items_columns = ["i_item_sk", "i_category", "i_category_id"]
-customer_columns = ["c_customer_sk", "c_current_cdemo_sk"]
-customer_dem_columns = ["cd_demo_sk", "cd_gender", "cd_education_status"]
-
-
-def read_tables(config):
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=config["split_row_groups"],
-    )
-
-    item_ddf = table_reader.read("item", relevant_cols=items_columns, index=False)
-    customer_ddf = table_reader.read(
-        "customer", relevant_cols=customer_columns, index=False
-    )
-    customer_dem_ddf = table_reader.read(
-        "customer_demographics", relevant_cols=customer_dem_columns, index=False
-    )
-
-    return (item_ddf, customer_ddf, customer_dem_ddf)
-
 
 def get_groupby_results(file_list, item_df):
     """

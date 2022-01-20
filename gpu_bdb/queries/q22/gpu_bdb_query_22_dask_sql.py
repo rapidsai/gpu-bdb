@@ -23,51 +23,20 @@ from bdb_tools.cluster_startup import attach_to_cluster
 from bdb_tools.utils import (
     benchmark,
     gpubdb_argparser,
-    run_query,
-    convert_datestring_to_days,
+    run_query
+)
+
+from bdb_tools.q22_utils import (
+    q22_date,
+    q22_i_current_price_min,
+    q22_i_current_price_max,
+    read_tables
 )
 
 from bdb_tools.readers import build_reader
 
-
-# -------- Q22 -----------
-q22_date = "2001-05-08"
-q22_i_current_price_min = "0.98"
-q22_i_current_price_max = "1.5"
-
-
-def read_tables(data_dir, c, config):
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=config["split_row_groups"],
-    )
-    inv_columns = [
-        "inv_item_sk",
-        "inv_warehouse_sk",
-        "inv_date_sk",
-        "inv_quantity_on_hand",
-    ]
-    inventory = table_reader.read("inventory", relevant_cols=inv_columns)
-
-    item_columns = ["i_item_id", "i_current_price", "i_item_sk"]
-    item = table_reader.read("item", relevant_cols=item_columns)
-
-    warehouse_columns = ["w_warehouse_sk", "w_warehouse_name"]
-    warehouse = table_reader.read("warehouse", relevant_cols=warehouse_columns)
-
-    dd_columns = ["d_date_sk", "d_date"]
-    date_dim = table_reader.read("date_dim", relevant_cols=dd_columns)
-    date_dim = date_dim.map_partitions(convert_datestring_to_days)
-
-    c.create_table('inventory', inventory, persist=False)
-    c.create_table('item', item, persist=False)
-    c.create_table('warehouse', warehouse, persist=False)
-    c.create_table('date_dim', date_dim, persist=False)
-
-
 def main(data_dir, client, c, config):
-    benchmark(read_tables, data_dir, c, config, dask_profile=config["dask_profile"])
+    benchmark(read_tables, config, c, dask_profile=config["dask_profile"])
 
     # Filter limit in days
     min_date = np.datetime64(q22_date, "D").astype(int) - 30

@@ -33,12 +33,33 @@ from distributed import wait
 
 from uuid import uuid1
 
+from bdb_tools.readers import build_reader
 
 N_FEATURES = 2 ** 23  # Spark is doing 2^20
 ngram_range = (1, 2)
 preprocessor = lambda s:s.str.lower()
 norm = None
 alternate_sign = False
+
+def read_tables(config, c=None):
+    ### splitting by row groups for better parallelism
+    table_reader = build_reader(
+        data_format=config["file_format"],
+        basepath=config["data_dir"],
+        split_row_groups=True,
+    )
+
+    columns = [
+        "pr_review_content",
+        "pr_review_rating",
+        "pr_review_sk",
+    ]
+    pr_df = table_reader.read("product_reviews", relevant_cols=columns)
+
+    if c:
+        c.create_table("product_reviews", pr_df, persist=False)
+
+    return pr_df
 
 
 def gpu_hashing_vectorizer(x):

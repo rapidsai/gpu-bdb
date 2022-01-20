@@ -26,31 +26,7 @@ from bdb_tools.utils import (
     run_query,
 )
 from bdb_tools.readers import build_reader
-
-
-def read_tables(config):
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=config["split_row_groups"],
-    )
-
-    ws_columns = ["ws_ship_hdemo_sk", "ws_web_page_sk", "ws_sold_time_sk"]
-    web_sales = table_reader.read("web_sales", relevant_cols=ws_columns)
-
-    hd_columns = ["hd_demo_sk", "hd_dep_count"]
-    household_demographics = table_reader.read(
-        "household_demographics", relevant_cols=hd_columns
-    )
-
-    wp_columns = ["wp_web_page_sk", "wp_char_count"]
-    web_page = table_reader.read("web_page", relevant_cols=wp_columns)
-
-    td_columns = ["t_time_sk", "t_hour"]
-    time_dim = table_reader.read("time_dim", relevant_cols=td_columns)
-
-    return web_sales, household_demographics, web_page, time_dim
-
+from bdb_tools.q14_utils import read_tables
 
 def main(client, config):
     import cudf

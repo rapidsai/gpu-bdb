@@ -29,16 +29,14 @@ from bdb_tools.q08_utils import (
     get_sessions,
     get_unique_sales_keys_from_sessions,
     prep_for_sessionization,
+    q08_STARTDATE,
+    q08_ENDDATE,
+    read_tables
 )
 
 import numpy as np
 from distributed import wait
 from dask import delayed
-
-
-q08_STARTDATE = "2001-09-02"
-q08_ENDDATE = "2002-09-02"
-
 
 def etl_wcs(wcs_fn, filtered_date_df, web_page_df):
     import cudf
@@ -79,24 +77,6 @@ def etl_wcs(wcs_fn, filtered_date_df, web_page_df):
     )
     cols_to_keep = ["wcs_user_sk", "tstamp_inSec", "wcs_sales_sk", "wp_type_codes"]
     return merged_df[cols_to_keep]
-
-
-def read_tables(config):
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=config["split_row_groups"],
-    )
-
-    date_dim_cols = ["d_date_sk", "d_date"]
-    web_page_cols = ["wp_web_page_sk", "wp_type"]
-    web_sales_cols = ["ws_net_paid", "ws_order_number", "ws_sold_date_sk"]
-
-    date_dim_df = table_reader.read("date_dim", relevant_cols=date_dim_cols)
-    web_page_df = table_reader.read("web_page", relevant_cols=web_page_cols)
-    web_sales_df = table_reader.read("web_sales", relevant_cols=web_sales_cols)
-
-    return (date_dim_df, web_page_df, web_sales_df)
 
 
 def reduction_function(df, REVIEW_CAT_CODE):

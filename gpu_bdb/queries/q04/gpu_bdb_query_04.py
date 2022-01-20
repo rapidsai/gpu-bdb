@@ -28,34 +28,12 @@ from bdb_tools.sessionization import get_sessions
 
 from bdb_tools.q04_utils import (
     abandonedShoppingCarts,
-    reduction_function
+    reduction_function,
+    read_tables
 )
 
 # parameters
 q04_session_timeout_inSec = 3600
-
-
-def read_tables(config):
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=config["split_row_groups"],
-    )
-
-    wp_cols = ["wp_type", "wp_web_page_sk"]
-    wp_df = table_reader.read("web_page", relevant_cols=wp_cols)
-
-    wcs_cols = [
-        "wcs_user_sk",
-        "wcs_click_date_sk",
-        "wcs_click_time_sk",
-        "wcs_web_page_sk",
-        "wcs_sales_sk",
-    ]
-    web_clicksteams_df = table_reader.read("web_clickstreams", relevant_cols=wcs_cols)
-
-    return wp_df, web_clicksteams_df
-
 
 def main(client, config):
     import cudf

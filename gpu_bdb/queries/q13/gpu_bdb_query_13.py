@@ -22,6 +22,8 @@ from bdb_tools.utils import (
     run_query,
 )
 from bdb_tools.readers import build_reader
+from bdb_tools.q13_utils import read_tables
+
 from distributed import wait
 
 
@@ -44,28 +46,6 @@ def get_sales_ratio(df):
     df["second_year_sales"][second_year_flag] = df["year_total"][second_year_flag]
 
     return df
-
-
-def read_tables(config):
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=config["split_row_groups"],
-    )
-
-    date_cols = ["d_date_sk", "d_year"]
-    date_dim_df = table_reader.read("date_dim", relevant_cols=date_cols)
-
-    customer_cols = ["c_customer_sk", "c_customer_id", "c_first_name", "c_last_name"]
-    customer_df = table_reader.read("customer", relevant_cols=customer_cols)
-
-    s_sales_cols = ["ss_sold_date_sk", "ss_customer_sk", "ss_net_paid"]
-    s_sales_df = table_reader.read("store_sales", relevant_cols=s_sales_cols)
-
-    w_sales_cols = ["ws_sold_date_sk", "ws_bill_customer_sk", "ws_net_paid"]
-    web_sales_df = table_reader.read("web_sales", relevant_cols=w_sales_cols)
-
-    return date_dim_df, customer_df, s_sales_df, web_sales_df
 
 
 def main(client, config):

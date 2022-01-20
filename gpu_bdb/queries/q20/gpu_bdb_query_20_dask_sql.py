@@ -30,42 +30,13 @@ from bdb_tools.utils import (
 
 from bdb_tools.readers import build_reader
 
-from bdb_tools.q20_utils import get_clusters
-
-from dask_sql import Context
-
-
-def read_tables(data_dir, c, config):
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=config["split_row_groups"],
-    )
-
-    store_sales_cols = [
-        "ss_customer_sk",
-        "ss_ticket_number",
-        "ss_item_sk",
-        "ss_net_paid",
-    ]
-    store_returns_cols = [
-        "sr_item_sk",
-        "sr_customer_sk",
-        "sr_ticket_number",
-        "sr_return_amt",
-    ]
-
-    store_sales_df = table_reader.read("store_sales", relevant_cols=store_sales_cols)
-    store_returns_df = table_reader.read(
-        "store_returns", relevant_cols=store_returns_cols
-    )
-
-    c.create_table("store_sales", store_sales_df, persist=False)
-    c.create_table("store_returns", store_returns_df, persist=False)
-
+from bdb_tools.q20_utils import (
+    get_clusters,
+    read_tables
+)
 
 def main(data_dir, client, c, config):
-    benchmark(read_tables, data_dir, c, config, dask_profile=config["dask_profile"])
+    benchmark(read_tables, config, c, dask_profile=config["dask_profile"])
 
     query = """
         SELECT

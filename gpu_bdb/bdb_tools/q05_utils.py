@@ -21,6 +21,8 @@ from cuml.metrics import confusion_matrix
 
 from bdb_tools.cupy_metrics import cupy_precision_score
 
+from bdb_tools.readers import build_reader
+
 from sklearn.metrics import roc_auc_score
 
 # Logistic Regression params
@@ -31,6 +33,36 @@ iterations = 100
 C = 10_000  # reg_lambda = 0 hence C for model is a large value
 convergence_tol = 1e-9
 
+wcs_columns = ["wcs_item_sk", "wcs_user_sk"]
+items_columns = ["i_item_sk", "i_category", "i_category_id"]
+customer_columns = ["c_customer_sk", "c_current_cdemo_sk"]
+customer_dem_columns = ["cd_demo_sk", "cd_gender", "cd_education_status"]
+
+def read_tables(config, c=None):
+    table_reader = build_reader(
+        data_format=config["file_format"],
+        basepath=config["data_dir"],
+        split_row_groups=config["split_row_groups"],
+    )
+
+    item_ddf = table_reader.read("item", relevant_cols=items_columns, index=False)
+    customer_ddf = table_reader.read(
+        "customer", relevant_cols=customer_columns, index=False
+    )
+    customer_dem_ddf = table_reader.read(
+        "customer_demographics", relevant_cols=customer_dem_columns, index=False
+    )
+    wcs_ddf = table_reader.read(
+        "web_clickstreams", relevant_cols=wcs_columns, index=False
+    )
+
+    if c:
+        c.create_table("web_clickstreams", wcs_ddf, persist=False)
+        c.create_table("customer", customer_ddf, persist=False)
+        c.create_table("item", item_ddf, persist=False)
+        c.create_table("customer_demographics", customer_dem_ddf, persist=False)
+
+    return (item_ddf, customer_ddf, customer_dem_ddf)
 
 def build_and_predict_model(ml_input_df):
     """

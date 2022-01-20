@@ -26,19 +26,18 @@ from bdb_tools.utils import (
     train_clustering_model
 )
 
+from bdb_tools.q26_utils import (
+    Q26_CATEGORY,
+    Q26_ITEM_COUNT,
+    N_CLUSTERS,
+    CLUSTER_ITERATIONS,
+    N_ITER,
+    read_tables
+)
+
 from bdb_tools.readers import build_reader
 
 from dask import delayed
-
-
-# -------- Q26 -----------
-q26_i_category_IN = "Books"
-q26_count_ss_item_sk = 5
-
-N_CLUSTERS = 8
-CLUSTER_ITERATIONS = 20
-N_ITER = 5
-
 
 def get_clusters(client, kmeans_input_df):
     import dask_cudf
@@ -62,25 +61,8 @@ def get_clusters(client, kmeans_input_df):
     return results_dict
 
 
-def read_tables(data_dir, c, config):
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=config["split_row_groups"],
-    )
-
-    ss_cols = ["ss_customer_sk", "ss_item_sk"]
-    items_cols = ["i_item_sk", "i_category", "i_class_id"]
-
-    ss_ddf = table_reader.read("store_sales", relevant_cols=ss_cols, index=False)
-    items_ddf = table_reader.read("item", relevant_cols=items_cols, index=False)
-
-    c.create_table("store_sales", ss_ddf, persist=False)
-    c.create_table("item", items_ddf, persist=False)
-
-
 def main(data_dir, client, c, config):
-    benchmark(read_tables, data_dir, c, config, dask_profile=config["dask_profile"])
+    benchmark(read_tables, config, c, dask_profile=config["dask_profile"])
 
     query = f"""
         SELECT
@@ -105,11 +87,11 @@ def main(data_dir, client, c, config):
         ON
         (
             ss.ss_item_sk = i.i_item_sk
-            AND i.i_category IN ('{q26_i_category_IN}')
+            AND i.i_category IN ('{Q26_CATEGORY}')
             AND ss.ss_customer_sk IS NOT NULL
         )
         GROUP BY ss.ss_customer_sk
-        HAVING count(ss.ss_item_sk) > {q26_count_ss_item_sk}
+        HAVING count(ss.ss_item_sk) > {Q26_ITEM_COUNT}
         ORDER BY cid
     """
     result = c.sql(query)

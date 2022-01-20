@@ -28,39 +28,10 @@ from bdb_tools.utils import (
 
 from bdb_tools.readers import build_reader
 
-
-def read_tables(data_dir, c, config):
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=config["split_row_groups"],
-    )
-
-    product_review_cols = [
-        "pr_review_rating",
-        "pr_item_sk",
-    ]
-    web_sales_cols = [
-        "ws_sold_date_sk",
-        "ws_net_paid",
-        "ws_item_sk",
-    ]
-    date_cols = ["d_date_sk", "d_date"]
-
-    pr_df = table_reader.read("product_reviews", relevant_cols=product_review_cols)
-    # we only read int columns here so it should scale up to sf-10k as just 26M rows
-    pr_df = pr_df.repartition(npartitions=1)
-
-    ws_df = table_reader.read("web_sales", relevant_cols=web_sales_cols)
-    date_df = table_reader.read("date_dim", relevant_cols=date_cols)
-
-    c.create_table("web_sales", ws_df, persist=False)
-    c.create_table("product_reviews", pr_df, persist=False)
-    c.create_table("date_dim", date_df, persist=False)
-
+from bdb_tools.q11_utils import read_tables
 
 def main(data_dir, client, c, config):
-    benchmark(read_tables, data_dir, c, config, dask_profile=config["dask_profile"])
+    benchmark(read_tables, config, c, dask_profile=config["dask_profile"])
 
     query = """
         WITH p AS

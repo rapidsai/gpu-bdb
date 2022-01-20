@@ -24,29 +24,13 @@ from bdb_tools.utils import (
 
 from bdb_tools.readers import build_reader
 
-from bdb_tools.q28_utils import post_etl_processing
-
-
-def read_tables(data_dir, c, config):
-    ### splitting by row groups for better parallelism
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=True,
-    )
-
-    columns = [
-        "pr_review_content",
-        "pr_review_rating",
-        "pr_review_sk",
-    ]
-    pr_df = table_reader.read("product_reviews", relevant_cols=columns)
-
-    c.create_table("product_reviews", pr_df, persist=False)
-
+from bdb_tools.q28_utils import (
+    post_etl_processing,
+    read_tables
+)
 
 def main(data_dir, client, c, config):
-    benchmark(read_tables, data_dir, c, config, dask_profile=config["dask_profile"])
+    benchmark(read_tables, config, c, dask_profile=config["dask_profile"])
 
     # 10 % of data
     query1 = """

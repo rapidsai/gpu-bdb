@@ -30,38 +30,18 @@ from bdb_tools.sessionization import (
     get_pairs
 )
 
+from bdb_tools.q30_utils import (
+    q30_session_timeout_inSec,
+    q30_limit,
+    read_tables
+)
+
 from bdb_tools.readers import build_reader
 
 from dask.distributed import wait
 
-
-# -------- Q30 -----------
-# session timeout in secs
-q30_session_timeout_inSec = 3600
-# query output limit
-q30_limit = 40
-
-
-
-def read_tables(data_dir, c, config):
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=config["split_row_groups"],
-    )
-
-    item_cols = ["i_category_id", "i_item_sk"]
-    item_df = table_reader.read("item", relevant_cols=item_cols)
-
-    wcs_cols = ["wcs_user_sk", "wcs_item_sk", "wcs_click_date_sk", "wcs_click_time_sk"]
-    wcs_df = table_reader.read("web_clickstreams", relevant_cols=wcs_cols)
-
-    c.create_table('web_clickstreams', wcs_df, persist=False)
-    c.create_table('item', item_df, persist=False)
-
-
 def main(data_dir, client, c, config):
-    benchmark(read_tables, data_dir, c, config, dask_profile=config["dask_profile"])
+    benchmark(read_tables, config, c, dask_profile=config["dask_profile"])
 
     query_1 = """
         SELECT i_item_sk,

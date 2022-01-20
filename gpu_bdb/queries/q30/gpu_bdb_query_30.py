@@ -23,6 +23,11 @@ from bdb_tools.utils import (
     gpubdb_argparser,
     run_query,
 )
+from bdb_tools.q30_utils import (
+    q30_session_timeout_inSec,
+    q30_limit,
+    read_tables
+)
 from bdb_tools.readers import build_reader
 from bdb_tools.sessionization import get_session_id, get_distinct_sessions, get_pairs
 
@@ -34,25 +39,6 @@ import numpy as np
 ### Future Notes:
 # The bottleneck of current implementation is `set-index`, once ucx is working correctly
 # it should go away
-
-
-### session timeout in secs
-q30_session_timeout_inSec = 3600
-### query output limit
-q30_limit = 40
-
-
-def read_tables(config):
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=config["split_row_groups"],
-    )
-
-    item_cols = ["i_category_id", "i_item_sk"]
-    item_df = table_reader.read("item", relevant_cols=item_cols)
-    return item_df
-
 
 def pre_repartition_task(wcs_fn, f_item_df):
     """

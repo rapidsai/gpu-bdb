@@ -18,6 +18,53 @@ import cupy as cp
 import cudf
 from cudf._lib.strings import find_multiple
 
+from bdb_tools.readers import build_reader
+
+q18_startDate = "2001-05-02"
+# --+90days
+q18_endDate = "2001-09-02"
+
+EOL_CHAR = "è"
+
+
+def read_tables(config, c=None):
+    table_reader = build_reader(
+        data_format=config["file_format"], basepath=config["data_dir"],
+    )
+
+    store_sales_cols = [
+        "ss_store_sk",
+        "ss_sold_date_sk",
+        "ss_net_paid",
+    ]
+    date_cols = ["d_date_sk", "d_date"]
+    store_cols = ["s_store_sk", "s_store_name"]
+
+    store_sales = table_reader.read("store_sales", relevant_cols=store_sales_cols)
+    date_dim = table_reader.read("date_dim", relevant_cols=date_cols)
+    store = table_reader.read("store", relevant_cols=store_cols)
+
+    ### splitting by row groups for better parallelism
+    pr_table_reader = build_reader(
+        data_format=config["file_format"],
+        basepath=config["data_dir"],
+        split_row_groups=True,
+    )
+
+    product_reviews_cols = ["pr_review_date", "pr_review_content", "pr_review_sk"]
+    product_reviews = pr_table_reader.read(
+        "product_reviews", relevant_cols=product_reviews_cols,
+    )
+
+    if c:
+        c.create_table("store", store, persist=False)
+        c.create_table("store_sales", store_sales, persist=False)
+        c.create_table("date_dim", date_dim, persist=False)
+        c.create_table("product_reviews", product_reviews, persist=False)
+
+    return store_sales, date_dim, store, product_reviews
+
+
 def create_found_reshaped_with_global_pos(found, targets):
     """Given the dataframe created by mapping find_targets_in_reviews,
     create a new dataframe in which the nonzero values in each row are exploded

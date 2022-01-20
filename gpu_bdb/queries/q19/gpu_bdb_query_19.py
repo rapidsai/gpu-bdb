@@ -23,45 +23,16 @@ from bdb_tools.utils import (
     run_query,
 )
 from bdb_tools.text import create_sentences_from_reviews, create_words_from_sentences
-
+from bdb_tools.q19_utils import (
+    eol_char,
+    read_tables
+)
 
 from bdb_tools.readers import build_reader
 from dask.distributed import Client, wait
 import distributed
 
-
-# -------- Q19 -----------
 q19_returns_dates = ["2004-03-08", "2004-08-02", "2004-11-15", "2004-12-20"]
-eol_char = "è"
-
-
-def read_tables(config):
-    table_reader = build_reader(
-        data_format=config["file_format"], basepath=config["data_dir"],
-    )
-    date_dim_cols = ["d_week_seq", "d_date_sk", "d_date"]
-    date_dim_df = table_reader.read("date_dim", relevant_cols=date_dim_cols)
-    store_returns_cols = ["sr_returned_date_sk", "sr_item_sk", "sr_return_quantity"]
-    store_returns_df = table_reader.read(
-        "store_returns", relevant_cols=store_returns_cols
-    )
-    web_returns_cols = ["wr_returned_date_sk", "wr_item_sk", "wr_return_quantity"]
-    web_returns_df = table_reader.read("web_returns", relevant_cols=web_returns_cols)
-
-    ### splitting by row groups for better parallelism
-    pr_table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=True,
-    )
-
-    product_reviews_cols = ["pr_item_sk", "pr_review_content", "pr_review_sk"]
-    product_reviews = pr_table_reader.read(
-        "product_reviews", relevant_cols=product_reviews_cols
-    )
-
-    return date_dim_df, store_returns_df, web_returns_df, product_reviews
-
 
 def main(client, config):
     import cudf

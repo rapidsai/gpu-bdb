@@ -23,35 +23,17 @@ from bdb_tools.utils import (
     run_query,
 )
 from bdb_tools.text import create_sentences_from_reviews, create_words_from_sentences
-
+from bdb_tools.readers import build_reader
+from bdb_tools.q10_utils import (
+    eol_char,
+    read_tables
+)
 
 import rmm
 import cupy as cp
 import distributed
 
-from bdb_tools.readers import build_reader
 from dask.distributed import Client, wait
-
-
-# -------- Q10 -----------
-eol_char = "è"
-
-
-def read_tables(config):
-
-    ### splitting by row groups for better parallelism
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=True,
-    )
-    product_reviews_cols = ["pr_item_sk", "pr_review_content", "pr_review_sk"]
-
-    product_reviews_df = table_reader.read(
-        "product_reviews", relevant_cols=product_reviews_cols,
-    )
-    return product_reviews_df
-
 
 def load_sentiment_words(filename, sentiment):
     import cudf

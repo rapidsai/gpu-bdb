@@ -26,30 +26,21 @@ from bdb_tools.utils import (
 )
 
 from bdb_tools.readers import build_reader
+
 from bdb_tools.sessionization import get_distinct_sessions
+
+from bdb_tools.q02_utils import (
+    q02_item_sk,
+    q02_limit,
+    q02_session_timeout_inSec,
+    read_tables
+)
+
 from dask.distributed import wait
 
 
-# -------- Q2 -----------
-q02_item_sk = 10001
-q02_limit = 30
-q02_session_timeout_inSec = 3600
-
-
-def read_tables(data_dir, c, config):
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=config["split_row_groups"],
-    )
-    wcs_cols = ["wcs_user_sk", "wcs_item_sk", "wcs_click_date_sk", "wcs_click_time_sk"]
-    wcs_df = table_reader.read("web_clickstreams", relevant_cols=wcs_cols)
-
-    c.create_table("web_clickstreams", wcs_df, persist=False)
-
-
 def main(data_dir, client, c, config):
-    benchmark(read_tables, data_dir, c, config, dask_profile=config["dask_profile"])
+    benchmark(read_tables, config, c, dask_profile=config["dask_profile"])
 
     query_1 = """
         SELECT

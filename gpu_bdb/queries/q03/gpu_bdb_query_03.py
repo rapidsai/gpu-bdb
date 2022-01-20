@@ -24,23 +24,22 @@ from bdb_tools.utils import (
 from bdb_tools.readers import build_reader
 
 from bdb_tools.q03_utils import (
-    apply_find_items_viewed
+    apply_find_items_viewed,
+    q03_days_in_sec_before_purchase,
+    q03_views_before_purchase,
+    q03_purchased_item_IN,
+    q03_limit,
+    read_tables
 )
 
 from distributed import wait
 import numpy as np
 
-from numba import cuda
 import glob
 from dask import delayed
 
 
-q03_days_in_sec_before_purchase = 864000
-q03_views_before_purchase = 5
-q03_purchased_item_IN = 10001
 q03_purchased_item_category_IN = [2, 3]
-q03_limit = 100
-
 
 def get_wcs_minima(config):
     import dask_cudf
@@ -108,18 +107,6 @@ def reduction_function(df, item_df_filtered):
     grouped_df = product_view_results.groupby(["i_item_sk"]).size().reset_index()
     grouped_df.columns = ["i_item_sk", "cnt"]
     return grouped_df
-
-
-def read_tables(config):
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=config["split_row_groups"],
-    )
-
-    item_cols = ["i_category_id", "i_item_sk"]
-    item_df = table_reader.read("item", relevant_cols=item_cols)
-    return item_df
 
 
 def main(client, config):

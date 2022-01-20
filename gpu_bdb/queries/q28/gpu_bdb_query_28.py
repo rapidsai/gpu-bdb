@@ -35,25 +35,10 @@ from bdb_tools.utils import (
 )
 from bdb_tools.readers import build_reader
 
-from bdb_tools.q28_utils import post_etl_processing
-
-
-def read_tables(config):
-    ### splitting by row groups for better parallelism
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=True,
-    )
-
-    columns = [
-        "pr_review_content",
-        "pr_review_rating",
-        "pr_review_sk",
-    ]
-    ret = table_reader.read("product_reviews", relevant_cols=columns)
-    return ret
-
+from bdb_tools.q28_utils import (
+    post_etl_processing,
+    read_tables
+)
 
 def main(client, config):
     q_st = time.time()

@@ -31,56 +31,18 @@ from bdb_tools.utils import (
 
 from bdb_tools.readers import build_reader
 
-from bdb_tools.q18_utils import find_relevant_reviews
+from bdb_tools.q18_utils import (
+    find_relevant_reviews,
+    q18_startDate,
+    q18_endDate,
+    EOL_CHAR,
+    read_tables
+)
 
 from dask.distributed import wait
 
-
-# -------- Q18 -----------
-q18_startDate = "2001-05-02"
-# --+90days
-q18_endDate = "2001-09-02"
-
-EOL_CHAR = "è"
-
-
-def read_tables(data_dir, c, config):
-    table_reader = build_reader(
-        data_format=config["file_format"], basepath=config["data_dir"],
-    )
-
-    store_sales_cols = [
-        "ss_store_sk",
-        "ss_sold_date_sk",
-        "ss_net_paid",
-    ]
-    date_cols = ["d_date_sk", "d_date"]
-    store_cols = ["s_store_sk", "s_store_name"]
-
-    store_sales = table_reader.read("store_sales", relevant_cols=store_sales_cols)
-    date_dim = table_reader.read("date_dim", relevant_cols=date_cols)
-    store = table_reader.read("store", relevant_cols=store_cols)
-
-    ### splitting by row groups for better parallelism
-    pr_table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=True,
-    )
-
-    product_reviews_cols = ["pr_review_date", "pr_review_content", "pr_review_sk"]
-    product_reviews = pr_table_reader.read(
-        "product_reviews", relevant_cols=product_reviews_cols,
-    )
-
-    c.create_table("store", store, persist=False)
-    c.create_table("store_sales", store_sales, persist=False)
-    c.create_table("date_dim", date_dim, persist=False)
-    c.create_table("product_reviews", product_reviews, persist=False)
-
-
 def main(data_dir, client, c, config):
-    benchmark(read_tables, data_dir, c, config, dask_profile=config["dask_profile"])
+    benchmark(read_tables, config, c, dask_profile=config["dask_profile"])
 
     query_1 = f"""
         WITH temp_table1 AS

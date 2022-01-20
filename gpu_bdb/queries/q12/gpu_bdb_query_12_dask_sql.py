@@ -27,33 +27,12 @@ from bdb_tools.utils import (
 
 from bdb_tools.readers import build_reader
 
+from bdb_tools.q12_utils import read_tables
 
-# -------- Q12 -----------
 q12_i_category_IN = "'Books', 'Electronics'"
 
-item_cols = ["i_item_sk", "i_category"]
-store_sales_cols = ["ss_item_sk", "ss_sold_date_sk", "ss_customer_sk"]
-wcs_cols = ["wcs_user_sk", "wcs_click_date_sk", "wcs_item_sk", "wcs_sales_sk"]
-
-
-def read_tables(data_dir, c, config):
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=config["split_row_groups"],
-    )
-
-    item_df = table_reader.read("item", relevant_cols=item_cols)
-    store_sales_df = table_reader.read("store_sales", relevant_cols=store_sales_cols)
-    wcs_df = table_reader.read("web_clickstreams", relevant_cols=wcs_cols)
-    
-    c.create_table("web_clickstreams", wcs_df, persist=False)
-    c.create_table("store_sales", store_sales_df, persist=False)
-    c.create_table("item", item_df, persist=False)
-
-
 def main(data_dir, client, c, config):
-    benchmark(read_tables, data_dir, c, config, dask_profile=config["dask_profile"])
+    benchmark(read_tables, config, c, dask_profile=config["dask_profile"])
 
     query = f"""
         SELECT DISTINCT wcs_user_sk

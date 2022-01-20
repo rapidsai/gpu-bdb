@@ -19,8 +19,43 @@ import cudf
 import cupy as cp
 import numpy as np
 
+from bdb_tools.readers import build_reader
+
+q08_STARTDATE = "2001-09-02"
+q08_ENDDATE = "2002-09-02"
 q08_SECONDS_BEFORE_PURCHASE = 259200
 NA_FLAG = 0
+
+def read_tables(config, c=None):
+    table_reader = build_reader(
+        data_format=config["file_format"],
+        basepath=config["data_dir"],
+        split_row_groups=config["split_row_groups"],
+    )
+
+    date_dim_cols = ["d_date_sk", "d_date"]
+    web_page_cols = ["wp_web_page_sk", "wp_type"]
+    web_sales_cols = ["ws_net_paid", "ws_order_number", "ws_sold_date_sk"]
+    wcs_cols = [
+        "wcs_user_sk",
+        "wcs_sales_sk",
+        "wcs_click_date_sk",
+        "wcs_click_time_sk",
+        "wcs_web_page_sk",
+    ]
+
+    date_dim_df = table_reader.read("date_dim", relevant_cols=date_dim_cols)
+    web_page_df = table_reader.read("web_page", relevant_cols=web_page_cols)
+    web_sales_df = table_reader.read("web_sales", relevant_cols=web_sales_cols)
+    wcs_df = table_reader.read("web_clickstreams", relevant_cols=wcs_cols)
+
+    if c:
+        c.create_table("web_clickstreams", wcs_df, persist=False)
+        c.create_table("web_sales", web_sales_df, persist=False)
+        c.create_table("web_page", web_page_df, persist=False)
+        c.create_table("date_dim", date_dim_df, persist=False)
+
+    return (date_dim_df, web_page_df, web_sales_df)
 
 def get_session_id_from_session_boundary(session_change_df, last_session_len):
     """

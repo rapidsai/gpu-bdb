@@ -25,46 +25,21 @@ from bdb_tools.utils import (
 from bdb_tools.readers import build_reader
 
 from bdb_tools.q03_utils import (
-    apply_find_items_viewed
+    apply_find_items_viewed,
+    q03_days_in_sec_before_purchase,
+    q03_views_before_purchase,
+    q03_purchased_item_IN,
+    q03_limit,
+    read_tables
 )
 
 from dask.distributed import wait
 
 
-# -------- Q03 -----------
-q03_days_in_sec_before_purchase = 864000
-q03_views_before_purchase = 5
-q03_purchased_item_IN = 10001
-# --see q1 for categories
 q03_purchased_item_category_IN = "2,3"
-q03_limit = 100
-
-
-def read_tables(data_dir, c, config):
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=config["split_row_groups"],
-    )
-
-    item_cols = ["i_category_id", "i_item_sk"]
-    wcs_cols = [
-        "wcs_user_sk",
-        "wcs_click_time_sk",
-        "wcs_click_date_sk",
-        "wcs_item_sk",
-        "wcs_sales_sk",
-    ]
-
-    item_df = table_reader.read("item", relevant_cols=item_cols)
-    wcs_df = table_reader.read("web_clickstreams", relevant_cols=wcs_cols)
-
-    c.create_table("web_clickstreams", wcs_df, persist=False)
-    c.create_table("item", item_df, persist=False)
-
 
 def main(data_dir, client, c, config):
-    benchmark(read_tables, data_dir, c, config, dask_profile=config["dask_profile"])
+    benchmark(read_tables, config, c, dask_profile=config["dask_profile"])
 
     query_1 = """
         SELECT i_item_sk,

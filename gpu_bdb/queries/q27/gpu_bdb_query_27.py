@@ -31,29 +31,14 @@ from bdb_tools.text import (
 
 from bdb_tools.readers import build_reader
 
-from bdb_tools.q27_utils import ner_parser
+from bdb_tools.q27_utils import (
+    ner_parser,
+    q27_pr_item_sk,
+    EOL_CHAR,
+    read_tables
+)
 
 from dask.distributed import wait
-
-
-# -------- Q27 -----------
-q27_pr_item_sk = 10002
-EOL_CHAR = "."
-
-
-def read_tables(config):
-    ### splitting by row groups for better parallelism
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=True,
-    )
-    product_reviews_cols = ["pr_item_sk", "pr_review_content", "pr_review_sk"]
-    product_reviews_df = table_reader.read(
-        "product_reviews", relevant_cols=product_reviews_cols
-    )
-    return product_reviews_df
-
 
 def main(client, config):
     import dask_cudf

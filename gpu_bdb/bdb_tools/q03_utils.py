@@ -21,10 +21,38 @@ import cudf
 
 from numba import cuda
 
-# -------- Q03 -----------
+from bdb_tools.readers import build_reader
+
 q03_days_in_sec_before_purchase = 864000
 q03_views_before_purchase = 5
 q03_purchased_item_IN = 10001
+q03_limit = 100
+
+def read_tables(config, c=None):
+    table_reader = build_reader(
+        data_format=config["file_format"],
+        basepath=config["data_dir"],
+        split_row_groups=config["split_row_groups"],
+    )
+
+    item_cols = ["i_category_id", "i_item_sk"]
+    wcs_cols = [
+        "wcs_user_sk",
+        "wcs_click_time_sk",
+        "wcs_click_date_sk",
+        "wcs_item_sk",
+        "wcs_sales_sk",
+    ]
+
+    item_df = table_reader.read("item", relevant_cols=item_cols)
+    wcs_df = table_reader.read("web_clickstreams", relevant_cols=wcs_cols)
+
+    if c:
+        c.create_table("web_clickstreams", wcs_df, persist=False)
+        c.create_table("item", item_df, persist=False)
+
+    return item_df
+
 
 @cuda.jit
 def find_items_viewed_before_purchase_kernel(

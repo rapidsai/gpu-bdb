@@ -18,6 +18,35 @@ import cudf
 
 from bdb_tools.sessionization import get_sessions
 
+from bdb_tools.readers import build_reader
+
+
+def read_tables(config, c=None):
+    table_reader = build_reader(
+        data_format=config["file_format"],
+        basepath=config["data_dir"],
+        split_row_groups=config["split_row_groups"],
+    )
+
+    wp_cols = ["wp_type", "wp_web_page_sk"]
+    wp_df = table_reader.read("web_page", relevant_cols=wp_cols)
+
+    wcs_cols = [
+        "wcs_user_sk",
+        "wcs_click_date_sk",
+        "wcs_click_time_sk",
+        "wcs_web_page_sk",
+        "wcs_sales_sk",
+    ]
+    wcs_df = table_reader.read("web_clickstreams", relevant_cols=wcs_cols)
+
+    if c:
+        c.create_table('web_page_wo_categorical', wp_df, persist=False)
+        c.create_table('web_clickstreams', wcs_df, persist=False)
+
+    return wp_df, wcs_df
+
+
 def abandonedShoppingCarts(df, DYNAMIC_CAT_CODE, ORDER_CAT_CODE):
 
     # Select groups where last dynamic row comes after last order row

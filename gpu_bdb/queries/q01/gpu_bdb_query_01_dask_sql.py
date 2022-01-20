@@ -26,36 +26,19 @@ from bdb_tools.utils import (
 )
 from bdb_tools.readers import build_reader
 
+from bdb_tools.q01_utils import (
+    q01_viewed_together_count,
+    q01_limit,
+    read_tables
+)
+
 from dask.distributed import wait
 
-
-# -------- Q1 -----------
 q01_i_category_id_IN = "1, 2, 3"
-# -- sf1 -> 11 stores, 90k sales in 820k lines
-q01_ss_store_sk_IN = "10, 20, 33, 40, 50"
-q01_viewed_together_count = 50
-q01_limit = 100
-
-
-item_cols = ["i_item_sk", "i_category_id"]
-ss_cols = ["ss_item_sk", "ss_store_sk", "ss_ticket_number"]
-
-
-def read_tables(data_dir, c, config):
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=config["split_row_groups"],
-    )
-
-    item_df = table_reader.read("item", relevant_cols=item_cols)
-    ss_df = table_reader.read("store_sales", relevant_cols=ss_cols)
-
-    c.create_table("item", item_df, persist=False)
-    c.create_table("store_sales", ss_df, persist=False)
+q01_ss_store_sk_IN = ["10", "20", "33", "40", "50"]
 
 def main(data_dir, client, c, config):
-    benchmark(read_tables, data_dir, c, config, dask_profile=config["dask_profile"])
+    benchmark(read_tables, config, c, dask_profile=config["dask_profile"])
 
     query_distinct = f"""
         SELECT DISTINCT ss_item_sk, ss_ticket_number

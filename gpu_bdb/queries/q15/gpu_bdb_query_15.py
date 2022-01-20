@@ -25,33 +25,16 @@ from bdb_tools.utils import (
     convert_datestring_to_days,
 )
 from bdb_tools.readers import build_reader
+from bdb_tools.q15_utils import (
+    q15_startDate,
+    q15_endDate,
+    q15_store_sk,
+    store_sales_cols,
+    read_tables
+)
 
 import datetime
 import numpy as np
-
-
-q15_startDate = "2001-09-02"
-q15_endDate = "2002-09-02"
-q15_store_sk = "10"
-
-store_sales_cols = ["ss_sold_date_sk", "ss_net_paid", "ss_store_sk", "ss_item_sk"]
-date_cols = ["d_date", "d_date_sk"]
-item_cols = ["i_item_sk", "i_category_id"]
-
-
-def read_tables(config):
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=config["split_row_groups"],
-    )
-
-    store_sales_df = table_reader.read("store_sales", relevant_cols=store_sales_cols)
-    date_dim_df = table_reader.read("date_dim", relevant_cols=date_cols)
-    item_df = table_reader.read("item", relevant_cols=item_cols)
-
-    return store_sales_df, date_dim_df, item_df
-
 
 def main(client, config):
 

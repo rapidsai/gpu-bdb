@@ -25,19 +25,18 @@ from bdb_tools.utils import (
     run_query,
     train_clustering_model
 )
+
+from bdb_tools.q25_utils import (
+    q25_date,
+    N_CLUSTERS,
+    CLUSTER_ITERATIONS,
+    N_ITER,
+    read_tables
+)
+
 from dask import delayed
 
 from bdb_tools.readers import build_reader
-
-
-# -------- Q25 -----------
-# -- store_sales and web_sales date
-q25_date = "2002-01-02"
-
-N_CLUSTERS = 8
-CLUSTER_ITERATIONS = 20
-N_ITER = 5
-
 
 def get_clusters(client, ml_input_df):
     import dask_cudf
@@ -60,31 +59,6 @@ def get_clusters(client, ml_input_df):
     return results_dict
 
 
-def read_tables(data_dir, c, config):
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=config["split_row_groups"],
-    )
-
-    ss_cols = ["ss_customer_sk", "ss_sold_date_sk", "ss_ticket_number", "ss_net_paid"]
-    ws_cols = [
-        "ws_bill_customer_sk",
-        "ws_sold_date_sk",
-        "ws_order_number",
-        "ws_net_paid",
-    ]
-    datedim_cols = ["d_date_sk", "d_date"]
-
-    ss_ddf = table_reader.read("store_sales", relevant_cols=ss_cols, index=False)
-    ws_ddf = table_reader.read("web_sales", relevant_cols=ws_cols, index=False)
-    datedim_ddf = table_reader.read("date_dim", relevant_cols=datedim_cols, index=False)
-
-    c.create_table("web_sales", ws_ddf, persist=False)
-    c.create_table("store_sales", ss_ddf, persist=False)
-    c.create_table("date_dim", datedim_ddf, persist=False)
-
-
 def agg_count_distinct(df, group_key, counted_key):
     """Returns a Series that is the result of counting distinct instances of 'counted_key' within each 'group_key'.
     The series' index will have one entry per unique 'group_key' value.
@@ -102,7 +76,7 @@ def agg_count_distinct(df, group_key, counted_key):
     return unique_df.reset_index(drop=False)
 
 def main(data_dir, client, c, config):
-    benchmark(read_tables, data_dir, c, config, dask_profile=config["dask_profile"])
+    benchmark(read_tables, config, c, dask_profile=config["dask_profile"])
 
     q25_date = "2002-01-02"
     ss_join_query= f"""

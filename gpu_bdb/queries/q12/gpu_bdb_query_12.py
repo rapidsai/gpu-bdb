@@ -24,6 +24,7 @@ from bdb_tools.utils import (
     run_query,
 )
 from bdb_tools.readers import build_reader
+from bdb_tools.q12_utils import read_tables
 
 from distributed import wait
 import numpy as np
@@ -36,16 +37,10 @@ from dask import delayed
 
 
 ### These parameters are not used
-# q12_startDate='2001-09-02'
-# q12_endDate1='2001-10-02'
-# q12_endDate2='2001-12-02'
 q12_i_category_IN = ["Books", "Electronics"]
 
 ### below was hard coded in the orignal query
 q12_store_sale_sk_start_date = 37134
-
-item_cols = ["i_item_sk", "i_category"]
-store_sales_cols = ["ss_item_sk", "ss_sold_date_sk", "ss_customer_sk"]
 
 ### Util Functions
 def string_filter(df, col_name, col_values):
@@ -61,19 +56,6 @@ def string_filter(df, col_name, col_values):
             bool_flag = (df[col_name] == val) | (bool_flag)
 
     return df[bool_flag].reset_index(drop=True)
-
-
-def read_tables(config):
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=config["split_row_groups"],
-    )
-
-    item_df = table_reader.read("item", relevant_cols=item_cols)
-    store_sales_df = table_reader.read("store_sales", relevant_cols=store_sales_cols)
-
-    return item_df, store_sales_df
 
 
 def filter_wcs_table(web_clickstreams_fn, filtered_item_df):

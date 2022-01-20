@@ -25,39 +25,19 @@ from bdb_tools.utils import (
     run_query,
 )
 
+from bdb_tools.q23_utils import (
+    q23_year,
+    q23_month,
+    q23_coefficient,
+    read_tables
+)
+
 from bdb_tools.readers import build_reader
 
 from dask.distributed import wait
 
-
-# -------- Q23 -----------
-q23_year = 2001
-q23_month = 1
-q23_coefficient = 1.3
-
-
-def read_tables(data_dir, c, config):
-    table_reader = build_reader(
-        data_format=config["file_format"], basepath=config["data_dir"],
-    )
-
-    date_cols = ["d_date_sk", "d_year", "d_moy"]
-    date_df = table_reader.read("date_dim", relevant_cols=date_cols)
-
-    inv_cols = [
-        "inv_warehouse_sk",
-        "inv_item_sk",
-        "inv_date_sk",
-        "inv_quantity_on_hand",
-    ]
-    inv_df = table_reader.read("inventory", relevant_cols=inv_cols)
-
-    c.create_table('inventory', inv_df, persist=False)
-    c.create_table('date_dim', date_df, persist=False)
-
-
 def main(data_dir, client, c, config):
-    benchmark(read_tables, data_dir, c, config, dask_profile=config["dask_profile"])
+    benchmark(read_tables, config, c, dask_profile=config["dask_profile"])
 
     query_1 = f"""
         SELECT inv_warehouse_sk,

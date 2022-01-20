@@ -21,19 +21,19 @@ from bdb_tools.utils import (
 )
 from bdb_tools.readers import build_reader
 from bdb_tools.sessionization import get_distinct_sessions
+from bdb_tools.q02_utils import (
+    q02_item_sk,
+    q02_MAX_ITEMS_PER_BASKET,
+    q02_limit,
+    q02_session_timeout_inSec,
+    read_tables
+)
 
 ### Implementation Notes:
 
 ### Future Notes:
 # The bottleneck of current implimenation is `set-index`, once ucx is working correctly
 # it should go away
-
-# -------- Q2 -----------
-q02_item_sk = 10001
-q02_MAX_ITEMS_PER_BASKET = 5000000
-q02_limit = 30
-q02_session_timeout_inSec = 3600
-
 
 def get_relevant_item_series(df, q02_item_sk):
     """
@@ -65,13 +65,6 @@ def reduction_function(df, q02_session_timeout_inSec):
     return grouped_df
 
 
-def read_tables(config):
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=config["split_row_groups"],
-    )
-    wcs_cols = ["wcs_user_sk", "wcs_item_sk", "wcs_click_date_sk", "wcs_click_time_sk"]
     wcs_df = table_reader.read("web_clickstreams", relevant_cols=wcs_cols)
     return wcs_df
 
