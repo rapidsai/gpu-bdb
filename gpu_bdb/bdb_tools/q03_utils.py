@@ -23,6 +23,7 @@ from bdb_tools.readers import build_reader
 q03_days_in_sec_before_purchase = 864000
 q03_views_before_purchase = 5
 q03_purchased_item_IN = 10001
+q03_purchased_item_category_IN = 2, 3
 q03_limit = 100
 
 def read_tables(config, c=None):

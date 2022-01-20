@@ -17,6 +17,8 @@
 from bdb_tools.utils import benchmark, gpubdb_argparser, run_query
 
 from bdb_tools.q01_utils import (
+    q01_i_category_id_IN,
+    q01_ss_store_sk_IN,
     q01_viewed_together_count,
     q01_limit,
     read_tables
@@ -30,8 +32,6 @@ from bdb_tools.q01_utils import (
 ### Future Notes:
 # Settinng  index + merge using  map_parition can be a work-around if dask native merge is slow
 
-q01_i_category_id_IN = ["1", "2"," 3"]
-q01_ss_store_sk_IN = ["10", "20", "33", "40", "50"]
 
 ### Inner Self join to get pairs
 #     Select t1.ss_item_sk as item_sk_1 , t2.ss_item_sk as item_sk_2

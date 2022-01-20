@@ -32,13 +32,12 @@ from bdb_tools.text import (
 )
 
 from bdb_tools.q19_utils import (
+    q19_returns_dates_IN,
     eol_char,
     read_tables
 )
 
 from dask.distributed import wait
-
-q19_returns_dates_IN = ["2004-03-08", "2004-08-02", "2004-11-15", "2004-12-20"]
 
 def main(data_dir, client, c, config):
     benchmark(read_tables, config, c, dask_profile=config["dask_profile"])

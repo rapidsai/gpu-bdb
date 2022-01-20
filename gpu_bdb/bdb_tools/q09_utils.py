@@ -21,6 +21,7 @@ from bdb_tools.readers import build_reader
 q09_year = 2001
 
 q09_part1_ca_country = "United States"
+q09_part1_ca_state_IN = "KY", "GA", "NM"
 q09_part1_net_profit_min = 0
 q09_part1_net_profit_max = 2000
 q09_part1_education_status = "4 yr Degree"
@@ -29,6 +30,7 @@ q09_part1_sales_price_min = 100
 q09_part1_sales_price_max = 150
 
 q09_part2_ca_country = "United States"
+q09_part2_ca_state_IN = "MT", "OR", "IN"
 q09_part2_net_profit_min = 150
 q09_part2_net_profit_max = 3000
 q09_part2_education_status = "4 yr Degree"
@@ -37,6 +39,7 @@ q09_part2_sales_price_min = 50
 q09_part2_sales_price_max = 200
 
 q09_part3_ca_country = "United States"
+q09_part3_ca_state_IN = "WI", "MO", "WV"
 q09_part3_net_profit_min = 50
 q09_part3_net_profit_max = 25000
 q09_part3_education_status = "4 yr Degree"

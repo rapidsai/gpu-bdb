@@ -28,6 +28,7 @@ from bdb_tools.utils import (
 from bdb_tools.q03_utils import (
     apply_find_items_viewed,
     q03_purchased_item_IN,
+    q03_purchased_item_category_IN,
     q03_limit,
     read_tables
 )
@@ -37,8 +38,6 @@ import numpy as np
 
 import glob
 from dask import delayed
-
-q03_purchased_item_category_IN = [2, 3]
 
 def get_wcs_minima(config):
 

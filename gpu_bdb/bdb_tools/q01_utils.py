@@ -18,7 +18,9 @@
 from bdb_tools.readers import build_reader
 
 # -------- Q1 -----------
+q01_i_category_id_IN = 1, 2, 3
 # -- sf1 -> 11 stores, 90k sales in 820k lines
+q01_ss_store_sk_IN = 10, 20, 33, 40, 50
 q01_viewed_together_count = 50
 q01_limit = 100
 

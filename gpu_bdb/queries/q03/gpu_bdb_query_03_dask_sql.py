@@ -25,14 +25,13 @@ from bdb_tools.utils import (
 from bdb_tools.q03_utils import (
     apply_find_items_viewed,
     q03_purchased_item_IN,
+    q03_purchased_item_category_IN,
     q03_limit,
     read_tables
 )
 
 from dask.distributed import wait
 
-
-q03_purchased_item_category_IN = "2,3"
 
 def main(data_dir, client, c, config):
     benchmark(read_tables, config, c, dask_profile=config["dask_profile"])
@@ -64,7 +63,7 @@ def main(data_dir, client, c, config):
     query_3 = f"""
         SELECT i_item_sk, i_category_id
         FROM item_df
-        WHERE i_category_id IN ({q03_purchased_item_category_IN})
+        WHERE i_category_id IN {q03_purchased_item_category_IN}
     """
     item_df_filtered = c.sql(query_3)
 

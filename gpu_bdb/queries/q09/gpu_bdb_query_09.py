@@ -25,6 +25,7 @@ from bdb_tools.utils import (
 from bdb_tools.q09_utils import (
     q09_year,
     q09_part1_ca_country,
+    q09_part1_ca_state_IN,
     q09_part1_net_profit_min,
     q09_part1_net_profit_max,
     q09_part1_education_status,
@@ -32,6 +33,7 @@ from bdb_tools.q09_utils import (
     q09_part1_sales_price_min,
     q09_part1_sales_price_max,
     q09_part2_ca_country,
+    q09_part2_ca_state_IN,
     q09_part2_net_profit_min,
     q09_part2_net_profit_max,
     q09_part2_education_status,
@@ -39,6 +41,7 @@ from bdb_tools.q09_utils import (
     q09_part2_sales_price_min,
     q09_part2_sales_price_max,
     q09_part3_ca_country,
+    q09_part3_ca_state_IN,
     q09_part3_net_profit_min,
     q09_part3_net_profit_max,
     q09_part3_education_status,
@@ -49,10 +52,6 @@ from bdb_tools.q09_utils import (
 )
 
 def main(client, config):
-
-    q09_part1_ca_state_IN = "KY", "GA", "NM"
-    q09_part2_ca_state_IN = "MT", "OR", "IN"
-    q09_part3_ca_state_IN = "WI", "MO", "WV"
 
     (
         store_sales,

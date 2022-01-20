@@ -27,9 +27,6 @@ from bdb_tools.q04_utils import (
     read_tables
 )
 
-# parameters
-q04_session_timeout_inSec = 3600
-
 def main(client, config):
 
     wp, wcs_df = benchmark(

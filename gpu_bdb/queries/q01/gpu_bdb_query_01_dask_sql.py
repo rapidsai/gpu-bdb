@@ -23,15 +23,14 @@ from bdb_tools.utils import (
 )
 
 from bdb_tools.q01_utils import (
+    q01_i_category_id_IN,
+    q01_ss_store_sk_IN,
     q01_viewed_together_count,
     q01_limit,
     read_tables
 )
 
 from dask.distributed import wait
-
-q01_i_category_id_IN = "1, 2, 3"
-q01_ss_store_sk_IN = ["10", "20", "33", "40", "50"]
 
 def main(data_dir, client, c, config):
     benchmark(read_tables, config, c, dask_profile=config["dask_profile"])
@@ -40,8 +39,8 @@ def main(data_dir, client, c, config):
         SELECT DISTINCT ss_item_sk, ss_ticket_number
         FROM store_sales s, item i
         WHERE s.ss_item_sk = i.i_item_sk
-        AND i.i_category_id IN ({q01_i_category_id_IN})
-        AND s.ss_store_sk IN ({q01_ss_store_sk_IN})
+        AND i.i_category_id IN {q01_i_category_id_IN}
+        AND s.ss_store_sk IN {q01_ss_store_sk_IN}
     """
     result_distinct = c.sql(query_distinct)
 

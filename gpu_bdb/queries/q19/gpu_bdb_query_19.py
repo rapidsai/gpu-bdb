@@ -26,13 +26,12 @@ from bdb_tools.utils import (
 )
 from bdb_tools.text import create_sentences_from_reviews, create_words_from_sentences
 from bdb_tools.q19_utils import (
+    q19_returns_dates_IN,
     eol_char,
     read_tables
 )
 
 from dask.distributed import wait
-
-q19_returns_dates = ["2004-03-08", "2004-08-02", "2004-11-15", "2004-12-20"]
 
 def main(client, config):
 
@@ -47,7 +46,7 @@ def main(client, config):
     date_dim_df = date_dim_df.merge(
         date_dim_df, on=["d_week_seq"], how="outer", suffixes=("", "_r")
     )
-    date_dim_df = date_dim_df[date_dim_df.d_date_r.isin(q19_returns_dates)].reset_index(
+    date_dim_df = date_dim_df[date_dim_df.d_date_r.isin(q19_returns_dates_IN)].reset_index(
         drop=True
     )
 
