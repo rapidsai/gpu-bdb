@@ -28,7 +28,8 @@ bsql_qnums = [str(i).zfill(2) for i in range(1, 31)]
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster, import_query_libs
     from bdb_tools.utils import run_query, gpubdb_argparser
-
+    from bdb_tools import RMMResourceMonitor
+    from bdb_tools import DaskTaskLogger
     import_query_libs()
     config = gpubdb_argparser()
     config["run_id"] = uuid.uuid4().hex
@@ -89,8 +90,19 @@ if __name__ == "__main__":
             with open("current_query_num.txt", "w") as fp:
                 fp.write(qnum)
 
+            rmm_analyzer=RMMResourceMonitor(client=client,
+                                            outputdir=os.getenv('OUTPUT_DIR', '/tmp'))
+            dasktasklog=DaskTaskLogger( client=client,
+                                        outputdir=os.getenv('OUTPUT_DIR', '/tmp'))
+            #FIXME: OUTPUT_DIR is not managed by gpu-bdb, might want to pick that up into the config
             for r in range(N_REPEATS):
+                if config.get('benchmark_runner_log_rmm',False):
+                    rmm_analyzer.begin_logging( prefix=f"rmmlog{qnum}")
+                if config.get('benchmark_runner_log_tasks',False):
+                    dasktasklog.mark_begin()
                 run_query(config=config, client=client, query_func=q_func)
+                rmm_analyzer.stop_logging()
+                dasktasklog.save_tasks( prefix=f"dasktasklog{qnum}")
                 client.run(gc.collect)
                 client.run_on_scheduler(gc.collect)
                 gc.collect()
