@@ -1,0 +1,34 @@
+channels:
+  - rapidsai-nightly
+  - nvidia
+  - conda-forge
+
+dependencies:
+  - python=3.8
+  - cudatoolkit=11.2
+  - cudf
+  - rmm
+  - dask-cuda
+  - dask-cudf
+  - cuml
+  - dask
+  - distributed
+  - ucx-py
+  - ucx-proc=*=gpu
+  - dask-sql
+  - numba=0.54.*
+  - scipy
+  - scikit-learn
+  - cupy
+  - spacy=2.3
+  - oauth2client
+  - asyncssh
+  - psutil
+  - ipykernel
+  - jupyterlab
+  - gspread
+  - oauth2client
+  - pytest
+  - pip
+  - pip:
+    - jupyter-server-proxy
