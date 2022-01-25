@@ -56,7 +56,7 @@ if __name__ == "__main__":
         print("Dask SQL Queries")
         for r in range(N_REPEATS):
           for qnum, q_func in sql_queries.items():
-                print(f"{r}: {qnum}")
+                print(f"run {r+1}: q{qnum}")
 
                 qpath = f"{base_path}/queries/q{qnum}/"
                 os.chdir(qpath)
@@ -81,7 +81,7 @@ if __name__ == "__main__":
         print("Pure Dask Queries")
         for r in range(N_REPEATS):
             for qnum, q_func in dask_queries.items():
-                print(f"{r}: {qnum}")
+                print(f"run {r+1}: q{qnum}")
 
                 qpath = f"{base_path}/queries/q{qnum}/"
                 os.chdir(qpath)
