@@ -49,8 +49,8 @@ def main(client, config):
         "i_current_price >= @q22_i_current_price_min and i_current_price<= @q22_i_current_price_max",
         meta=item._meta,
         local_dict={
-            "q22_i_current_price_min": q22_i_current_price_min,
-            "q22_i_current_price_max": q22_i_current_price_max,
+            "q22_i_current_price_min": float(q22_i_current_price_min),
+            "q22_i_current_price_max": float(q22_i_current_price_max),
         },
     ).reset_index(drop=True)
 
