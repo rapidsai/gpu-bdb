@@ -62,7 +62,7 @@ def pre_repartition_task(wcs_fn, item_df, wcs_tstamp_min):
         "wcs_click_time_sk",
     ]
     wcs_df = cudf.read_parquet(wcs_fn, columns=wcs_cols)
-    wcs_df = wcs_df.dropna(axis=0,subset=["wcs_user_sk", "wcs_item_sk"])
+    wcs_df = wcs_df.dropna(axis=0, subset=["wcs_user_sk", "wcs_item_sk"])
     wcs_df["tstamp"] = wcs_df["wcs_click_date_sk"] * 86400 + wcs_df["wcs_click_time_sk"]
     wcs_df["tstamp"] = wcs_df["tstamp"] - wcs_tstamp_min
 
