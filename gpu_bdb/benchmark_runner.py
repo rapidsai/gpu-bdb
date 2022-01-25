@@ -96,8 +96,10 @@ if __name__ == "__main__":
                                         outputdir=os.getenv('OUTPUT_DIR', '/tmp'))
             #FIXME: OUTPUT_DIR is not managed by gpu-bdb, might want to pick that up into the config
             for r in range(N_REPEATS):
-                rmm_analyzer.begin_logging( prefix=f"rmmlog{qnum}")
-                dasktasklog.mark_begin()
+                if config.get('benchmark_runner_log_rmm',False):
+                    rmm_analyzer.begin_logging( prefix=f"rmmlog{qnum}")
+                if config.get('benchmark_runner_log_tasks',False):
+                    dasktasklog.mark_begin()
                 run_query(config=config, client=client, query_func=q_func)
                 rmm_analyzer.stop_logging()
                 dasktasklog.save_tasks( prefix=f"dasktasklog{qnum}")
