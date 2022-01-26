@@ -20,7 +20,6 @@ from bdb_tools.utils import (
     benchmark,
     gpubdb_argparser,
     run_query,
-    convert_datestring_to_days,
 )
 from bdb_tools.q22_utils import (
     q22_date,
@@ -49,8 +48,8 @@ def main(client, config):
         "i_current_price >= @q22_i_current_price_min and i_current_price<= @q22_i_current_price_max",
         meta=item._meta,
         local_dict={
-            "q22_i_current_price_min": float(q22_i_current_price_min),
-            "q22_i_current_price_max": float(q22_i_current_price_max),
+            "q22_i_current_price_min": q22_i_current_price_min,
+            "q22_i_current_price_max": q22_i_current_price_max,
         },
     ).reset_index(drop=True)
 
@@ -69,7 +68,6 @@ def main(client, config):
 
     output_table = output_table[keep_columns]
 
-    date_dim = date_dim.map_partitions(convert_datestring_to_days)
 
     # Filter limit in days
     min_date = np.datetime64(q22_date, "D").astype(int) - 30

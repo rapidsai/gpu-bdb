@@ -18,8 +18,8 @@ from bdb_tools.readers import build_reader
 from bdb_tools.utils import convert_datestring_to_days
 
 q22_date = "2001-05-08"
-q22_i_current_price_min = "0.98"
-q22_i_current_price_max = "1.5"
+q22_i_current_price_min = 0.98
+q22_i_current_price_max = 1.5
 
 
 def read_tables(config, c=None):
