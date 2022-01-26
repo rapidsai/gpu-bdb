@@ -57,12 +57,12 @@ def get_groupby_results(file_list, item_df):
         keep_cols = ["wcs_user_sk", "i_category_id", "clicks_in_category"]
         wcs_ddf = wcs_ddf[keep_cols]
 
-        wcs_ddf = cudf.DataFrame.one_hot_encoding(
+        wcs_ddf = cudf.get_dummies(
             wcs_ddf,
-            column="i_category_id",
+            columns=["i_category_id"],
             prefix="clicks_in",
             prefix_sep="_",
-            cats=[i for i in range(1, 8)],
+            cats={"i_category_id":np.arange(1, 8, dtype="int32")},
             dtype=np.int8,
         )
         keep_cols = ["wcs_user_sk", "clicks_in_category"] + [

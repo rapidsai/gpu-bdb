@@ -28,6 +28,7 @@ from bdb_tools.q26_utils import (
     N_ITER,
     read_tables
 )
+import numpy as np
 from dask import delayed
 
 def agg_count_distinct(df, group_key, counted_key):
@@ -90,10 +91,10 @@ def main(client, config):
 
     # One-Hot-Encode i_class_id
     merged_ddf = merged_ddf.map_partitions(
-        cudf.DataFrame.one_hot_encoding,
-        column="i_class_id",
+        cudf.get_dummies,
+        columns=["i_class_id"],
         prefix="id",
-        cats=[i for i in range(1, 16)],
+        cats={"i_class_id": np.arange(1, 16, dtype="int32")},
         prefix_sep="",
         dtype="float32",
     )
