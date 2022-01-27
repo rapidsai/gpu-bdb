@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019-2020, NVIDIA CORPORATION.
+# Copyright (c) 2019-2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,8 +14,6 @@
 # limitations under the License.
 #
 
-import sys
-
 from bdb_tools.utils import (
     benchmark,
     gpubdb_argparser,
@@ -23,67 +21,20 @@ from bdb_tools.utils import (
 )
 from bdb_tools.merge_util import hash_merge
 
-from bdb_tools.readers import build_reader
-from dask.distributed import Client, wait
+from bdb_tools.q21_utils import read_tables
+
+from dask.distributed import wait
 
 q21_year = 2003
 q21_month = 1
 q21_limit = 100
-
-
-store_sales_cols = [
-    "ss_item_sk",
-    "ss_store_sk",
-    "ss_customer_sk",
-    "ss_ticket_number",
-    "ss_quantity",
-    "ss_sold_date_sk",
-]
-date_cols = ["d_date_sk", "d_year", "d_moy"]
-websale_cols = ["ws_item_sk", "ws_bill_customer_sk", "ws_quantity", "ws_sold_date_sk"]
-sr_cols = [
-    "sr_item_sk",
-    "sr_customer_sk",
-    "sr_ticket_number",
-    "sr_return_quantity",
-    "sr_returned_date_sk",
-]
-store_cols = ["s_store_name", "s_store_id", "s_store_sk"]
-item_cols = ["i_item_id", "i_item_desc", "i_item_sk"]
-
-# todo: See if persisting the date table improves performence as its used all over
-
-
-def read_tables(config):
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=config["split_row_groups"],
-    )
-
-    store_sales_df = table_reader.read("store_sales", relevant_cols=store_sales_cols)
-    date_dim_df = table_reader.read("date_dim", relevant_cols=date_cols)
-    web_sales_df = table_reader.read("web_sales", relevant_cols=websale_cols)
-    store_retuns_df = table_reader.read("store_returns", relevant_cols=sr_cols)
-    store_table_df = table_reader.read("store", relevant_cols=store_cols)
-    item_table_df = table_reader.read("item", relevant_cols=item_cols)
-
-    return (
-        store_sales_df,
-        date_dim_df,
-        web_sales_df,
-        store_retuns_df,
-        store_table_df,
-        item_table_df,
-    )
-
 
 def main(client, config):
     (
         store_sales_df,
         date_dim_df,
         web_sales_df,
-        store_retuns_df,
+        store_returns_df,
         store_table_df,
         item_table_df,
     ) = benchmark(
@@ -105,7 +56,7 @@ def main(client, config):
         meta=date_dim_df._meta,
     ).reset_index(drop=True)
 
-    part_sr = store_retuns_df.merge(
+    part_sr = store_returns_df.merge(
         d2, left_on="sr_returned_date_sk", right_on="d_date_sk", how="inner"
     )
 
@@ -289,8 +240,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019-2020, NVIDIA CORPORATION.
+# Copyright (c) 2019-2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,8 +15,14 @@
 #
 
 from bdb_tools.utils import benchmark, gpubdb_argparser, run_query
-from bdb_tools.readers import build_reader
 
+from bdb_tools.q01_utils import (
+    q01_i_category_id_IN,
+    q01_ss_store_sk_IN,
+    q01_viewed_together_count,
+    q01_limit,
+    read_tables
+)
 
 ### Implementation Notes:
 # `drop_duplicates` and `groupby` by default brings result to single partition
@@ -25,30 +31,6 @@ from bdb_tools.readers import build_reader
 
 ### Future Notes:
 # Settinng  index + merge using  map_parition can be a work-around if dask native merge is slow
-
-
-# -------- Q1 -----------
-q01_i_category_id_IN = [1, 2, 3]
-# -- sf1 -> 11 stores, 90k sales in 820k lines
-q01_ss_store_sk_IN = [10, 20, 33, 40, 50]
-q01_viewed_together_count = 50
-q01_limit = 100
-
-
-item_cols = ["i_item_sk", "i_category_id"]
-ss_cols = ["ss_item_sk", "ss_store_sk", "ss_ticket_number"]
-
-
-def read_tables(config):
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=config["split_row_groups"],
-    )
-
-    item_df = table_reader.read("item", relevant_cols=item_cols)
-    ss_df = table_reader.read("store_sales", relevant_cols=ss_cols)
-    return item_df, ss_df
 
 
 ### Inner Self join to get pairs
@@ -163,8 +145,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

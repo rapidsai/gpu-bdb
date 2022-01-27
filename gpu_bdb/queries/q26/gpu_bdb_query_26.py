@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019-2020, NVIDIA CORPORATION.
+# Copyright (c) 2019-2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,44 +14,22 @@
 # limitations under the License.
 #
 
-import sys
-
-import numpy as np
-from numba import cuda
-
 from bdb_tools.utils import (
     benchmark,
     gpubdb_argparser,
     train_clustering_model,
     run_query,
 )
-from bdb_tools.readers import build_reader
+from bdb_tools.q26_utils import (
+    Q26_CATEGORY,
+    Q26_ITEM_COUNT,
+    N_CLUSTERS,
+    CLUSTER_ITERATIONS,
+    N_ITER,
+    read_tables
+)
+import numpy as np
 from dask import delayed
-
-
-# q26 parameters
-Q26_CATEGORY = "Books"
-Q26_ITEM_COUNT = 5
-N_CLUSTERS = 8
-CLUSTER_ITERATIONS = 20
-N_ITER = 5
-
-
-def read_tables(config):
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=config["split_row_groups"],
-    )
-
-    ss_cols = ["ss_customer_sk", "ss_item_sk"]
-    items_cols = ["i_item_sk", "i_category", "i_class_id"]
-
-    ss_ddf = table_reader.read("store_sales", relevant_cols=ss_cols, index=False)
-    items_ddf = table_reader.read("item", relevant_cols=items_cols, index=False)
-
-    return (ss_ddf, items_ddf)
-
 
 def agg_count_distinct(df, group_key, counted_key):
     """Returns a Series that is the result of counting distinct instances of 'counted_key' within each 'group_key'.
@@ -113,10 +91,10 @@ def main(client, config):
 
     # One-Hot-Encode i_class_id
     merged_ddf = merged_ddf.map_partitions(
-        cudf.DataFrame.one_hot_encoding,
-        column="i_class_id",
+        cudf.get_dummies,
+        columns=["i_class_id"],
         prefix="id",
-        cats=[i for i in range(1, 16)],
+        cats={"i_class_id": np.arange(1, 16, dtype="int32")},
         prefix_sep="",
         dtype="float32",
     )
@@ -139,8 +117,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

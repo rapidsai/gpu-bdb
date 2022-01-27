@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019-2020, NVIDIA CORPORATION.
+# Copyright (c) 2019-2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,46 +14,18 @@
 # limitations under the License.
 #
 
-from dask.distributed import Client
-
 import numpy as np
-import sys
 
+import cudf
 
 from bdb_tools.utils import (
     benchmark,
     gpubdb_argparser,
     run_query,
 )
-from bdb_tools.readers import build_reader
-
-
-def read_tables(config):
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=config["split_row_groups"],
-    )
-
-    ws_columns = ["ws_ship_hdemo_sk", "ws_web_page_sk", "ws_sold_time_sk"]
-    web_sales = table_reader.read("web_sales", relevant_cols=ws_columns)
-
-    hd_columns = ["hd_demo_sk", "hd_dep_count"]
-    household_demographics = table_reader.read(
-        "household_demographics", relevant_cols=hd_columns
-    )
-
-    wp_columns = ["wp_web_page_sk", "wp_char_count"]
-    web_page = table_reader.read("web_page", relevant_cols=wp_columns)
-
-    td_columns = ["t_time_sk", "t_hour"]
-    time_dim = table_reader.read("time_dim", relevant_cols=td_columns)
-
-    return web_sales, household_demographics, web_page, time_dim
-
+from bdb_tools.q14_utils import read_tables
 
 def main(client, config):
-    import cudf
 
     q14_dependents = 5
     q14_morning_startHour = 7
@@ -140,8 +112,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

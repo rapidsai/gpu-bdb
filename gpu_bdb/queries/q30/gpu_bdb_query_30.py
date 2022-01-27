@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019-2020, NVIDIA CORPORATION.
+# Copyright (c) 2019-2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,17 +14,23 @@
 # limitations under the License.
 #
 
-import sys
 import glob
 import os
+
+import cudf
+import dask_cudf
 
 from bdb_tools.utils import (
     benchmark,
     gpubdb_argparser,
     run_query,
 )
-from bdb_tools.readers import build_reader
-from bdb_tools.sessionization import get_session_id, get_distinct_sessions, get_pairs
+from bdb_tools.q30_utils import (
+    q30_session_timeout_inSec,
+    q30_limit,
+    read_tables
+)
+from bdb_tools.sessionization import get_distinct_sessions, get_pairs
 
 from dask import delayed
 import numpy as np
@@ -35,30 +41,10 @@ import numpy as np
 # The bottleneck of current implementation is `set-index`, once ucx is working correctly
 # it should go away
 
-
-### session timeout in secs
-q30_session_timeout_inSec = 3600
-### query output limit
-q30_limit = 40
-
-
-def read_tables(config):
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=config["split_row_groups"],
-    )
-
-    item_cols = ["i_category_id", "i_item_sk"]
-    item_df = table_reader.read("item", relevant_cols=item_cols)
-    return item_df
-
-
 def pre_repartition_task(wcs_fn, f_item_df):
     """
         Runs the pre-repartition task
     """
-    import cudf
 
     wcs_cols = ["wcs_user_sk", "wcs_item_sk", "wcs_click_date_sk", "wcs_click_time_sk"]
     wcs_df = cudf.read_parquet(wcs_fn, columns=wcs_cols)
@@ -80,8 +66,6 @@ def pre_repartition_task(wcs_fn, f_item_df):
 
 
 def main(client, config):
-    import dask_cudf
-    import cudf
 
     item_df = benchmark(
         read_tables,
@@ -163,8 +147,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

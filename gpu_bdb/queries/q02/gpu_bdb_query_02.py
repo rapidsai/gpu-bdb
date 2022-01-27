@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019-2020, NVIDIA CORPORATION.
+# Copyright (c) 2019-2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,21 +19,19 @@ from bdb_tools.utils import (
     gpubdb_argparser,
     run_query,
 )
-from bdb_tools.readers import build_reader
 from bdb_tools.sessionization import get_distinct_sessions
+from bdb_tools.q02_utils import (
+    q02_item_sk,
+    q02_limit,
+    q02_session_timeout_inSec,
+    read_tables
+)
 
 ### Implementation Notes:
 
 ### Future Notes:
 # The bottleneck of current implimenation is `set-index`, once ucx is working correctly
 # it should go away
-
-# -------- Q2 -----------
-q02_item_sk = 10001
-q02_MAX_ITEMS_PER_BASKET = 5000000
-q02_limit = 30
-q02_session_timeout_inSec = 3600
-
 
 def get_relevant_item_series(df, q02_item_sk):
     """
@@ -63,17 +61,6 @@ def reduction_function(df, q02_session_timeout_inSec):
     del item_series
     grouped_df.columns = ["i_item_sk", "cnt"]
     return grouped_df
-
-
-def read_tables(config):
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=config["split_row_groups"],
-    )
-    wcs_cols = ["wcs_user_sk", "wcs_item_sk", "wcs_click_date_sk", "wcs_click_time_sk"]
-    wcs_df = table_reader.read("web_clickstreams", relevant_cols=wcs_cols)
-    return wcs_df
 
 
 def pre_repartition_task(wcs_df):
@@ -149,8 +136,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)
