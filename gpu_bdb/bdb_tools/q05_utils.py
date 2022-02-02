@@ -94,7 +94,7 @@ def build_and_predict_model(ml_input_df):
     results_dict = {}
     y_pred = model.predict(X)
 
-    results_dict["auc"] = roc_auc_score(y.to_array(), y_pred.to_array())
+    results_dict["auc"] = roc_auc_score(y.values_host, y_pred.values_host)
     results_dict["precision"] = cupy_precision_score(cp.asarray(y), cp.asarray(y_pred))
     results_dict["confusion_matrix"] = confusion_matrix(
         cp.asarray(y, dtype="int32"), cp.asarray(y_pred, dtype="int32")
