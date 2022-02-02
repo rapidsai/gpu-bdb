@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019-2020, NVIDIA CORPORATION.
+# Copyright (c) 2019-2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,16 +14,18 @@
 # limitations under the License.
 #
 
-import sys
 import os
 import glob
+
+import cudf
+import dask_cudf
 
 from bdb_tools.utils import (
     benchmark,
     gpubdb_argparser,
     run_query,
 )
-from bdb_tools.readers import build_reader
+from bdb_tools.q12_utils import read_tables
 
 from distributed import wait
 import numpy as np
@@ -36,16 +38,10 @@ from dask import delayed
 
 
 ### These parameters are not used
-# q12_startDate='2001-09-02'
-# q12_endDate1='2001-10-02'
-# q12_endDate2='2001-12-02'
 q12_i_category_IN = ["Books", "Electronics"]
 
 ### below was hard coded in the orignal query
 q12_store_sale_sk_start_date = 37134
-
-item_cols = ["i_item_sk", "i_category"]
-store_sales_cols = ["ss_item_sk", "ss_sold_date_sk", "ss_customer_sk"]
 
 ### Util Functions
 def string_filter(df, col_name, col_values):
@@ -63,19 +59,6 @@ def string_filter(df, col_name, col_values):
     return df[bool_flag].reset_index(drop=True)
 
 
-def read_tables(config):
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=config["split_row_groups"],
-    )
-
-    item_df = table_reader.read("item", relevant_cols=item_cols)
-    store_sales_df = table_reader.read("store_sales", relevant_cols=store_sales_cols)
-
-    return item_df, store_sales_df
-
-
 def filter_wcs_table(web_clickstreams_fn, filtered_item_df):
     """
         Filter web clickstreams table
@@ -90,7 +73,6 @@ def filter_wcs_table(web_clickstreams_fn, filtered_item_df):
         ##    AND wcs_user_sk IS NOT NULL
         ###   AND wcs_sales_sk IS NULL --only views, not purchases
     """
-    import cudf
 
     web_clickstreams_cols = [
         "wcs_user_sk",
@@ -150,7 +132,6 @@ def filter_ss_table(store_sales_df, filtered_item_df):
 
 
 def main(client, config):
-    import cudf, dask_cudf
 
     item_df, store_sales_df = benchmark(
         read_tables,
@@ -242,8 +223,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

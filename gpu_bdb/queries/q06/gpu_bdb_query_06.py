@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019-2020, NVIDIA CORPORATION.
+# Copyright (c) 2019-2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,64 +14,17 @@
 # limitations under the License.
 #
 
-import sys
-
-
 from bdb_tools.utils import (
     benchmark,
     gpubdb_argparser,
     run_query,
 )
-from bdb_tools.readers import build_reader
-from distributed import wait
 
-
-q06_YEAR = 2001
-q6_limit_rows = 100
-
-
-def read_tables(config):
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=config["split_row_groups"],
-    )
-
-    web_sales_cols = [
-        "ws_bill_customer_sk",
-        "ws_sold_date_sk",
-        "ws_ext_list_price",
-        "ws_ext_wholesale_cost",
-        "ws_ext_discount_amt",
-        "ws_ext_sales_price",
-    ]
-    store_sales_cols = [
-        "ss_customer_sk",
-        "ss_sold_date_sk",
-        "ss_ext_list_price",
-        "ss_ext_wholesale_cost",
-        "ss_ext_discount_amt",
-        "ss_ext_sales_price",
-    ]
-    date_cols = ["d_date_sk", "d_year", "d_moy"]
-    customer_cols = [
-        "c_customer_sk",
-        "c_customer_id",
-        "c_email_address",
-        "c_first_name",
-        "c_last_name",
-        "c_preferred_cust_flag",
-        "c_birth_country",
-        "c_login",
-    ]
-
-    ws_df = table_reader.read("web_sales", relevant_cols=web_sales_cols)
-    ss_df = table_reader.read("store_sales", relevant_cols=store_sales_cols)
-    date_df = table_reader.read("date_dim", relevant_cols=date_cols)
-    customer_df = table_reader.read("customer", relevant_cols=customer_cols)
-
-    return (ws_df, ss_df, date_df, customer_df)
-
+from bdb_tools.q06_utils import (
+    q06_YEAR,
+    q06_LIMIT,
+    read_tables
+)
 
 def get_sales_ratio(df, table="store_sales"):
     assert table in ("store_sales", "web_sales")
@@ -247,13 +200,11 @@ def main(client, config):
         )
     )
 
-    return result_df.head(q6_limit_rows)
+    return result_df.head(q06_LIMIT)
 
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

@@ -1,6 +1,5 @@
 #
-# Copyright (c) 2019-2020, NVIDIA CORPORATION.
-# Copyright (c) 2019-2020, BlazingSQL, Inc.
+# Copyright (c) 2019-2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,11 +14,7 @@
 # limitations under the License.
 #
 
-import sys
-
 from bdb_tools.cluster_startup import attach_to_cluster
-from dask.distributed import Client
-import os
 
 from bdb_tools.utils import (
     benchmark,
@@ -27,47 +22,10 @@ from bdb_tools.utils import (
     run_query,
 )
 
-from bdb_tools.readers import build_reader
+from bdb_tools.q07_utils import read_tables
 
-
-def read_tables(data_dir, bc, config):
-	table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=config["split_row_groups"],
-    )
-	
-	item_cols = ["i_item_sk", "i_current_price", "i_category"]
-	store_sales_cols = ["ss_item_sk", "ss_customer_sk", "ss_sold_date_sk"]
-	store_cols = ["s_store_sk"]
-	date_cols = ["d_date_sk", "d_year", "d_moy"]
-	customer_cols = ["c_customer_sk", "c_current_addr_sk"]
-	customer_address_cols = ["ca_address_sk", "ca_state"]
-
-	item_df = table_reader.read("item", relevant_cols=item_cols)
-	store_sales_df = table_reader.read("store_sales", relevant_cols=store_sales_cols)
-	# store_df = table_reader.read("store", relevant_cols=store_cols)
-	date_dim_df = table_reader.read("date_dim", relevant_cols=date_cols)
-	customer_df = table_reader.read("customer", relevant_cols=customer_cols)
-	customer_address_df = table_reader.read(
-		"customer_address", relevant_cols=customer_address_cols
-	)
-
-	bc.create_table("item", item_df, persist=False)
-	bc.create_table("customer", customer_df, persist=False)
-	bc.create_table("store_sales", store_sales_df, persist=False)
-	bc.create_table("date_dim", date_dim_df, persist=False)
-	bc.create_table("customer_address", customer_address_df, persist=False)
-
-    # bc.create_table("item", os.path.join(data_dir, "item/*.parquet"))
-    # bc.create_table("customer", os.path.join(data_dir, "customer/*.parquet"))
-    # bc.create_table("store_sales", os.path.join(data_dir, "store_sales/*.parquet"))
-    # bc.create_table("date_dim", os.path.join(data_dir, "date_dim/*.parquet"))
-    # bc.create_table("customer_address", os.path.join(data_dir, "customer_address/*.parquet"))
-
-
-def main(data_dir, client, bc, config):
-    benchmark(read_tables, data_dir, bc, config, dask_profile=config["dask_profile"])
+def main(data_dir, client, c, config):
+    benchmark(read_tables, config, c, dask_profile=config["dask_profile"])
 
     query = """
 		WITH temp_table as 
@@ -106,11 +64,11 @@ def main(data_dir, client, bc, config):
 		LIMIT 10
 	"""
 
-    result = bc.sql(query)
+    result = c.sql(query)
     return result
 
 
 if __name__ == "__main__":
 	config = gpubdb_argparser()
-	client, bc = attach_to_cluster(config)
-	run_query(config=config, client=client, query_func=main, blazing_context=bc)
+	client, c = attach_to_cluster(config, create_sql_context=True)
+	run_query(config=config, client=client, query_func=main, sql_context=c)

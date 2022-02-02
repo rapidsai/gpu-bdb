@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019-2020, NVIDIA CORPORATION.
+# Copyright (c) 2019-2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,72 +14,25 @@
 # limitations under the License.
 #
 
-import sys
-from collections import OrderedDict
+import cudf
 
 from bdb_tools.utils import (
     benchmark,
     gpubdb_argparser,
     left_semi_join,
     run_query,
+    )
+from bdb_tools.q17_utils import (
+    q17_gmt_offset,
+    q17_year,
+    q17_month,
+    store_sales_cols,
+    read_tables
 )
-from bdb_tools.readers import build_reader
 
-
-### conf
-q17_gmt_offset = -5
-# --store_sales date
-q17_year = 2001
-q17_month = 12
 q17_i_category_IN = "Books", "Music"
 
-
-store_sales_cols = [
-    "ss_ext_sales_price",
-    "ss_sold_date_sk",
-    "ss_store_sk",
-    "ss_customer_sk",
-    "ss_promo_sk",
-    "ss_item_sk",
-]
-item_cols = ["i_category", "i_item_sk"]
-customer_cols = ["c_customer_sk", "c_current_addr_sk"]
-store_cols = ["s_gmt_offset", "s_store_sk"]
-date_cols = ["d_date_sk", "d_year", "d_moy"]
-customer_address_cols = ["ca_address_sk", "ca_gmt_offset"]
-promotion_cols = ["p_channel_email", "p_channel_dmail", "p_channel_tv", "p_promo_sk"]
-
-
-def read_tables(config):
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=config["split_row_groups"],
-    )
-
-    store_sales_df = table_reader.read("store_sales", relevant_cols=store_sales_cols)
-    item_df = table_reader.read("item", relevant_cols=item_cols)
-    customer_df = table_reader.read("customer", relevant_cols=customer_cols)
-    store_df = table_reader.read("store", relevant_cols=store_cols)
-    date_dim_df = table_reader.read("date_dim", relevant_cols=date_cols)
-    customer_address_df = table_reader.read(
-        "customer_address", relevant_cols=customer_address_cols
-    )
-    promotion_df = table_reader.read("promotion", relevant_cols=promotion_cols)
-
-    return (
-        store_sales_df,
-        item_df,
-        customer_df,
-        store_df,
-        date_dim_df,
-        customer_address_df,
-        promotion_df,
-    )
-
-
 def main(client, config):
-    import cudf
 
     (
         store_sales_df,
@@ -214,8 +167,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

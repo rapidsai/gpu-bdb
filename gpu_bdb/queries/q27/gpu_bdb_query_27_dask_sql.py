@@ -1,6 +1,5 @@
 #
-# Copyright (c) 2019-2020, NVIDIA CORPORATION.
-# Copyright (c) 2019-2020, BlazingSQL, Inc.
+# Copyright (c) 2019-2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,9 +14,6 @@
 # limitations under the License.
 #
 
-import sys
-import os
-
 from bdb_tools.text import (
     create_sentences_from_reviews,
     create_words_from_sentences
@@ -25,7 +21,6 @@ from bdb_tools.text import (
 
 from bdb_tools.cluster_startup import attach_to_cluster
 from dask.distributed import wait
-import spacy
 
 from bdb_tools.utils import (
     benchmark,
@@ -33,49 +28,15 @@ from bdb_tools.utils import (
     run_query,
 )
 
-from bdb_tools.readers import build_reader
+from bdb_tools.q27_utils import (
+    ner_parser,
+    q27_pr_item_sk,
+    EOL_CHAR,
+    read_tables
+)
 
-from dask.distributed import wait
-
-
-# -------- Q27 -----------
-q27_pr_item_sk = 10002
-EOL_CHAR = "."
-
-
-def read_tables(data_dir, bc, config):
-    ### splitting by row groups for better parallelism
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=True,
-    )
-    product_reviews_cols = ["pr_item_sk", "pr_review_content", "pr_review_sk"]
-    product_reviews_df = table_reader.read(
-        "product_reviews", relevant_cols=product_reviews_cols
-    )
-
-    bc.create_table("product_reviews", product_reviews_df, persist=False)
-
-    # bc.create_table("product_reviews", os.path.join(data_dir, "product_reviews/*.parquet"))
-
-
-def ner_parser(df, col_string, batch_size=256):
-    spacy.require_gpu()
-    nlp = spacy.load("en_core_web_sm")
-    docs = nlp.pipe(df[col_string], disable=["tagger", "parser"], batch_size=batch_size)
-    out = []
-    for doc in docs:
-        l = [ent.text for ent in doc.ents if ent.label_ == "ORG"]
-        val = ", "
-        l = val.join(l)
-        out.append(l)
-    df["company_name_list"] = out
-    return df
-
-
-def main(data_dir, client, bc, config):
-    benchmark(read_tables, data_dir, bc, config, dask_profile=config["dask_profile"])
+def main(data_dir, client, c, config):
+    benchmark(read_tables, config, c, dask_profile=config["dask_profile"])
 
     import dask_cudf
 
@@ -84,7 +45,7 @@ def main(data_dir, client, bc, config):
         FROM product_reviews
         WHERE pr_item_sk = {q27_pr_item_sk}
     """
-    product_reviews_df = bc.sql(query)
+    product_reviews_df = c.sql(query)
 
     sentences = product_reviews_df.map_partitions(
         create_sentences_from_reviews,
@@ -119,11 +80,11 @@ def main(data_dir, client, bc, config):
     # recombine
     repeated_names = repeated_names.persist()
     wait(repeated_names)
-    bc.create_table('repeated_names', repeated_names, persist=False)
+    c.create_table('repeated_names', repeated_names, persist=False)
 
     ner_parsed = ner_parsed.persist()
     wait(ner_parsed)
-    bc.create_table('ner_parsed', ner_parsed, persist=False)
+    c.create_table('ner_parsed', ner_parsed, persist=False)
 
     query = f"""
         SELECT review_idx_global_pos as review_sk,
@@ -134,10 +95,10 @@ def main(data_dir, client, bc, config):
         ON sentence_idx_global_pos = sentence_tokenized_global_pos
         ORDER BY review_idx_global_pos, item_sk, word, sentence
     """
-    recombined = bc.sql(query)
+    recombined = c.sql(query)
 
-    bc.drop_table("repeated_names")
-    bc.drop_table("ner_parsed")
+    c.drop_table("repeated_names")
+    c.drop_table("ner_parsed")
     del ner_parsed
     del repeated_names
     return recombined
@@ -145,6 +106,6 @@ def main(data_dir, client, bc, config):
 
 if __name__ == "__main__":
     config = gpubdb_argparser()
-    client, bc = attach_to_cluster(config)
-    run_query(config=config, client=client, query_func=main, blazing_context=bc)
+    client, c = attach_to_cluster(config, create_sql_context=True)
+    run_query(config=config, client=client, query_func=main, sql_context=c)
 

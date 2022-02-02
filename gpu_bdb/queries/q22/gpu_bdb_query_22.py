@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019-2020, NVIDIA CORPORATION.
+# Copyright (c) 2019-2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,19 +14,19 @@
 # limitations under the License.
 #
 
-from numba import cuda
 import numpy as np
-import sys
-
 
 from bdb_tools.utils import (
     benchmark,
     gpubdb_argparser,
     run_query,
-    convert_datestring_to_days,
 )
-from bdb_tools.readers import build_reader
-
+from bdb_tools.q22_utils import (
+    q22_date,
+    q22_i_current_price_min,
+    q22_i_current_price_max,
+    read_tables
+)
 
 def inventory_before_after(df, date):
     df["inv_before"] = df["inv_quantity_on_hand"].copy()
@@ -36,38 +36,7 @@ def inventory_before_after(df, date):
     return df
 
 
-def read_tables(config):
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=config["split_row_groups"],
-    )
-    inv_columns = [
-        "inv_item_sk",
-        "inv_warehouse_sk",
-        "inv_date_sk",
-        "inv_quantity_on_hand",
-    ]
-    inventory = table_reader.read("inventory", relevant_cols=inv_columns)
-
-    item_columns = ["i_item_id", "i_current_price", "i_item_sk"]
-    item = table_reader.read("item", relevant_cols=item_columns)
-
-    warehouse_columns = ["w_warehouse_sk", "w_warehouse_name"]
-    warehouse = table_reader.read("warehouse", relevant_cols=warehouse_columns)
-
-    dd_columns = ["d_date_sk", "d_date"]
-    date_dim = table_reader.read("date_dim", relevant_cols=dd_columns)
-
-    return inventory, item, warehouse, date_dim
-
-
 def main(client, config):
-
-    q22_date = "2001-05-08"
-    q22_i_current_price_min = 0.98
-    q22_i_current_price_max = 1.5
-
     inventory, item, warehouse, date_dim = benchmark(
         read_tables,
         config=config,
@@ -99,7 +68,6 @@ def main(client, config):
 
     output_table = output_table[keep_columns]
 
-    date_dim = date_dim.map_partitions(convert_datestring_to_days)
 
     # Filter limit in days
     min_date = np.datetime64(q22_date, "D").astype(int) - 30
@@ -161,8 +129,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

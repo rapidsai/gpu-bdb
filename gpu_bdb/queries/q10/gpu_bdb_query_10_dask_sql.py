@@ -1,6 +1,5 @@
 #
-# Copyright (c) 2019-2020, NVIDIA CORPORATION.
-# Copyright (c) 2019-2020, BlazingSQL, Inc.
+# Copyright (c) 2019-2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,7 +14,6 @@
 # limitations under the License.
 #
 
-import sys
 import os
 
 import dask_cudf
@@ -33,35 +31,15 @@ from bdb_tools.text import (
     create_words_from_sentences
 )
 
-from bdb_tools.readers import build_reader
+from bdb_tools.q10_utils import (
+    eol_char,
+    read_tables
+)
 
 from dask.distributed import wait
 
-
-eol_char = "è"
-
-
-def read_tables(data_dir, bc, config):
-
-    ### splitting by row groups for better parallelism
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=True,
-    )
-    product_reviews_cols = ["pr_item_sk", "pr_review_content", "pr_review_sk"]
-
-    product_reviews_df = table_reader.read(
-        "product_reviews", relevant_cols=product_reviews_cols,
-    )
-
-    bc.create_table("product_reviews", product_reviews_df, persist=False)
-
-    # bc.create_table('product_reviews', os.path.join(data_dir, "product_reviews/*.parquet"))
-
-
-def main(data_dir, client, bc, config):
-    benchmark(read_tables, data_dir, bc, config, dask_profile=config["dask_profile"])
+def main(data_dir, client, c, config):
+    benchmark(read_tables, config, c, dask_profile=config["dask_profile"])
 
     query_1 = """
         SELECT pr_item_sk,
@@ -71,7 +49,7 @@ def main(data_dir, client, bc, config):
         where pr_review_content IS NOT NULL
         ORDER BY pr_item_sk, pr_review_content, pr_review_sk
     """
-    product_reviews_df = bc.sql(query_1)
+    product_reviews_df = c.sql(query_1)
 
     product_reviews_df[
         "pr_review_content"
@@ -99,24 +77,24 @@ def main(data_dir, client, bc, config):
 
     product_reviews_df = product_reviews_df.persist()
     wait(product_reviews_df)
-    bc.create_table('product_reviews_df', product_reviews_df, persist=False)
+    c.create_table('product_reviews_df', product_reviews_df, persist=False)
     
     sentences = sentences.persist()
     wait(sentences)
-    bc.create_table('sentences', sentences, persist=False)
+    c.create_table('sentences', sentences, persist=False)
 
     # These files come from the official TPCx-BB kit
     # We extracted them from bigbenchqueriesmr.jar
     # Need to pass the absolute path for these txt files
     sentiment_dir = os.path.join(config["data_dir"], "sentiment_files")
     ns_df = dask_cudf.read_csv(os.path.join(sentiment_dir, "negativeSentiment.txt"), names=["sentiment_word"], persist=False)
-    bc.create_table('negative_sentiment', ns_df, persist=False)
+    c.create_table('negative_sentiment', ns_df, persist=False)
     ps_df = dask_cudf.read_csv(os.path.join(sentiment_dir, "positiveSentiment.txt"), names=["sentiment_word"], persist=False)
-    bc.create_table('positive_sentiment', ps_df, persist=False)
+    c.create_table('positive_sentiment', ps_df, persist=False)
 
     word_df = word_df.persist()
     wait(word_df)
-    bc.create_table('word_df', word_df, persist=False)
+    c.create_table('word_df', word_df, persist=False)
 
     query = '''
         SELECT pr_item_sk as item_sk,
@@ -150,13 +128,13 @@ def main(data_dir, client, bc, config):
         ON temp.review_idx_global_pos = product_reviews_df.pr_review_sk
         ORDER BY item_sk, review_sentence, sentiment, sentiment_word
     '''
-    result = bc.sql(query)
+    result = c.sql(query)
 
-    bc.drop_table("product_reviews_df")
+    c.drop_table("product_reviews_df")
     del product_reviews_df
-    bc.drop_table("sentences")
+    c.drop_table("sentences")
     del sentences
-    bc.drop_table("word_df")
+    c.drop_table("word_df")
     del word_df
 
     return result
@@ -164,5 +142,5 @@ def main(data_dir, client, bc, config):
 
 if __name__ == "__main__":
     config = gpubdb_argparser()
-    client, bc = attach_to_cluster(config)
-    run_query(config=config, client=client, query_func=main, blazing_context=bc)
+    client, c = attach_to_cluster(config, create_sql_context=True)
+    run_query(config=config, client=client, query_func=main, sql_context=c)

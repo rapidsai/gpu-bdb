@@ -1,6 +1,5 @@
 #
-# Copyright (c) 2019-2020, NVIDIA CORPORATION.
-# Copyright (c) 2019-2020, BlazingSQL, Inc.
+# Copyright (c) 2019-2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,9 +14,6 @@
 # limitations under the License.
 #
 
-import sys
-import os
-
 from bdb_tools.cluster_startup import attach_to_cluster
 
 from bdb_tools.utils import (
@@ -26,31 +22,15 @@ from bdb_tools.utils import (
     run_query,
 )
 
-from bdb_tools.readers import build_reader
+from bdb_tools.q29_utils import (
+    q29_limit,
+    read_tables
+)
 
 from dask.distributed import wait
 
-
-# -------- Q29 -----------
-q29_limit = 100
-
-
-def read_tables(data_dir, bc, config):
-    table_reader = build_reader(
-        data_format=config["file_format"], basepath=config["data_dir"],
-    )
-    item_cols = ["i_item_sk", "i_category_id"]
-    item_df = table_reader.read("item", relevant_cols=item_cols)
-
-    ws_cols = ["ws_order_number", "ws_item_sk"]
-    ws_df = table_reader.read("web_sales", relevant_cols=ws_cols)
-
-    bc.create_table('item', item_df, persist=False)
-    bc.create_table('web_sales', ws_df, persist=False)
-
-
-def main(data_dir, client, bc, config):
-    benchmark(read_tables, data_dir, bc, config, dask_profile=config["dask_profile"])
+def main(data_dir, client, c, config):
+    benchmark(read_tables, config, c, dask_profile=config["dask_profile"])
     n_workers = len(client.scheduler_info()["workers"])
 
     join_query = """
@@ -65,7 +45,7 @@ def main(data_dir, client, bc, config):
         WHERE ws.ws_item_sk = i.i_item_sk
         AND i.i_category_id IS NOT NULL
     """
-    result = bc.sql(join_query)
+    result = c.sql(join_query)
     
     # Distinct Calculatiin
     result_distinct = result.drop_duplicates(split_out=n_workers,ignore_index=True)
@@ -73,7 +53,7 @@ def main(data_dir, client, bc, config):
     ## TODO Raise a issue for this
     result_distinct = result_distinct.reset_index(drop=True)
     ### Persiting cause Order by causes execution
-    bc.create_table('distinct_table', result_distinct, persist=True)
+    c.create_table('distinct_table', result_distinct, persist=True)
 
     query = f"""
         SELECT category_id_1, category_id_2, COUNT (*) AS cnt
@@ -90,15 +70,15 @@ def main(data_dir, client, bc, config):
         ORDER BY cnt DESC, category_id_1, category_id_2
         LIMIT {q29_limit}
     """
-    result = bc.sql(query)
+    result = c.sql(query)
     result = result.persist()
     wait(result);
 
-    bc.drop_table("distinct_table")
+    c.drop_table("distinct_table")
     return result
 
 
 if __name__ == "__main__":
     config = gpubdb_argparser()
-    client, bc = attach_to_cluster(config)
-    run_query(config=config, client=client, query_func=main, blazing_context=bc)
+    client, c = attach_to_cluster(config, create_sql_context=True)
+    run_query(config=config, client=client, query_func=main, sql_context=c)

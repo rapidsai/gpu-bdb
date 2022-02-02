@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019-2020, NVIDIA CORPORATION.
+# Copyright (c) 2019-2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,8 +14,7 @@
 # limitations under the License.
 #
 
-import sys
-
+import cudf
 
 from bdb_tools.utils import (
     benchmark,
@@ -23,46 +22,15 @@ from bdb_tools.utils import (
     run_query,
     convert_datestring_to_days,
 )
-from bdb_tools.readers import build_reader
 
-from numba import cuda
+from bdb_tools.q11_utils import read_tables
+
 import numpy as np
-
 
 q11_start_date = "2003-01-02"
 q11_end_date = "2003-02-02"
 
-
-def read_tables(config):
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=config["split_row_groups"],
-    )
-
-    product_review_cols = [
-        "pr_review_rating",
-        "pr_item_sk",
-    ]
-    web_sales_cols = [
-        "ws_sold_date_sk",
-        "ws_net_paid",
-        "ws_item_sk",
-    ]
-    date_cols = ["d_date_sk", "d_date"]
-
-    pr_df = table_reader.read("product_reviews", relevant_cols=product_review_cols)
-    # we only read int columns here so it should scale up to sf-10k as just 26M rows
-    pr_df = pr_df.repartition(npartitions=1)
-
-    ws_df = table_reader.read("web_sales", relevant_cols=web_sales_cols)
-    date_df = table_reader.read("date_dim", relevant_cols=date_cols)
-
-    return pr_df, ws_df, date_df
-
-
 def main(client, config):
-    import cudf
 
     pr_df, ws_df, date_df = benchmark(
         read_tables,
@@ -125,8 +93,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

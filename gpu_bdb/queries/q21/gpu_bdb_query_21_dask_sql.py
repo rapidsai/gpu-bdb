@@ -1,6 +1,5 @@
 #
-# Copyright (c) 2019-2020, NVIDIA CORPORATION.
-# Copyright (c) 2019-2020, BlazingSQL, Inc.
+# Copyright (c) 2019-2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,9 +14,6 @@
 # limitations under the License.
 #
 
-import sys
-import os
-
 from bdb_tools.cluster_startup import attach_to_cluster
 
 from bdb_tools.utils import (
@@ -26,60 +22,10 @@ from bdb_tools.utils import (
     run_query,
 )
 
-from bdb_tools.readers import build_reader
+from bdb_tools.q21_utils import read_tables
 
-
-store_sales_cols = [
-    "ss_item_sk",
-    "ss_store_sk",
-    "ss_customer_sk",
-    "ss_ticket_number",
-    "ss_quantity",
-    "ss_sold_date_sk",
-]
-date_cols = ["d_date_sk", "d_year", "d_moy"]
-websale_cols = ["ws_item_sk", "ws_bill_customer_sk", "ws_quantity", "ws_sold_date_sk"]
-sr_cols = [
-    "sr_item_sk",
-    "sr_customer_sk",
-    "sr_ticket_number",
-    "sr_return_quantity",
-    "sr_returned_date_sk",
-]
-store_cols = ["s_store_name", "s_store_id", "s_store_sk"]
-item_cols = ["i_item_id", "i_item_desc", "i_item_sk"]
-
-def read_tables(data_dir, bc, config):
-	table_reader = build_reader(
-		data_format=config["file_format"],
-		basepath=config["data_dir"],
-		split_row_groups=config["split_row_groups"],
-	)
-
-	store_sales_df = table_reader.read("store_sales", relevant_cols=store_sales_cols)
-	date_dim_df = table_reader.read("date_dim", relevant_cols=date_cols)
-	web_sales_df = table_reader.read("web_sales", relevant_cols=websale_cols)
-	store_returns_df = table_reader.read("store_returns", relevant_cols=sr_cols)
-	store_table_df = table_reader.read("store", relevant_cols=store_cols)
-	item_table_df = table_reader.read("item", relevant_cols=item_cols)
-
-	bc.create_table("store_sales", store_sales_df, persist=False)
-	bc.create_table("date_dim", date_dim_df, persist=False)
-	bc.create_table("item", item_table_df, persist=False)
-	bc.create_table("web_sales", web_sales_df, persist=False)
-	bc.create_table("store_returns", store_returns_df, persist=False)
-	bc.create_table("store", store_table_df, persist=False)
-	
-	# bc.create_table("store_sales", os.path.join(data_dir, "store_sales/*.parquet"))
-    # bc.create_table("date_dim", os.path.join(data_dir, "date_dim/*.parquet"))
-    # bc.create_table("item", os.path.join(data_dir, "item/*.parquet"))
-    # bc.create_table("web_sales", os.path.join(data_dir, "web_sales/*.parquet"))
-    # bc.create_table("store_returns", os.path.join(data_dir, "store_returns/*.parquet"))
-    # bc.create_table("store", os.path.join(data_dir, "store/*.parquet"))
-
-
-def main(data_dir, client, bc, config):
-    benchmark(read_tables, data_dir, bc, config, dask_profile=config["dask_profile"])
+def main(data_dir, client, c, config):
+    benchmark(read_tables, config, c, dask_profile=config["dask_profile"])
 
     query = """
 		SELECT
@@ -160,12 +106,12 @@ def main(data_dir, client, bc, config):
 			part_s.s_store_name
 		LIMIT 100
 	"""
-    result = bc.sql(query)
+    result = c.sql(query)
     result['i_item_desc'] = result['i_item_desc'].str.strip()
     return result
 
 
 if __name__ == "__main__":
 	config = gpubdb_argparser()
-	client, bc = attach_to_cluster(config)
-	run_query(config=config, client=client, query_func=main, blazing_context=bc)
+	client, c = attach_to_cluster(config, create_sql_context=True)
+	run_query(config=config, client=client, query_func=main, sql_context=c)

@@ -250,14 +250,14 @@ def remove_benchmark_files():
 # Query Runner Utilities
 #################################
 def run_query(
-    config, client, query_func, write_func=write_result, blazing_context=None
+    config, client, query_func, write_func=write_result, sql_context=None
 ):
-    if blazing_context:
-        run_bsql_query(
+    if sql_context:
+        run_sql_query(
             config=config,
             client=client,
             query_func=query_func,
-            blazing_context=blazing_context,
+            sql_context=sql_context,
             write_func=write_func,
         )
     else:
@@ -304,8 +304,8 @@ def run_dask_cudf_query(config, client, query_func, write_func=write_result):
     push_payload_to_googlesheet(config)
 
 
-def run_bsql_query(
-    config, client, query_func, blazing_context, write_func=write_result
+def run_sql_query(
+    config, client, query_func, sql_context, write_func=write_result
 ):
     """
     Common utility to perform all steps needed to execute a dask-cudf version
@@ -321,7 +321,7 @@ def run_bsql_query(
             dask_profile=config.get("dask_profile"),
             data_dir=data_dir,
             client=client,
-            bc=blazing_context,
+            c=sql_context,
             config=config,
         )
 
@@ -383,7 +383,7 @@ def gpubdb_argparser():
         "sheet": os.environ.get("GOOGLE_SPREADSHEET_NAME"),
         "tab": os.environ.get("GOOGLE_SPREADSHEET_TAB"),
         "scheduler_file_path": os.environ.get("SCHEDULER_FILE"),
-        "benchmark_runner_include_bsql": os.environ.get("RUNNER_INCLUDE_BSQL"),
+        "benchmark_runner_include_sql": os.environ.get("RUNNER_INCLUDE_SQL"),
     }
 
     for key in args.keys():
@@ -790,7 +790,7 @@ def build_benchmark_googlesheet_payload(config):
             "Protocol": "UCX" if data.get("nvlink") == True else "TCP",
             "NVLINK": data.get("nvlink", "NA"),
             "Infiniband": data.get("infiniband", "NA"),
-            "Query Type": "blazing" if is_blazing_query() else "dask",
+            "Query Type": "sql" if is_sql_query() else "dask",
             "File Format": data.get("file_format"),
             "Time (seconds)": query_time + writing_time
             if query_time and writing_time
@@ -811,7 +811,7 @@ def build_benchmark_googlesheet_payload(config):
             "Data Location": data.get("data_dir"),
             "Current Time": current_time,
             "cuDF Version": data.get("cudf"),
-            "BlazingSQL Version": data.get("blazingsql"),
+            "Dask SQL Version": data.get("sql"),
             "Dask Version": data.get("dask"),
             "Distributed Version": data.get("distributed"),
             "Dask-CUDA Version": data.get("dask-cuda"),
@@ -828,15 +828,15 @@ def build_benchmark_googlesheet_payload(config):
     return payload
 
 
-def is_blazing_query():
+def is_sql_query():
     """
-    Method that returns true if caller of the utility is a blazing query, returns false otherwise
+    Method that returns true if caller of the utility is a SQL query, returns false otherwise
     Assumes that caller is 3 levels above the stack
-    query_of_interest -> utils.push_to_google_sheet -> utils.build_payload -> utils.is_blazing_query
+    query_of_interest -> utils.push_to_google_sheet -> utils.build_payload -> utils.is_sql_query
 
-    Another potential solution is checking sys.modules.get("blazing") to check blazing is imported
+    Another potential solution is checking sys.modules.get("dask_sql") to check Dask-SQL is imported
     """
-    return "bsql" in inspect.stack()[-3].function
+    return "sql" in inspect.stack()[-3].function
 
 
 def _get_benchmarked_method_time(
@@ -867,7 +867,7 @@ def generate_library_information():
         "dask-cuda",
         "rmm",
         "cupy",
-        "blazingsql",
+        "dask-sql",
     ]
 
     conda_list_command = (

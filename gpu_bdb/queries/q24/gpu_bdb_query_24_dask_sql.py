@@ -1,6 +1,5 @@
 #
-# Copyright (c) 2019-2020, NVIDIA CORPORATION.
-# Copyright (c) 2019-2020, BlazingSQL, Inc.
+# Copyright (c) 2019-2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,9 +14,6 @@
 # limitations under the License.
 #
 
-import sys
-import os
-
 from bdb_tools.cluster_startup import attach_to_cluster
 
 from bdb_tools.utils import (
@@ -26,45 +22,10 @@ from bdb_tools.utils import (
     run_query,
 )
 
-from bdb_tools.readers import build_reader
+from bdb_tools.q24_utils import read_tables
 
-
-ws_cols = ["ws_item_sk", "ws_sold_date_sk", "ws_quantity"]
-item_cols = ["i_item_sk", "i_current_price"]
-imp_cols = [
-    "imp_item_sk",
-    "imp_competitor_price",
-    "imp_start_date",
-    "imp_end_date",
-    "imp_sk",
-]
-ss_cols = ["ss_item_sk", "ss_sold_date_sk", "ss_quantity"]
-
-def read_tables(data_dir, bc, config):
-	table_reader = build_reader(
-		data_format=config["file_format"],
-		basepath=config["data_dir"],
-		split_row_groups=config["split_row_groups"],
-	)
-	### read tables
-	ws_df = table_reader.read("web_sales", relevant_cols=ws_cols)
-	item_df = table_reader.read("item", relevant_cols=item_cols)
-	imp_df = table_reader.read("item_marketprices", relevant_cols=imp_cols)
-	ss_df = table_reader.read("store_sales", relevant_cols=ss_cols)
-
-	bc.create_table("web_sales", ws_df, persist=False)
-	bc.create_table("item", item_df, persist=False)
-	bc.create_table("item_marketprices", imp_df, persist=False)
-	bc.create_table("store_sales", ss_df, persist=False)
-
-	# bc.create_table("web_sales", os.path.join(data_dir, "web_sales/*.parquet"))
-    # bc.create_table("item", os.path.join(data_dir, "item/*.parquet"))
-    # bc.create_table("item_marketprices", os.path.join(data_dir, "item_marketprices/*.parquet"))
-    # bc.create_table("store_sales", os.path.join(data_dir, "store_sales/*.parquet"))
-
-
-def main(data_dir, client, bc, config):
-    benchmark(read_tables, data_dir, bc, config, dask_profile=config["dask_profile"])
+def main(data_dir, client, c, config):
+    benchmark(read_tables, config, c, dask_profile=config["dask_profile"])
 
     query = """
 		WITH temp_table as 
@@ -111,11 +72,11 @@ def main(data_dir, client, bc, config):
 		GROUP BY  ws.ws_item_sk
   	"""
 
-    result = bc.sql(query)
+    result = c.sql(query)
     return result
 
 
 if __name__ == "__main__":
     config = gpubdb_argparser()
-    client, bc = attach_to_cluster(config)
-    run_query(config=config, client=client, query_func=main, blazing_context=bc)
+    client, c = attach_to_cluster(config, create_sql_context=True)
+    run_query(config=config, client=client, query_func=main, sql_context=c)

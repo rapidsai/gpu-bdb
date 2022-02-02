@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019-2020, NVIDIA CORPORATION.
+# Copyright (c) 2019-2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,44 +14,21 @@
 # limitations under the License.
 #
 
-import sys
-from collections import OrderedDict
-
-
 from bdb_tools.utils import (
     benchmark,
     gpubdb_argparser,
     run_query,
     convert_datestring_to_days,
 )
-from bdb_tools.readers import build_reader
+from bdb_tools.q15_utils import (
+    q15_startDate,
+    q15_endDate,
+    q15_store_sk,
+    store_sales_cols,
+    read_tables
+)
 
 import datetime
-import numpy as np
-
-
-q15_startDate = "2001-09-02"
-q15_endDate = "2002-09-02"
-q15_store_sk = "10"
-
-store_sales_cols = ["ss_sold_date_sk", "ss_net_paid", "ss_store_sk", "ss_item_sk"]
-date_cols = ["d_date", "d_date_sk"]
-item_cols = ["i_item_sk", "i_category_id"]
-
-
-def read_tables(config):
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=config["split_row_groups"],
-    )
-
-    store_sales_df = table_reader.read("store_sales", relevant_cols=store_sales_cols)
-    date_dim_df = table_reader.read("date_dim", relevant_cols=date_cols)
-    item_df = table_reader.read("item", relevant_cols=item_cols)
-
-    return store_sales_df, date_dim_df, item_df
-
 
 def main(client, config):
 
@@ -166,8 +143,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

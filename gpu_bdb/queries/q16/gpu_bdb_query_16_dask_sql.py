@@ -1,6 +1,5 @@
 #
-# Copyright (c) 2019-2020, NVIDIA CORPORATION.
-# Copyright (c) 2019-2020, BlazingSQL, Inc.
+# Copyright (c) 2019-2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,10 +14,7 @@
 # limitations under the License.
 #
 
-import sys
-
 from bdb_tools.cluster_startup import attach_to_cluster
-import os
 
 import datetime
 from datetime import timedelta
@@ -28,49 +24,10 @@ from bdb_tools.utils import (
     run_query,
 )
 
-from bdb_tools.readers import build_reader
+from bdb_tools.q16_utils import read_tables
 
-
-websale_cols = [
-    "ws_order_number",
-    "ws_item_sk",
-    "ws_warehouse_sk",
-    "ws_sold_date_sk",
-    "ws_sales_price",
-]
-web_returns_cols = ["wr_order_number", "wr_item_sk", "wr_refunded_cash"]
-date_cols = ["d_date", "d_date_sk"]
-item_cols = ["i_item_sk", "i_item_id"]
-warehouse_cols = ["w_warehouse_sk", "w_state"]
-
-def read_tables(data_dir, bc, config):
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=config["split_row_groups"],
-    )
-
-    web_sales_df = table_reader.read("web_sales", relevant_cols=websale_cols)
-    web_returns_df = table_reader.read("web_returns", relevant_cols=web_returns_cols)
-    date_dim_df = table_reader.read("date_dim", relevant_cols=date_cols)
-    item_df = table_reader.read("item", relevant_cols=item_cols)
-    warehouse_df = table_reader.read("warehouse", relevant_cols=warehouse_cols)
-
-    bc.create_table("web_sales", web_sales_df, persist=False)
-    bc.create_table("web_returns", web_returns_df, persist=False)
-    bc.create_table("date_dim", date_dim_df, persist=False)
-    bc.create_table("item", item_df, persist=False)
-    bc.create_table("warehouse", warehouse_df, persist=False)
-
-    # bc.create_table("web_sales", os.path.join(data_dir, "web_sales/*.parquet"))
-    # bc.create_table("web_returns", os.path.join(data_dir, "web_returns/*.parquet"))
-    # bc.create_table("date_dim", os.path.join(data_dir, "date_dim/*.parquet"))
-    # bc.create_table("item", os.path.join(data_dir, "item/*.parquet"))
-    # bc.create_table("warehouse", os.path.join(data_dir, "warehouse/*.parquet"))
-
-
-def main(data_dir, client, bc, config):
-    benchmark(read_tables, data_dir, bc, config, dask_profile=config["dask_profile"])
+def main(data_dir, client, c, config):
+    benchmark(read_tables, config, c, dask_profile=config["dask_profile"])
 
     date = datetime.datetime(2001, 3, 16)
     start = (date + timedelta(days=-30)).strftime("%Y-%m-%d")
@@ -84,7 +41,7 @@ def main(data_dir, client, bc, config):
         ORDER BY CAST(d_date as date) ASC
     """
 
-    dates = bc.sql(date_query)
+    dates = c.sql(date_query)
 
     cpu_dates = dates["d_date_sk"].compute().to_pandas()
     cpu_dates.index = list(range(0, cpu_dates.shape[0]))
@@ -126,11 +83,11 @@ def main(data_dir, client, bc, config):
         LIMIT 100
     """
 
-    result = bc.sql(last_query)
+    result = c.sql(last_query)
     return result
 
 
 if __name__ == "__main__":
     config = gpubdb_argparser()
-    client, bc = attach_to_cluster(config)
-    run_query(config=config, client=client, query_func=main, blazing_context=bc)
+    client, c = attach_to_cluster(config, create_sql_context=True)
+    run_query(config=config, client=client, query_func=main, sql_context=c)

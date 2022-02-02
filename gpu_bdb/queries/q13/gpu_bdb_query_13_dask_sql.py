@@ -1,6 +1,5 @@
 #
-# Copyright (c) 2019-2020, NVIDIA CORPORATION.
-# Copyright (c) 2019-2020, BlazingSQL, Inc.
+# Copyright (c) 2019-2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,11 +14,7 @@
 # limitations under the License.
 #
 
-import sys
-
 from bdb_tools.cluster_startup import attach_to_cluster
-from dask.distributed import Client
-import os
 
 from bdb_tools.utils import (
     benchmark,
@@ -27,43 +22,12 @@ from bdb_tools.utils import (
     run_query,
 )
 
-from bdb_tools.readers import build_reader
+from bdb_tools.q13_utils import read_tables
 
 from dask.distributed import wait
 
-
-def read_tables(data_dir, bc, config):
-	table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=config["split_row_groups"],
-	)
-
-	date_cols = ["d_date_sk", "d_year"]
-	date_dim_df = table_reader.read("date_dim", relevant_cols=date_cols)
-
-	customer_cols = ["c_customer_sk", "c_customer_id", "c_first_name", "c_last_name"]
-	customer_df = table_reader.read("customer", relevant_cols=customer_cols)
-
-	s_sales_cols = ["ss_sold_date_sk", "ss_customer_sk", "ss_net_paid"]
-	s_sales_df = table_reader.read("store_sales", relevant_cols=s_sales_cols)
-
-	w_sales_cols = ["ws_sold_date_sk", "ws_bill_customer_sk", "ws_net_paid"]
-	web_sales_df = table_reader.read("web_sales", relevant_cols=w_sales_cols)
-
-	bc.create_table("date_dim", date_dim_df, persist=False)
-	bc.create_table("customer", customer_df, persist=False)
-	bc.create_table("store_sales", s_sales_df, persist=False)
-	bc.create_table("web_sales", web_sales_df, persist=False)
-
-    # bc.create_table("date_dim", os.path.join(data_dir, "date_dim/*.parquet"))
-    # bc.create_table("customer", os.path.join(data_dir, "customer/*.parquet"))
-    # bc.create_table("store_sales", os.path.join(data_dir, "store_sales/*.parquet"))
-    # bc.create_table("web_sales", os.path.join(data_dir, "web_sales/*.parquet"))
-
-
-def main(data_dir, client, bc, config):
-    benchmark(read_tables, data_dir, bc, config, dask_profile=config["dask_profile"])
+def main(data_dir, client, c, config):
+    benchmark(read_tables, config, c, dask_profile=config["dask_profile"])
 
     query_1 = """
 		SELECT
@@ -80,11 +44,11 @@ def main(data_dir, client, bc, config):
 		GROUP BY ss.ss_customer_sk 
 		HAVING sum( case when (d_year = 2001) THEN ss_net_paid ELSE 0.0 END) > 0.0
 	"""
-    temp_table1 = bc.sql(query_1)
+    temp_table1 = c.sql(query_1)
 
     temp_table1 = temp_table1.persist()
     wait(temp_table1)
-    bc.create_table("temp_table1", temp_table1, persist=False)
+    c.create_table("temp_table1", temp_table1, persist=False)
     query_2 = """
 		SELECT
 			ws.ws_bill_customer_sk AS customer_sk,
@@ -100,11 +64,11 @@ def main(data_dir, client, bc, config):
 		GROUP BY ws.ws_bill_customer_sk 
 		HAVING sum( case when (d_year = 2001) THEN ws_net_paid ELSE 0.0 END) > 0.0
 	"""
-    temp_table2 = bc.sql(query_2)
+    temp_table2 = c.sql(query_2)
 
     temp_table2 = temp_table2.persist()
     wait(temp_table2)
-    bc.create_table("temp_table2", temp_table2, persist=False)
+    c.create_table("temp_table2", temp_table2, persist=False)
     query = """
 		SELECT
 			CAST(c_customer_sk AS BIGINT) as c_customer_sk,
@@ -124,14 +88,14 @@ def main(data_dir, client, bc, config):
 			c_last_name
 		LIMIT 100
     """
-    result = bc.sql(query)
+    result = c.sql(query)
 
-    bc.drop_table("temp_table1")
-    bc.drop_table("temp_table2")
+    c.drop_table("temp_table1")
+    c.drop_table("temp_table2")
     return result
 
 
 if __name__ == "__main__":
 	config = gpubdb_argparser()
-	client, bc = attach_to_cluster(config)
-	run_query(config=config, client=client, query_func=main, blazing_context=bc)
+	client, c = attach_to_cluster(config, create_sql_context=True)
+	run_query(config=config, client=client, query_func=main, sql_context=c)

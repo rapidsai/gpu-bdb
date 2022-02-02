@@ -1,14 +1,14 @@
 # benchmark config yaml
 ### Please fill these accordingly
-data_dir: /raid/gpu-bdb/sf1000/parquet_2gb
+data_dir:
 output_dir:
 file_format: parquet
 output_filetype: parquet
 split_row_groups: False
 repartition_small_table: True
-benchmark_runner_include_bsql: False
+benchmark_runner_include_sql:
 
-scheduler_file_path: /raid/adattagupta/dask-sql-work/dask-local-directory/scheduler.json
+scheduler_file_path:
 dask_profile: False
 
 verify_results: False

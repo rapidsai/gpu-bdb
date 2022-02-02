@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019-2020, NVIDIA CORPORATION.
+# Copyright (c) 2019-2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,8 +14,10 @@
 # limitations under the License.
 #
 
-import sys
 import os
+
+import cudf
+import dask_cudf
 
 from bdb_tools.utils import (
     benchmark,
@@ -23,49 +25,15 @@ from bdb_tools.utils import (
     run_query,
 )
 from bdb_tools.text import create_sentences_from_reviews, create_words_from_sentences
+from bdb_tools.q19_utils import (
+    q19_returns_dates_IN,
+    eol_char,
+    read_tables
+)
 
-
-from bdb_tools.readers import build_reader
-from dask.distributed import Client, wait
-import distributed
-
-
-# -------- Q19 -----------
-q19_returns_dates = ["2004-03-08", "2004-08-02", "2004-11-15", "2004-12-20"]
-eol_char = "è"
-
-
-def read_tables(config):
-    table_reader = build_reader(
-        data_format=config["file_format"], basepath=config["data_dir"],
-    )
-    date_dim_cols = ["d_week_seq", "d_date_sk", "d_date"]
-    date_dim_df = table_reader.read("date_dim", relevant_cols=date_dim_cols)
-    store_returns_cols = ["sr_returned_date_sk", "sr_item_sk", "sr_return_quantity"]
-    store_returns_df = table_reader.read(
-        "store_returns", relevant_cols=store_returns_cols
-    )
-    web_returns_cols = ["wr_returned_date_sk", "wr_item_sk", "wr_return_quantity"]
-    web_returns_df = table_reader.read("web_returns", relevant_cols=web_returns_cols)
-
-    ### splitting by row groups for better parallelism
-    pr_table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=True,
-    )
-
-    product_reviews_cols = ["pr_item_sk", "pr_review_content", "pr_review_sk"]
-    product_reviews = pr_table_reader.read(
-        "product_reviews", relevant_cols=product_reviews_cols
-    )
-
-    return date_dim_df, store_returns_df, web_returns_df, product_reviews
-
+from dask.distributed import wait
 
 def main(client, config):
-    import cudf
-    import dask_cudf
 
     date_dim_df, store_returns_df, web_returns_df, product_reviews_df = benchmark(
         read_tables,
@@ -78,7 +46,7 @@ def main(client, config):
     date_dim_df = date_dim_df.merge(
         date_dim_df, on=["d_week_seq"], how="outer", suffixes=("", "_r")
     )
-    date_dim_df = date_dim_df[date_dim_df.d_date_r.isin(q19_returns_dates)].reset_index(
+    date_dim_df = date_dim_df[date_dim_df.d_date_r.isin(q19_returns_dates_IN)].reset_index(
         drop=True
     )
 
@@ -207,8 +175,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

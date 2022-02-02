@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019-2020, NVIDIA CORPORATION.
+# Copyright (c) 2019-2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,8 +14,7 @@
 # limitations under the License.
 #
 
-import sys
-
+import cudf
 
 from bdb_tools.utils import (
     benchmark,
@@ -24,7 +23,8 @@ from bdb_tools.utils import (
     convert_datestring_to_days,
 )
 from bdb_tools.merge_util import hash_merge
-from bdb_tools.readers import build_reader
+from bdb_tools.q16_utils import read_tables
+
 from dask.distributed import wait
 
 import numpy as np
@@ -32,19 +32,6 @@ import numpy as np
 
 ### conf
 q16_date = "2001-03-16"
-
-websale_cols = [
-    "ws_order_number",
-    "ws_item_sk",
-    "ws_warehouse_sk",
-    "ws_sold_date_sk",
-    "ws_sales_price",
-]
-web_returns_cols = ["wr_order_number", "wr_item_sk", "wr_refunded_cash"]
-date_cols = ["d_date", "d_date_sk"]
-item_cols = ["i_item_sk", "i_item_id"]
-warehouse_cols = ["w_warehouse_sk", "w_state"]
-
 
 # INSERT INTO TABLE ${hiveconf:RESULT_TABLE}
 # SELECT w_state, i_item_id,
@@ -72,23 +59,7 @@ def get_before_after_sales(df, q16_timestamp):
     return df
 
 
-def read_tables(config):
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=config["split_row_groups"],
-    )
-
-    web_sales_df = table_reader.read("web_sales", relevant_cols=websale_cols)
-    web_returns_df = table_reader.read("web_returns", relevant_cols=web_returns_cols)
-    date_dim_df = table_reader.read("date_dim", relevant_cols=date_cols)
-    item_df = table_reader.read("item", relevant_cols=item_cols)
-    warehouse_df = table_reader.read("warehouse", relevant_cols=warehouse_cols)
-    return web_sales_df, web_returns_df, date_dim_df, item_df, warehouse_df
-
-
 def main(client, config):
-    import cudf
 
     web_sales_df, web_returns_df, date_dim_df, item_df, warehouse_df = benchmark(
         read_tables,
@@ -264,8 +235,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

@@ -1,6 +1,5 @@
 #
-# Copyright (c) 2019-2020, NVIDIA CORPORATION.
-# Copyright (c) 2019-2020, BlazingSQL, Inc.
+# Copyright (c) 2019-2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,89 +14,22 @@
 # limitations under the License.
 #
 
-import sys
-import os
-
 from bdb_tools.cluster_startup import attach_to_cluster
-from dask import delayed
 from dask.distributed import wait
-import numpy as np
 
 from bdb_tools.utils import (
     benchmark,
     gpubdb_argparser,
     run_query,
-    train_clustering_model
 )
 
-from bdb_tools.readers import build_reader
+from bdb_tools.q20_utils import (
+    get_clusters,
+    read_tables
+)
 
-from dask_sql import Context
-
-# q20 parameters
-N_CLUSTERS = 8
-CLUSTER_ITERATIONS = 20
-N_ITER = 5
-
-
-def get_clusters(client, ml_input_df, feature_cols):
-    """
-    Takes the dask client, kmeans_input_df and feature columns.
-    Returns a dictionary matching the output required for q20
-    """
-    import dask_cudf
-    ml_tasks = [
-        delayed(train_clustering_model)(df, N_CLUSTERS, CLUSTER_ITERATIONS, N_ITER)
-        for df in ml_input_df[feature_cols].to_delayed()
-    ]
-
-    results_dict = client.compute(*ml_tasks, sync=True)
-
-    labels = results_dict["cid_labels"]
-
-    labels_final = dask_cudf.from_cudf(labels, npartitions=ml_input_df.npartitions)
-    ml_input_df["label"] = labels_final.reset_index()[0]
-
-    output = ml_input_df[["user_sk", "label"]]
-
-    results_dict["cid_labels"] = output
-    return results_dict
-
-
-def read_tables(data_dir, bc, config):
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=config["split_row_groups"],
-    )
-
-    store_sales_cols = [
-        "ss_customer_sk",
-        "ss_ticket_number",
-        "ss_item_sk",
-        "ss_net_paid",
-    ]
-    store_returns_cols = [
-        "sr_item_sk",
-        "sr_customer_sk",
-        "sr_ticket_number",
-        "sr_return_amt",
-    ]
-
-    store_sales_df = table_reader.read("store_sales", relevant_cols=store_sales_cols)
-    store_returns_df = table_reader.read(
-        "store_returns", relevant_cols=store_returns_cols
-    )
-
-    bc.create_table("store_sales", store_sales_df, persist=False)
-    bc.create_table("store_returns", store_returns_df, persist=False)
-
-    # bc.create_table("store_sales", os.path.join(data_dir, "store_sales/*.parquet"))
-    # bc.create_table("store_returns", os.path.join(data_dir, "store_returns/*.parquet"))
-
-
-def main(data_dir, client, bc, config):
-    benchmark(read_tables, data_dir, bc, config, dask_profile=config["dask_profile"])
+def main(data_dir, client, c, config):
+    benchmark(read_tables, config, c, dask_profile=config["dask_profile"])
 
     query = """
         SELECT
@@ -142,7 +74,7 @@ def main(data_dir, client, bc, config):
             GROUP BY sr_customer_sk
         ) returned ON ss_customer_sk=sr_customer_sk
     """
-    final_df = bc.sql(query)
+    final_df = c.sql(query)
 
     final_df = final_df.fillna(0)
     final_df = final_df.repartition(npartitions=1).persist()
@@ -163,5 +95,5 @@ def main(data_dir, client, bc, config):
 
 if __name__ == "__main__":
     config = gpubdb_argparser()
-    client, bc = attach_to_cluster(config)
-    run_query(config=config, client=client, query_func=main, blazing_context=bc)
+    client, c = attach_to_cluster(config, create_sql_context=True)
+    run_query(config=config, client=client, query_func=main, sql_context=c)

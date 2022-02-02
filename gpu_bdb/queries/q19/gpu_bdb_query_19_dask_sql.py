@@ -1,6 +1,5 @@
 #
-# Copyright (c) 2019-2020, NVIDIA CORPORATION.
-# Copyright (c) 2019-2020, BlazingSQL, Inc.
+# Copyright (c) 2019-2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,7 +14,6 @@
 # limitations under the License.
 #
 
-import sys
 import os
 
 import dask_cudf
@@ -33,55 +31,16 @@ from bdb_tools.text import (
     create_words_from_sentences
 )
 
-from bdb_tools.readers import build_reader
+from bdb_tools.q19_utils import (
+    q19_returns_dates_IN,
+    eol_char,
+    read_tables
+)
 
 from dask.distributed import wait
 
-
-# -------- Q19 -----------
-q19_returns_dates_IN = ["2004-03-08", "2004-08-02", "2004-11-15", "2004-12-20"]
-
-eol_char = "è"
-
-
-def read_tables(data_dir, bc, config):
-    table_reader = build_reader(
-        data_format=config["file_format"], basepath=config["data_dir"],
-    )
-    date_dim_cols = ["d_week_seq", "d_date_sk", "d_date"]
-    date_dim_df = table_reader.read("date_dim", relevant_cols=date_dim_cols)
-    store_returns_cols = ["sr_returned_date_sk", "sr_item_sk", "sr_return_quantity"]
-    store_returns_df = table_reader.read(
-        "store_returns", relevant_cols=store_returns_cols
-    )
-    web_returns_cols = ["wr_returned_date_sk", "wr_item_sk", "wr_return_quantity"]
-    web_returns_df = table_reader.read("web_returns", relevant_cols=web_returns_cols)
-
-    ### splitting by row groups for better parallelism
-    pr_table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=True,
-    )
-
-    product_reviews_cols = ["pr_item_sk", "pr_review_content", "pr_review_sk"]
-    product_reviews_df = pr_table_reader.read(
-        "product_reviews", relevant_cols=product_reviews_cols
-    )
-    
-    bc.create_table('web_returns', web_returns_df, persist=False)
-    bc.create_table('date_dim', date_dim_df, persist=False)
-    bc.create_table('product_reviews', product_reviews_df, persist=False)
-    bc.create_table('store_returns', store_returns_df, persist=False)
-    
-    # bc.create_table('web_returns', os.path.join(data_dir, "web_returns/*.parquet"))
-    # bc.create_table('date_dim', os.path.join(data_dir, "date_dim/*.parquet"))
-    # bc.create_table('product_reviews', os.path.join(data_dir, "product_reviews/*.parquet"))
-    # bc.create_table('store_returns', os.path.join(data_dir, "store_returns/*.parquet"))
-
-
-def main(data_dir, client, bc, config):
-    benchmark(read_tables, data_dir, bc, config, dask_profile=config["dask_profile"])
+def main(data_dir, client, c, config):
+    benchmark(read_tables, config, c, dask_profile=config["dask_profile"])
 
     query = f"""
         WITH dateFilter AS
@@ -127,7 +86,7 @@ def main(data_dir, client, bc, config):
         SELECT * FROM extract_sentiment
         ORDER BY pr_item_sk, pr_review_content, pr_review_sk
     """
-    merged_df = bc.sql(query)
+    merged_df = c.sql(query)
 
     # second step -- Sentiment Word Extraction
     merged_df["pr_review_sk"] = merged_df["pr_review_sk"].astype("int32")
@@ -152,19 +111,19 @@ def main(data_dir, client, bc, config):
     # Need to pass the absolute path for this txt file
     sentiment_dir = os.path.join(config["data_dir"], "sentiment_files")
     ns_df = dask_cudf.read_csv(os.path.join(sentiment_dir, "negativeSentiment.txt"), names=["sentiment_word"])
-    bc.create_table('sent_df', ns_df, persist=False)
+    c.create_table('sent_df', ns_df, persist=False)
 
     sentences = sentences.persist()
     wait(sentences)
-    bc.create_table('sentences_df', sentences, persist=False)
+    c.create_table('sentences_df', sentences, persist=False)
 
     word_df = word_df.persist()
     wait(word_df)
-    bc.create_table('word_df', word_df, persist=False)
+    c.create_table('word_df', word_df, persist=False)
 
     merged_df = merged_df.persist()
     wait(merged_df)
-    bc.create_table('merged_df', merged_df, persist=False)
+    c.create_table('merged_df', merged_df, persist=False)
 
     query = """
         WITH negativesent AS
@@ -194,13 +153,13 @@ def main(data_dir, client, bc, config):
         INNER JOIN merged_df ON pr_review_sk = review_idx_global_pos
         ORDER BY pr_item_sk, review_sentence, sentiment_word
     """
-    result = bc.sql(query)
+    result = c.sql(query)
 
-    bc.drop_table("sentences_df")
+    c.drop_table("sentences_df")
     del sentences
-    bc.drop_table("word_df")
+    c.drop_table("word_df")
     del word_df
-    bc.drop_table("merged_df")
+    c.drop_table("merged_df")
     del merged_df
 
     return result
@@ -208,5 +167,5 @@ def main(data_dir, client, bc, config):
 
 if __name__ == "__main__":
     config = gpubdb_argparser()
-    client, bc = attach_to_cluster(config)
-    run_query(config=config, client=client, query_func=main, blazing_context=bc)
+    client, c = attach_to_cluster(config, create_sql_context=True)
+    run_query(config=config, client=client, query_func=main, sql_context=c)

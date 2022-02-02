@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019-2020, NVIDIA CORPORATION.
+# Copyright (c) 2019-2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,16 +14,15 @@
 # limitations under the License.
 #
 
-import sys
-
 from bdb_tools.utils import (
     benchmark,
     gpubdb_argparser,
     run_query,
 )
-from bdb_tools.readers import build_reader
-from bdb_tools.utils import benchmark
-from distributed import wait
+from bdb_tools.q29_utils import (
+    q29_limit,
+    read_tables
+)
 
 ### Implementation Notes:
 # * `drop_duplicates` and `groupby` by default brings result to single partition
@@ -39,24 +38,7 @@ from distributed import wait
 ### Scalabilty problems
 # * The ws_item_join table after distincts has `48M` rows, can cause problems on bigger scale factors
 
-
-# -------- Q29 -----------
-q29_limit = 100
 q29_session_timeout_inSec = 3600
-
-
-def read_tables(config):
-    table_reader = build_reader(
-        data_format=config["file_format"], basepath=config["data_dir"],
-    )
-    item_cols = ["i_item_sk", "i_category_id"]
-    item_df = table_reader.read("item", relevant_cols=item_cols)
-
-    ws_cols = ["ws_order_number", "ws_item_sk"]
-    ws_df = table_reader.read("web_sales", relevant_cols=ws_cols)
-
-    return item_df, ws_df
-
 
 ###
 # Select t1.i_category_id AS category_id_1 , t2.i_category_id AS category_id_2
@@ -149,8 +131,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

@@ -1,6 +1,5 @@
 #
-# Copyright (c) 2019-2020, NVIDIA CORPORATION.
-# Copyright (c) 2019-2020, BlazingSQL, Inc.
+# Copyright (c) 2019-2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,9 +14,6 @@
 # limitations under the License.
 #
 
-import sys
-import os
-
 from bdb_tools.cluster_startup import attach_to_cluster
 
 from bdb_tools.utils import (
@@ -27,19 +23,16 @@ from bdb_tools.utils import (
     train_clustering_model
 )
 
-from bdb_tools.readers import build_reader
+from bdb_tools.q26_utils import (
+    Q26_CATEGORY,
+    Q26_ITEM_COUNT,
+    N_CLUSTERS,
+    CLUSTER_ITERATIONS,
+    N_ITER,
+    read_tables
+)
 
 from dask import delayed
-
-
-# -------- Q26 -----------
-q26_i_category_IN = "Books"
-q26_count_ss_item_sk = 5
-
-N_CLUSTERS = 8
-CLUSTER_ITERATIONS = 20
-N_ITER = 5
-
 
 def get_clusters(client, kmeans_input_df):
     import dask_cudf
@@ -63,28 +56,8 @@ def get_clusters(client, kmeans_input_df):
     return results_dict
 
 
-def read_tables(data_dir, bc, config):
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=config["split_row_groups"],
-    )
-
-    ss_cols = ["ss_customer_sk", "ss_item_sk"]
-    items_cols = ["i_item_sk", "i_category", "i_class_id"]
-
-    ss_ddf = table_reader.read("store_sales", relevant_cols=ss_cols, index=False)
-    items_ddf = table_reader.read("item", relevant_cols=items_cols, index=False)
-
-    bc.create_table("store_sales", ss_ddf, persist=False)
-    bc.create_table("item", items_ddf, persist=False)
-
-    # bc.create_table("store_sales", os.path.join(data_dir, "store_sales/*.parquet"))
-    # bc.create_table("item", os.path.join(data_dir, "item/*.parquet"))
-
-
-def main(data_dir, client, bc, config):
-    benchmark(read_tables, data_dir, bc, config, dask_profile=config["dask_profile"])
+def main(data_dir, client, c, config):
+    benchmark(read_tables, config, c, dask_profile=config["dask_profile"])
 
     query = f"""
         SELECT
@@ -109,14 +82,14 @@ def main(data_dir, client, bc, config):
         ON
         (
             ss.ss_item_sk = i.i_item_sk
-            AND i.i_category IN ('{q26_i_category_IN}')
+            AND i.i_category IN ('{Q26_CATEGORY}')
             AND ss.ss_customer_sk IS NOT NULL
         )
         GROUP BY ss.ss_customer_sk
-        HAVING count(ss.ss_item_sk) > {q26_count_ss_item_sk}
+        HAVING count(ss.ss_item_sk) > {Q26_ITEM_COUNT}
         ORDER BY cid
     """
-    result = bc.sql(query)
+    result = c.sql(query)
     result = result.repartition(npartitions=1)
     result_ml = result.set_index('cid')
     ml_result_dict = get_clusters(client=client, kmeans_input_df=result_ml)
@@ -125,5 +98,5 @@ def main(data_dir, client, bc, config):
 
 if __name__ == "__main__":
     config = gpubdb_argparser()
-    client, c = attach_to_cluster(config)
-    run_query(config=config, client=client, query_func=main, blazing_context=c)
+    client, c = attach_to_cluster(config, create_sql_context=True)
+    run_query(config=config, client=client, query_func=main, sql_context=c)

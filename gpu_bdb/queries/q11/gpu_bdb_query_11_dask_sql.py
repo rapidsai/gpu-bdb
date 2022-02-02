@@ -1,6 +1,5 @@
 #
-# Copyright (c) 2019-2020, NVIDIA CORPORATION.
-# Copyright (c) 2019-2020, BlazingSQL, Inc.
+# Copyright (c) 2019-2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,10 +14,7 @@
 # limitations under the License.
 #
 
-import sys
-
 from bdb_tools.cluster_startup import attach_to_cluster
-import os
 import cudf
 
 from bdb_tools.utils import (
@@ -27,45 +23,10 @@ from bdb_tools.utils import (
     run_query,
 )
 
-from bdb_tools.readers import build_reader
+from bdb_tools.q11_utils import read_tables
 
-
-def read_tables(data_dir, bc, config):
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=config["split_row_groups"],
-    )
-
-    product_review_cols = [
-        "pr_review_rating",
-        "pr_item_sk",
-    ]
-    web_sales_cols = [
-        "ws_sold_date_sk",
-        "ws_net_paid",
-        "ws_item_sk",
-    ]
-    date_cols = ["d_date_sk", "d_date"]
-
-    pr_df = table_reader.read("product_reviews", relevant_cols=product_review_cols)
-    # we only read int columns here so it should scale up to sf-10k as just 26M rows
-    pr_df = pr_df.repartition(npartitions=1)
-
-    ws_df = table_reader.read("web_sales", relevant_cols=web_sales_cols)
-    date_df = table_reader.read("date_dim", relevant_cols=date_cols)
-
-    bc.create_table("web_sales", ws_df, persist=False)
-    bc.create_table("product_reviews", pr_df, persist=False)
-    bc.create_table("date_dim", date_df, persist=False)
-
-    # bc.create_table("web_sales", os.path.join(data_dir, "web_sales/*.parquet"))
-    # bc.create_table("product_reviews", os.path.join(data_dir, "product_reviews/*.parquet"))
-    # bc.create_table("date_dim", os.path.join(data_dir, "date_dim/*.parquet"))
-
-
-def main(data_dir, client, bc, config):
-    benchmark(read_tables, data_dir, bc, config, dask_profile=config["dask_profile"])
+def main(data_dir, client, c, config):
+    benchmark(read_tables, config, c, dask_profile=config["dask_profile"])
 
     query = """
         WITH p AS
@@ -93,7 +54,7 @@ def main(data_dir, client, bc, config):
         FROM s INNER JOIN p ON p.pr_item_sk = s.ws_item_sk
     """
 
-    result = bc.sql(query)
+    result = c.sql(query)
     sales_corr = result["x"].corr(result["y"]).compute()
     result_df = cudf.DataFrame([sales_corr])
     result_df.columns = ["corr(CAST(reviews_count AS DOUBLE), avg_rating)"]
@@ -102,5 +63,5 @@ def main(data_dir, client, bc, config):
 
 if __name__ == "__main__":
     config = gpubdb_argparser()
-    client, bc = attach_to_cluster(config)
-    run_query(config=config, client=client, query_func=main, blazing_context=bc)
+    client, c = attach_to_cluster(config, create_sql_context=True)
+    run_query(config=config, client=client, query_func=main, sql_context=c)

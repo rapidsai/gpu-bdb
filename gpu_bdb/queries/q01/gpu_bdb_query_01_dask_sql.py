@@ -1,6 +1,5 @@
 #
-# Copyright (c) 2019-2020, NVIDIA CORPORATION.
-# Copyright (c) 2019-2020, BlazingSQL, Inc.
+# Copyright (c) 2019-2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,65 +14,39 @@
 # limitations under the License.
 #
 
-import sys
-
 from bdb_tools.cluster_startup import attach_to_cluster
-import os
 
 from bdb_tools.utils import (
     benchmark,
     gpubdb_argparser,
     run_query,
 )
-from bdb_tools.readers import build_reader
+
+from bdb_tools.q01_utils import (
+    q01_i_category_id_IN,
+    q01_ss_store_sk_IN,
+    q01_viewed_together_count,
+    q01_limit,
+    read_tables
+)
 
 from dask.distributed import wait
 
-
-# -------- Q1 -----------
-q01_i_category_id_IN = "1, 2, 3"
-# -- sf1 -> 11 stores, 90k sales in 820k lines
-q01_ss_store_sk_IN = "10, 20, 33, 40, 50"
-q01_viewed_together_count = 50
-q01_limit = 100
-
-
-item_cols = ["i_item_sk", "i_category_id"]
-ss_cols = ["ss_item_sk", "ss_store_sk", "ss_ticket_number"]
-
-
-def read_tables(data_dir, bc, config):
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=config["split_row_groups"],
-    )
-
-    item_df = table_reader.read("item", relevant_cols=item_cols)
-    ss_df = table_reader.read("store_sales", relevant_cols=ss_cols)
-
-    bc.create_table("item", item_df, persist=False)
-    bc.create_table("store_sales", ss_df, persist=False)
-
-    # bc.create_table("item", os.path.join(data_dir, "item/*.parquet"))
-    # bc.create_table("store_sales", os.path.join(data_dir, "store_sales/*.parquet"))
-
-
-def main(data_dir, client, bc, config):
-    benchmark(read_tables, data_dir, bc, config, dask_profile=config["dask_profile"])
+def main(data_dir, client, c, config):
+    benchmark(read_tables, config, c, dask_profile=config["dask_profile"])
 
     query_distinct = f"""
         SELECT DISTINCT ss_item_sk, ss_ticket_number
         FROM store_sales s, item i
         WHERE s.ss_item_sk = i.i_item_sk
-        AND i.i_category_id IN ({q01_i_category_id_IN})
-        AND s.ss_store_sk IN ({q01_ss_store_sk_IN})
+        AND i.i_category_id IN {q01_i_category_id_IN}
+        AND s.ss_store_sk IN {q01_ss_store_sk_IN}
     """
-    result_distinct = bc.sql(query_distinct)
+    result_distinct = c.sql(query_distinct)
 
     result_distinct = result_distinct.persist()
     wait(result_distinct)
-    bc.create_table("distinct_table", result_distinct, persist=False)
+    c.create_table("distinct_table", result_distinct, persist=False)
 
     query = f"""
         SELECT item_sk_1, item_sk_2, COUNT(*) AS cnt
@@ -92,13 +65,13 @@ def main(data_dir, client, bc, config):
                  CAST(item_sk_2 AS VARCHAR)
         LIMIT {q01_limit}
     """
-    result = bc.sql(query)
+    result = c.sql(query)
 
-    bc.drop_table("distinct_table")
+    c.drop_table("distinct_table")
     return result
 
 
 if __name__ == "__main__":
     config = gpubdb_argparser()
-    client, bc = attach_to_cluster(config)
-    run_query(config=config, client=client, query_func=main, blazing_context=bc)
+    client, c = attach_to_cluster(config, create_sql_context=True)
+    run_query(config=config, client=client, query_func=main, sql_context=c)

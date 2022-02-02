@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019-2020, NVIDIA CORPORATION.
+# Copyright (c) 2019-2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,8 +14,10 @@
 # limitations under the License.
 #
 
-import sys
 import os
+
+import cudf
+import dask_cudf
 
 from bdb_tools.utils import (
     benchmark,
@@ -23,38 +25,14 @@ from bdb_tools.utils import (
     run_query,
 )
 from bdb_tools.text import create_sentences_from_reviews, create_words_from_sentences
+from bdb_tools.q10_utils import (
+    eol_char,
+    read_tables
+)
 
-
-import rmm
-import cupy as cp
-import distributed
-
-from bdb_tools.readers import build_reader
-from dask.distributed import Client, wait
-
-
-# -------- Q10 -----------
-eol_char = "è"
-
-
-def read_tables(config):
-
-    ### splitting by row groups for better parallelism
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=True,
-    )
-    product_reviews_cols = ["pr_item_sk", "pr_review_content", "pr_review_sk"]
-
-    product_reviews_df = table_reader.read(
-        "product_reviews", relevant_cols=product_reviews_cols,
-    )
-    return product_reviews_df
-
+from dask.distributed import wait
 
 def load_sentiment_words(filename, sentiment):
-    import cudf
 
     with open(filename) as fh:
         sentiment_words = list(map(str.strip, fh.readlines()))
@@ -67,8 +45,6 @@ def load_sentiment_words(filename, sentiment):
 
 
 def main(client, config):
-    import cudf
-    import dask_cudf
 
     product_reviews_df = benchmark(
         read_tables,
@@ -150,8 +126,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)

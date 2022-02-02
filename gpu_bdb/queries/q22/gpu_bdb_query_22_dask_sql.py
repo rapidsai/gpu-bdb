@@ -1,6 +1,5 @@
 #
-# Copyright (c) 2019-2020, NVIDIA CORPORATION.
-# Copyright (c) 2019-2020, BlazingSQL, Inc.
+# Copyright (c) 2019-2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,64 +15,24 @@
 #
 
 import numpy as np
-import sys
-import os
 
 from bdb_tools.cluster_startup import attach_to_cluster
 
 from bdb_tools.utils import (
     benchmark,
     gpubdb_argparser,
-    run_query,
-    convert_datestring_to_days,
+    run_query
 )
 
-from bdb_tools.readers import build_reader
+from bdb_tools.q22_utils import (
+    q22_date,
+    q22_i_current_price_min,
+    q22_i_current_price_max,
+    read_tables
+)
 
-
-# -------- Q22 -----------
-q22_date = "2001-05-08"
-q22_i_current_price_min = "0.98"
-q22_i_current_price_max = "1.5"
-
-
-def read_tables(data_dir, bc, config):
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=config["split_row_groups"],
-    )
-    inv_columns = [
-        "inv_item_sk",
-        "inv_warehouse_sk",
-        "inv_date_sk",
-        "inv_quantity_on_hand",
-    ]
-    inventory = table_reader.read("inventory", relevant_cols=inv_columns)
-
-    item_columns = ["i_item_id", "i_current_price", "i_item_sk"]
-    item = table_reader.read("item", relevant_cols=item_columns)
-
-    warehouse_columns = ["w_warehouse_sk", "w_warehouse_name"]
-    warehouse = table_reader.read("warehouse", relevant_cols=warehouse_columns)
-
-    dd_columns = ["d_date_sk", "d_date"]
-    date_dim = table_reader.read("date_dim", relevant_cols=dd_columns)
-    date_dim = date_dim.map_partitions(convert_datestring_to_days)
-
-    bc.create_table('inventory', inventory, persist=False)
-    bc.create_table('item', item, persist=False)
-    bc.create_table('warehouse', warehouse, persist=False)
-    bc.create_table('date_dim', date_dim, persist=False)
-
-    # bc.create_table('inventory', os.path.join(data_dir, "inventory/*.parquet"))
-    # bc.create_table('item', os.path.join(data_dir, "item/*.parquet"))
-    # bc.create_table('warehouse', os.path.join(data_dir, "warehouse/*.parquet"))
-    # bc.create_table('date_dim', os.path.join(data_dir, "date_dim/*.parquet"))
-
-
-def main(data_dir, client, bc, config):
-    benchmark(read_tables, data_dir, bc, config, dask_profile=config["dask_profile"])
+def main(data_dir, client, c, config):
+    benchmark(read_tables, config, c, dask_profile=config["dask_profile"])
 
     # Filter limit in days
     min_date = np.datetime64(q22_date, "D").astype(int) - 30
@@ -100,8 +59,8 @@ def main(data_dir, client, bc, config):
         AND d_date <= {max_date}
         GROUP BY w_warehouse_name, i_item_id
     """
-    intermediate = bc.sql(query)
-    bc.create_table("intermediate", intermediate ,persist=False)
+    intermediate = c.sql(query)
+    c.create_table("intermediate", intermediate ,persist=False)
 
     query_2 = f"""
         SELECT
@@ -116,11 +75,11 @@ def main(data_dir, client, bc, config):
         ORDER BY w_warehouse_name, i_item_id
         LIMIT 100
     """
-    result = bc.sql(query_2)
+    result = c.sql(query_2)
     return result
 
 
 if __name__ == "__main__":
     config = gpubdb_argparser()
-    client, bc = attach_to_cluster(config)
-    run_query(config=config, client=client, query_func=main, blazing_context=bc)
+    client, c = attach_to_cluster(config, create_sql_context=True)
+    run_query(config=config, client=client, query_func=main, sql_context=c)

@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019-2020, NVIDIA CORPORATION.
+# Copyright (c) 2019-2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,80 +14,18 @@
 # limitations under the License.
 #
 
-import sys
-import cupy as cp
-import rmm
 import numpy as np
-
 
 from bdb_tools.utils import (
     benchmark,
     gpubdb_argparser,
-    train_clustering_model,
     run_query,
 )
-from bdb_tools.readers import build_reader
-from dask import delayed
+from bdb_tools.q20_utils import (
+    get_clusters,
+    read_tables
+)
 from dask.distributed import wait
-
-
-# q20 parameters
-N_CLUSTERS = 8
-CLUSTER_ITERATIONS = 20
-N_ITER = 5
-
-
-def read_tables(config):
-    table_reader = build_reader(
-        data_format=config["file_format"],
-        basepath=config["data_dir"],
-        split_row_groups=config["split_row_groups"],
-    )
-
-    store_sales_cols = [
-        "ss_customer_sk",
-        "ss_ticket_number",
-        "ss_item_sk",
-        "ss_net_paid",
-    ]
-    store_returns_cols = [
-        "sr_item_sk",
-        "sr_customer_sk",
-        "sr_ticket_number",
-        "sr_return_amt",
-    ]
-
-    store_sales_df = table_reader.read("store_sales", relevant_cols=store_sales_cols)
-    store_returns_df = table_reader.read(
-        "store_returns", relevant_cols=store_returns_cols
-    )
-    return store_sales_df, store_returns_df
-
-
-def get_clusters(client, ml_input_df, feature_cols):
-    """
-    Takes the dask client, kmeans_input_df and feature columns.
-    Returns a dictionary matching the output required for q20
-    """
-    import dask_cudf
-
-    ml_tasks = [
-        delayed(train_clustering_model)(df, N_CLUSTERS, CLUSTER_ITERATIONS, N_ITER)
-        for df in ml_input_df[feature_cols].to_delayed()
-    ]
-
-    results_dict = client.compute(*ml_tasks, sync=True)
-
-    labels = results_dict["cid_labels"]
-
-    labels_final = dask_cudf.from_cudf(labels, npartitions=ml_input_df.npartitions)
-    ml_input_df["label"] = labels_final.reset_index()[0]
-
-    output = ml_input_df[["user_sk", "label"]]
-
-    results_dict["cid_labels"] = output
-    return results_dict
-
 
 def remove_inf_and_nulls(df, column_names, value=0.0):
     """
@@ -224,8 +162,6 @@ def main(client, config):
 
 if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
-    import cudf
-    import dask_cudf
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)
