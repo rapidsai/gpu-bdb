@@ -14,6 +14,6 @@ dask_profile: False
 verify_results: False
 verify_dir:
 
-sheet: GPU-BDB Dask-SQL
-tab: SF1K Dask-SQL
+sheet:
+tab:
 get_read_time: False
