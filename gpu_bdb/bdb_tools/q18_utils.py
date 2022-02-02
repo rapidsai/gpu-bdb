@@ -101,8 +101,6 @@ def find_targets_in_reviews_helper(ddf, targets, str_col_name="pr_review_content
     """
 
     lowered = ddf[str_col_name].str.lower()
-    tres = find_multiple.find_multiple(lowered._column, targets._column)
-    print(type(tres))
     ## TODO: Do the replace/any in cupy land before going to cuDF
     resdf = cudf.DataFrame(
         cp.asarray(
