@@ -3,7 +3,7 @@ ARG LINUX_VER=ubuntu18.04
 
 FROM nvidia/cuda:${CUDA_VER}-devel-${LINUX_VER}
 
-RUN apt update -y && apt upgrade -y && apt install -y git
+RUN apt update -y && apt-get --fix-missing upgrade -y && apt install -y git
 
 ADD https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh /miniconda.sh
 RUN bash /miniconda.sh -b -p /opt/conda
@@ -73,8 +73,7 @@ ADD https://www.mellanox.com/downloads/ofed/MLNX_OFED-5.2-2.2.0.0/MLNX_OFED_LINU
 
 RUN tar -xzf /MLNX_OFED_LINUX-5.2-2.2.0.0-ubuntu18.04-x86_64.tgz && \
  cd MLNX_OFED_LINUX-5.2-2.2.0.0-ubuntu18.04-x86_64 && \
- apt-get update && apt-get install -y --no-install-recommends \
-    ./DEBS/libibverbs* ./DEBS/ibverbs-providers* \
+ echo y | ./mlnxofedinstall --user-space-only --without-fw-update --without-neohost-backend\
  && rm -rf /var/lib/apt/lists/* \
  && rm -rf /MLNX_OFED_LINUX*
 
