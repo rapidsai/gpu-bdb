@@ -5,7 +5,7 @@ channels:
 
 dependencies:
   - python=3.8
-  - cudatoolkit=11.2
+  - cudatoolkit=11.0
   - cudf
   - rmm
   - dask-cuda
@@ -15,7 +15,7 @@ dependencies:
   - distributed
   - ucx-py
   - ucx-proc=*=gpu
-  - maven
+  - blazingsql
   - scipy
   - scikit-learn
   - cupy
@@ -28,11 +28,6 @@ dependencies:
   - gspread
   - oauth2client
   - pytest
-  - cython
-  - clang=11.0.0
-  - clang-tools=11.0.0
-  - cmake>=3.20.1
-  - cmake_setuptools>=0.1.3
   - pip
   - pip:
     - jupyter-server-proxy
