@@ -100,7 +100,7 @@ conda activate rapids-gpu-bdb
 python gpu_bdb_query_07.py --config_file=../../benchmark_runner/benchmark_config.yaml
 ```
 
-To NSYS profile a gpu-bdb query, change `run_nsys_profiling` in benchmark_config.yaml to `True` and run:
+To NSYS profile a gpu-bdb query, change `start_local_cluster` in benchmark_config.yaml to `True` and run:
 
 ```bash
 nsys profile -t cuda,nvtx python gpu_bdb_query_07_dask_sql.py --config_file=../../benchmark_runner/benchmark_config.yaml
