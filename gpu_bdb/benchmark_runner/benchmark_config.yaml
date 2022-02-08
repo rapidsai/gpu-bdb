@@ -17,3 +17,5 @@ verify_dir:
 sheet:
 tab:
 get_read_time: False
+
+run_nsys_profiling: False
