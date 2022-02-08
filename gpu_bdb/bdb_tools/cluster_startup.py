@@ -47,7 +47,7 @@ def attach_to_cluster(config, create_sql_context=False):
             memory_limit=os.environ.get("DEVICE_MEMORY_LIMIT", "1546828M"),
             enable_tcp_over_ucx=True,
             enable_nvlink=os.environ.get("CLUSTER_MODE", "TCP")=="NVLINK",
-            protocol=os.environ.get("CLUSTER_MODE", "TCP"),
+            protocol="ucx" if os.environ.get("CLUSTER_MODE", "TCP")=="NVLINK" else "tcp",
             enable_infiniband=False,
             enable_rdmacm=False
         )
