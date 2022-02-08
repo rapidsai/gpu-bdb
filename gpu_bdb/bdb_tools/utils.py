@@ -248,7 +248,7 @@ def run_query(
     config, client, query_func, write_func=write_result, sql_context=None
 ):
     if config.get("dask_profile"):
-        with performance_report(filename=f"profile.html"): 
+        with performance_report(filename="profile.html"): 
             if sql_context:
                 run_sql_query(
                     config=config,
