@@ -54,11 +54,7 @@ def benchmark(func, *args, **kwargs):
     compute_result = kwargs.pop("compute_result", False)
     name = func.__name__
     t0 = time.time()
-    if dask_profile:
-        with performance_report(filename=f"profiled-{name}.html"):
-            result = func(*args, **kwargs)
-    else:
-        result = func(*args, **kwargs)
+    result = func(*args, **kwargs)
     elapsed_time = time.time() - t0
 
     logging_info = {}
@@ -251,18 +247,35 @@ def remove_benchmark_files():
 def run_query(
     config, client, query_func, write_func=write_result, sql_context=None
 ):
-    if sql_context:
-        run_sql_query(
-            config=config,
-            client=client,
-            query_func=query_func,
-            sql_context=sql_context,
-            write_func=write_func,
-        )
+    if config.get("dask_profile"):
+        with performance_report(filename=f"profile.html"): 
+            if sql_context:
+                run_sql_query(
+                    config=config,
+                    client=client,
+                    query_func=query_func,
+                    sql_context=sql_context,
+                    write_func=write_func,
+                )
+            else:
+                run_dask_cudf_query(
+                    config=config, client=client, query_func=query_func, write_func=write_func,
+                )
+
     else:
-        run_dask_cudf_query(
-            config=config, client=client, query_func=query_func, write_func=write_func,
-        )
+        if sql_context:
+            run_sql_query(
+                config=config,
+                client=client,
+                query_func=query_func,
+                sql_context=sql_context,
+                write_func=write_func,
+            )
+        else:
+            run_dask_cudf_query(
+                config=config, client=client, query_func=query_func, write_func=write_func,
+            )
+
 
 
 def run_dask_cudf_query(config, client, query_func, write_func=write_result):
