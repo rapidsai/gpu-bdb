@@ -49,7 +49,8 @@ def attach_to_cluster(config, create_sql_context=False):
             enable_nvlink=os.environ.get("CLUSTER_MODE", "TCP")=="NVLINK",
             protocol="ucx" if os.environ.get("CLUSTER_MODE", "TCP")=="NVLINK" else "tcp",
             enable_infiniband=False,
-            enable_rdmacm=False
+           enable_rdmacm=False,
+           jit_unspill=True
         )
         client = Client(cluster)
 
