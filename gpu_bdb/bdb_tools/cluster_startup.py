@@ -35,9 +35,9 @@ def attach_to_cluster(config, create_sql_context=False):
     scheduler_file = config.get("scheduler_file_path")
     host = config.get("cluster_host")
     port = config.get("cluster_port", "8786")
-    is_nsys_profiling_run = config.get("run_nsys_profiling", False)
+    start_local_cluster = config.get("start_local_cluster", False)
 
-    if is_nsys_profiling_run:
+    if start_local_cluster:
         from dask_cuda import LocalCUDACluster
         cluster = LocalCUDACluster(
             n_workers=int(os.environ.get("NUM_WORKERS", 16)),
