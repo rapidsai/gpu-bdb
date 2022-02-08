@@ -39,7 +39,17 @@ def attach_to_cluster(config, create_sql_context=False):
 
     if is_nsys_profiling_run:
         from dask_cuda import LocalCUDACluster
-        cluster = LocalCUDACluster(n_workers=int(os.environ.get("NUM_WORKERS", 16)), device_memory_limit=os.environ.get("DEVICE_MEMORY_LIMIT", "15GB"), local_directory=os.environ.get("LOCAL_DIRECTORY"), rmm_pool_size=os.environ.get("POOL_SIZE","29GB"), memory_limit=os.environ.get("DEVICE_MEMORY_LIMIT","1546828M"), enable_tcp_over_ucx=True, enable_nvlink=os.environ.get("CLUSTER_MODE", "TCP")=="NVLINK", enable_infiniband=False, enable_rdmacm=False)
+        cluster = LocalCUDACluster(
+            n_workers=int(os.environ.get("NUM_WORKERS", 16)),
+            device_memory_limit=os.environ.get("DEVICE_MEMORY_LIMIT", "15GB"),
+            local_directory=os.environ.get("LOCAL_DIRECTORY"),
+            rmm_pool_size=os.environ.get("POOL_SIZE", "29GB"),
+            memory_limit=os.environ.get("DEVICE_MEMORY_LIMIT", "1546828M"),
+            enable_tcp_over_ucx=True,
+            enable_nvlink=os.environ.get("CLUSTER_MODE", "TCP")=="NVLINK",
+            enable_infiniband=False,
+            enable_rdmacm=False
+        )
         client = Client(cluster)
 
     elif scheduler_file is not None:
