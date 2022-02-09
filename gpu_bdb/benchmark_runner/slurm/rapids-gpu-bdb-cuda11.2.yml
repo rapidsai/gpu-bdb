@@ -23,7 +23,7 @@ dependencies:
   - jupyterlab
   - gspread
   - oauth2client
-  - numba=0.54.*
+  - numba>=0.54.*
   - maven
   - google-api-python-client
   - pip

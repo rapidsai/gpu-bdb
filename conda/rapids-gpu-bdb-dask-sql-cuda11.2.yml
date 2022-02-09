@@ -16,7 +16,7 @@ dependencies:
   - ucx-py
   - ucx-proc=*=gpu
   - dask-sql>=2022.1
-  - numba=0.54.*
+  - numba>=0.54.*
   - scipy
   - scikit-learn
   - cupy
