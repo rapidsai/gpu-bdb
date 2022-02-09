@@ -13,9 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import os
 
-import dask_cudf
+if os.getenv("CPU_ONLY") == 'True':
+    import dask.dataframe as dask_cudf
+else:
+    import dask_cudf
 
+import pandas as pd
 from dask import delayed
 
 from bdb_tools.utils import train_clustering_model
@@ -72,8 +77,13 @@ def get_clusters(client, ml_input_df, feature_cols):
     results_dict = client.compute(*ml_tasks, sync=True)
 
     labels = results_dict["cid_labels"]
-
-    labels_final = dask_cudf.from_cudf(labels, npartitions=ml_input_df.npartitions)
+    
+    if hasattr(dask_cudf, "from_cudf"):
+        labels_final = dask_cudf.from_cudf(labels, npartitions=ml_input_df.npartitions)
+    else:
+        labels_final = dask_cudf.from_pandas(pd.DataFrame(labels), npartitions=ml_input_df.npartitions)
+         
+    
     ml_input_df["label"] = labels_final.reset_index()[0]
 
     output = ml_input_df[["user_sk", "label"]]

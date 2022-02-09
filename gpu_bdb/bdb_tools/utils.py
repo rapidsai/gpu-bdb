@@ -65,7 +65,10 @@ def benchmark(func, *args, **kwargs):
     logging_info["elapsed_time_seconds"] = elapsed_time
     logging_info["function_name"] = name
     if compute_result:
-        import dask_cudf
+        if os.getenv("CPU_ONLY") == 'True':
+            import dask.dataframe as dask_cudf
+        else:
+            import dask_cudf
 
         if isinstance(result, dask_cudf.DataFrame):
             len_tasks = [dask.delayed(len)(df) for df in result.to_delayed()]
@@ -96,7 +99,10 @@ def benchmark(func, *args, **kwargs):
 def write_result(payload, filetype="parquet", output_directory="./"):
     """
     """
-    import cudf
+    if os.getenv("CPU_ONLY") == 'True':
+        import pandas as cudf
+    else:
+        import cudf
 
     if isinstance(payload, MutableMapping):
         if payload.get("output_type", None) == "supervised":
@@ -211,7 +217,11 @@ def write_clustering_result(result_dict, output_directory="./", filetype="csv"):
         fh.write(f"WSSSE: {result_dict.get('wssse')}\n")
 
         centers = result_dict.get("cluster_centers")
-        for center in centers.values.tolist():
+        
+        if not isinstance(centers, np.ndarray):
+            centers = centers.values
+            
+        for center in centers.tolist():
             fh.write(f"{center}\n")
 
     # this is a single partition dataframe, with cid_labels hard coded
@@ -225,7 +235,7 @@ def write_clustering_result(result_dict, output_directory="./", filetype="csv"):
         )
     else:
         clustering_result_name = f"q{QUERY_NUM}-results.parquet"
-        data.to_parquet(f"{output_directory}{clustering_result_name}", index=False)
+        data.to_parquet(f"{output_directory}{clustering_result_name}", write_index=False)
 
     return 0
 
@@ -383,6 +393,7 @@ def gpubdb_argparser():
         "tab": os.environ.get("GOOGLE_SPREADSHEET_TAB"),
         "scheduler_file_path": os.environ.get("SCHEDULER_FILE"),
         "benchmark_runner_include_sql": os.environ.get("RUNNER_INCLUDE_SQL"),
+        "cpu_only": os.environ.get("CPU_ONLY"),
     }
 
     for key in args.keys():
@@ -602,9 +613,16 @@ def verify_results(verify_dir):
     """
     verify_dir: Directory which contains verification results
     """
-    import cudf
-    import dask_cudf
-    import cupy as cp
+    if os.getenv("CPU_ONLY") == 'True':
+        import pandas as cudf
+        import dask.dataframe as dask_cudf
+        import numpy as cp
+    else:
+        import cudf
+        import dask_cudf
+        import cupy as cp
+    
+    
     import dask.dataframe as dd
 
     QUERY_NUM = get_query_number()
@@ -844,7 +862,10 @@ def _get_benchmarked_method_time(
     """
     Returns the `elapsed_time_seconds` field from files generated using the `benchmark` decorator.
     """
-    import cudf
+    if os.getenv("CPU_ONLY") == 'True':
+        import pandas as cudf
+    else:
+        import cudf
 
     try:
         benchmark_results = cudf.read_csv(filename)
@@ -927,15 +948,19 @@ def left_semi_join(df_1, df_2, left_on, right_on):
 
 
 def convert_datestring_to_days(df):
-    import cudf
+    if os.getenv("CPU_ONLY") == 'True':
+        import pandas as cudf
+        
+    else:
+        import cudf
 
-    df["d_date"] = (
-        cudf.to_datetime(df["d_date"], format="%Y-%m-%d")
-        .astype("datetime64[s]")
-        .astype("int64")
-        / 86400
-    )
-    df["d_date"] = df["d_date"].astype("int64")
+        df["d_date"] = (
+            cudf.to_datetime(df["d_date"], format="%Y-%m-%d")
+            .astype("datetime64[s]")
+            .astype("int64")
+            / 86400
+        )
+        df["d_date"] = df["d_date"].astype("int64")
     return df
 
 

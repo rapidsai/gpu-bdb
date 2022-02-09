@@ -42,8 +42,12 @@ def main(data_dir, client, c, config):
     """
 
     dates = c.sql(date_query)
-
-    cpu_dates = dates["d_date_sk"].compute().to_pandas()
+ 
+    cpu_dates = dates["d_date_sk"].compute()
+    
+    if hasattr(cpu_dates, "to_pandas"):
+        cpu_dates = cpu_dates.to_pandas()
+        
     cpu_dates.index = list(range(0, cpu_dates.shape[0]))
 
     last_query = f"""

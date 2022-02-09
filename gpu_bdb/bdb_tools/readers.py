@@ -99,7 +99,10 @@ class ParquetReader(Reader):
         return self.table_path_mapping.keys()
 
     def read(self, table, relevant_cols=None, **kwargs):
-        import dask_cudf
+        if os.getenv("CPU_ONLY") == 'True':
+            import dask.dataframe as dask_cudf
+        else:
+            import dask_cudf
 
         filepath = self.table_path_mapping[table]
         # we ignore split_row_groups if gather_statistics=False
