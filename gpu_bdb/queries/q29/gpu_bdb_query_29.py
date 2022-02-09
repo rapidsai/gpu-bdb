@@ -80,7 +80,6 @@ def main(client, config):
         read_tables,
         config=config,
         compute_result=config["get_read_time"],
-        dask_profile=config["dask_profile"],
     )
     ### setting index on ws_order_number
     ws_df = ws_df.shuffle(on=["ws_order_number"])

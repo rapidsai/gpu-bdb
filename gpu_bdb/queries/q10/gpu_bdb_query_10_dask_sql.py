@@ -39,7 +39,7 @@ from bdb_tools.q10_utils import (
 from dask.distributed import wait
 
 def main(data_dir, client, c, config):
-    benchmark(read_tables, config, c, dask_profile=config["dask_profile"])
+    benchmark(read_tables, config, c)
 
     query_1 = """
         SELECT pr_item_sk,

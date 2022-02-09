@@ -78,7 +78,6 @@ def main(client, config):
         read_tables,
         config=config,
         compute_result=config["get_read_time"],
-        dask_profile=config["dask_profile"],
     )
     datedim_ddf = datedim_ddf.map_partitions(convert_datestring_to_days)
     min_date = np.datetime64(q25_date, "D").astype(int)

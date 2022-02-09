@@ -27,7 +27,7 @@ from bdb_tools.utils import (
 from bdb_tools.q16_utils import read_tables
 
 def main(data_dir, client, c, config):
-    benchmark(read_tables, config, c, dask_profile=config["dask_profile"])
+    benchmark(read_tables, config, c)
 
     date = datetime.datetime(2001, 3, 16)
     start = (date + timedelta(days=-30)).strftime("%Y-%m-%d")

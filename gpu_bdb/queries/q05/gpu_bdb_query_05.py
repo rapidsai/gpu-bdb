@@ -95,7 +95,6 @@ def main(client, config):
         read_tables,
         config=config,
         compute_result=config["get_read_time"],
-        dask_profile=config["dask_profile"],
     )
 
     # We want to find clicks in the parameterized category

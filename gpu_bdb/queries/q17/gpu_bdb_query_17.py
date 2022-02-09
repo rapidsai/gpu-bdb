@@ -46,7 +46,6 @@ def main(client, config):
         read_tables,
         config=config,
         compute_result=config["get_read_time"],
-        dask_profile=config["dask_profile"],
     )
 
     # store_sales ss LEFT SEMI JOIN date_dim dd ON ss.ss_sold_date_sk = dd.d_date_sk AND dd.d_year = ${hiveconf:q17_year} AND dd.d_moy = ${hiveconf:q17_month}

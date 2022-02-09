@@ -27,7 +27,7 @@ from bdb_tools.q12_utils import read_tables
 q12_i_category_IN = "'Books', 'Electronics'"
 
 def main(data_dir, client, c, config):
-    benchmark(read_tables, config, c, dask_profile=config["dask_profile"])
+    benchmark(read_tables, config, c)
 
     query = f"""
         SELECT DISTINCT wcs_user_sk

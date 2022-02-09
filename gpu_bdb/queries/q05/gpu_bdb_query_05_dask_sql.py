@@ -29,7 +29,7 @@ from bdb_tools.q05_utils import (
 )
 
 def main(data_dir, client, c, config):
-    benchmark(read_tables, config, c, dask_profile=config["dask_profile"])
+    benchmark(read_tables, config, c)
 
     query = """
         SELECT

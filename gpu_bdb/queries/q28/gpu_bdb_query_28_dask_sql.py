@@ -28,7 +28,7 @@ from bdb_tools.q28_utils import (
 )
 
 def main(data_dir, client, c, config):
-    benchmark(read_tables, config, c, dask_profile=config["dask_profile"])
+    benchmark(read_tables, config, c)
 
     # 10 % of data
     query1 = """
