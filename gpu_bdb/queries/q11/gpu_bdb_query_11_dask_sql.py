@@ -26,7 +26,7 @@ from bdb_tools.utils import (
 from bdb_tools.q11_utils import read_tables
 
 def main(data_dir, client, c, config):
-    benchmark(read_tables, config, c, dask_profile=config["dask_profile"])
+    benchmark(read_tables, config, c)
 
     query = """
         WITH p AS

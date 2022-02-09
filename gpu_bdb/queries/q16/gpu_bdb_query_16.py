@@ -65,7 +65,6 @@ def main(client, config):
         read_tables,
         config=config,
         compute_result=config["get_read_time"],
-        dask_profile=config["dask_profile"],
     )
 
     warehouse_df["w_state_code"] = warehouse_df[["w_state"]].categorize()["w_state"]

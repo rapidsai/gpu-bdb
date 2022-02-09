@@ -48,7 +48,6 @@ def main(client, config):
         read_tables,
         config=config,
         compute_result=config["get_read_time"],
-        dask_profile=config["dask_profile"],
     )
     ### adding a wait call slows this down by 3-4 seconds, removing it for now
     ### Make TEMP_TABLE1

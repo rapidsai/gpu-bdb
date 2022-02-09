@@ -30,7 +30,7 @@ from bdb_tools.q29_utils import (
 from dask.distributed import wait
 
 def main(data_dir, client, c, config):
-    benchmark(read_tables, config, c, dask_profile=config["dask_profile"])
+    benchmark(read_tables, config, c)
     n_workers = len(client.scheduler_info()["workers"])
 
     join_query = """

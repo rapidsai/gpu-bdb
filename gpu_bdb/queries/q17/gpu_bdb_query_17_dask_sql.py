@@ -32,7 +32,7 @@ from bdb_tools.q17_utils import (
 q17_i_category_IN = "'Books', 'Music'"
 
 def main(data_dir, client, c, config):
-    benchmark(read_tables, config, c, dask_profile=config["dask_profile"])
+    benchmark(read_tables, config, c)
 
     query_date = f"""
         select min(d_date_sk) as min_d_date_sk,

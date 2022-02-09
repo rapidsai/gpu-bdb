@@ -33,7 +33,7 @@ from dask.distributed import wait
 
 
 def main(data_dir, client, c, config):
-    benchmark(read_tables, config, c, dask_profile=config["dask_profile"])
+    benchmark(read_tables, config, c)
 
     query_web_page = """
         SELECT wp_type, wp_web_page_sk

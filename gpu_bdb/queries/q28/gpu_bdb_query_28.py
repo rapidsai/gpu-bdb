@@ -35,7 +35,6 @@ def main(client, config):
         read_tables,
         config=config,
         compute_result=config["get_read_time"],
-        dask_profile=config["dask_profile"],
     )
     product_reviews_df = product_reviews_df[
         product_reviews_df["pr_review_content"].notnull()

@@ -71,7 +71,7 @@ def agg_count_distinct(df, group_key, counted_key):
     return unique_df.reset_index(drop=False)
 
 def main(data_dir, client, c, config):
-    benchmark(read_tables, config, c, dask_profile=config["dask_profile"])
+    benchmark(read_tables, config, c)
 
     ss_join_query= f"""
         SELECT
