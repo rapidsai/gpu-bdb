@@ -35,8 +35,26 @@ def attach_to_cluster(config, create_sql_context=False):
     scheduler_file = config.get("scheduler_file_path")
     host = config.get("cluster_host")
     port = config.get("cluster_port", "8786")
+    start_local_cluster = config.get("start_local_cluster", False)
 
-    if scheduler_file is not None:
+    if start_local_cluster:
+        from dask_cuda import LocalCUDACluster
+        cluster = LocalCUDACluster(
+            n_workers=int(os.environ.get("NUM_WORKERS", 16)),
+            device_memory_limit=os.environ.get("DEVICE_MEMORY_LIMIT", "20GB"),
+            local_directory=os.environ.get("LOCAL_DIRECTORY"),
+            rmm_pool_size=os.environ.get("POOL_SIZE", "29GB"),
+            memory_limit=os.environ.get("DEVICE_MEMORY_LIMIT", "1546828M"),
+            enable_tcp_over_ucx=os.environ.get("CLUSTER_MODE", "TCP")=="NVLINK",
+            enable_nvlink=os.environ.get("CLUSTER_MODE", "TCP")=="NVLINK",
+            protocol="ucx" if os.environ.get("CLUSTER_MODE", "TCP")=="NVLINK" else "tcp",
+            enable_infiniband=False,
+           enable_rdmacm=False,
+           jit_unspill=True
+        )
+        client = Client(cluster)
+
+    elif scheduler_file is not None:
         try:
             with open(scheduler_file) as fp:
                 print(fp.read())
