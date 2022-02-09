@@ -21,7 +21,7 @@ CLUSTER_MODE=${CLUSTER_MODE:-TCP}
 
 # Cluster memory configuration
 MAX_SYSTEM_MEMORY=$(free -m | awk '/^Mem:/{print $2}')M
-DEVICE_MEMORY_LIMIT=${DEVICE_MEMORY_LIMIT:-15GB}
+DEVICE_MEMORY_LIMIT=${DEVICE_MEMORY_LIMIT:-20GB}
 POOL_SIZE=${POOL_SIZE:-29GB}
 
 # Conda environment information
