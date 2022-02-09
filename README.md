@@ -100,6 +100,15 @@ conda activate rapids-gpu-bdb
 python gpu_bdb_query_07.py --config_file=../../benchmark_runner/benchmark_config.yaml
 ```
 
+To NSYS profile a gpu-bdb query, change `start_local_cluster` in benchmark_config.yaml to `True` and run:
+
+```bash
+nsys profile -t cuda,nvtx python gpu_bdb_query_07_dask_sql.py --config_file=../../benchmark_runner/benchmark_config.yaml
+```
+
+Note: There is no need to start workers with `cluster-startup.sh` as
+there is a `LocalCUDACluster` being started in `attach_to_cluster` API.
+
 ## Performance Tracking
 
 This repository includes optional performance-tracking automation using Google Sheets. To enable logging query runtimes, on the client node:
