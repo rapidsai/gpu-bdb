@@ -41,7 +41,7 @@ def attach_to_cluster(config, create_sql_context=False):
         from dask_cuda import LocalCUDACluster
         cluster = LocalCUDACluster(
             n_workers=int(os.environ.get("NUM_WORKERS", 16)),
-            device_memory_limit=os.environ.get("DEVICE_MEMORY_LIMIT", "15GB"),
+            device_memory_limit=os.environ.get("DEVICE_MEMORY_LIMIT", "20GB"),
             local_directory=os.environ.get("LOCAL_DIRECTORY"),
             rmm_pool_size=os.environ.get("POOL_SIZE", "29GB"),
             memory_limit=os.environ.get("DEVICE_MEMORY_LIMIT", "1546828M"),
