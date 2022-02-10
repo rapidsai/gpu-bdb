@@ -65,12 +65,7 @@ def benchmark(func, *args, **kwargs):
     logging_info["elapsed_time_seconds"] = elapsed_time
     logging_info["function_name"] = name
     if compute_result:
-        if os.getenv("CPU_ONLY") == 'True':
-            import dask.dataframe as dask_cudf
-        else:
-            import dask_cudf
-
-        if isinstance(result, dask_cudf.DataFrame):
+        if isinstance(result, dd.DataFrame):
             len_tasks = [dask.delayed(len)(df) for df in result.to_delayed()]
         else:
             len_tasks = []
