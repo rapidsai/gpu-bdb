@@ -13,12 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import os
-
-if os.getenv("CPU_ONLY") == 'True':
-    import dask.dataframe as dask_cudf
-else:
-    import dask_cudf
+import dask.dataframe as dd
+import dask_cudf
 
 import pandas as pd
 from dask import delayed
@@ -37,6 +33,7 @@ def read_tables(config, c=None):
         data_format=config["file_format"],
         basepath=config["data_dir"],
         split_row_groups=config["split_row_groups"],
+        backend=config["backend"],
     )
 
     store_sales_cols = [
@@ -78,10 +75,10 @@ def get_clusters(client, ml_input_df, feature_cols):
 
     labels = results_dict["cid_labels"]
     
-    if hasattr(dask_cudf, "from_cudf"):
+    if isinstance(ml_input_df, dask_cudf.DataFrame):
         labels_final = dask_cudf.from_cudf(labels, npartitions=ml_input_df.npartitions)
     else:
-        labels_final = dask_cudf.from_pandas(pd.DataFrame(labels), npartitions=ml_input_df.npartitions)
+        labels_final = dd.from_pandas(pd.DataFrame(labels), npartitions=ml_input_df.npartitions)
          
     
     ml_input_df["label"] = labels_final.reset_index()[0]

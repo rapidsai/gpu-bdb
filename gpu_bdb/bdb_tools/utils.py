@@ -34,6 +34,7 @@ from collections.abc import MutableMapping
 
 import numpy as np
 
+import cudf 
 import pandas as pd
 import dask.dataframe as dd
 from dask.utils import parse_bytes
@@ -65,7 +66,9 @@ def benchmark(func, *args, **kwargs):
     logging_info["elapsed_time_seconds"] = elapsed_time
     logging_info["function_name"] = name
     if compute_result:
-        if isinstance(result, dd.DataFrame):
+        import dask_cudf
+
+        if isinstance(result, dask_cudf.DataFrame):
             len_tasks = [dask.delayed(len)(df) for df in result.to_delayed()]
         else:
             len_tasks = []
@@ -94,11 +97,7 @@ def benchmark(func, *args, **kwargs):
 def write_result(payload, filetype="parquet", output_directory="./"):
     """
     """
-    if os.getenv("CPU_ONLY") == 'True':
-        import pandas as cudf
-    else:
-        import cudf
-
+    
     if isinstance(payload, MutableMapping):
         if payload.get("output_type", None) == "supervised":
             write_supervised_learning_result(
@@ -112,7 +111,7 @@ def write_result(payload, filetype="parquet", output_directory="./"):
                 filetype=filetype,
                 output_directory=output_directory,
             )
-    elif isinstance(payload, cudf.DataFrame) or isinstance(payload, dd.DataFrame):
+    elif isinstance(payload, (cudf.DataFrame, dd.DataFrame, pd.DataFrame)):
         write_etl_result(
             df=payload, filetype=filetype, output_directory=output_directory
         )
@@ -388,7 +387,6 @@ def gpubdb_argparser():
         "tab": os.environ.get("GOOGLE_SPREADSHEET_TAB"),
         "scheduler_file_path": os.environ.get("SCHEDULER_FILE"),
         "benchmark_runner_include_sql": os.environ.get("RUNNER_INCLUDE_SQL"),
-        "cpu_only": os.environ.get("CPU_ONLY"),
     }
 
     for key in args.keys():
@@ -608,16 +606,9 @@ def verify_results(verify_dir):
     """
     verify_dir: Directory which contains verification results
     """
-    if os.getenv("CPU_ONLY") == 'True':
-        import pandas as cudf
-        import dask.dataframe as dask_cudf
-        import numpy as cp
-    else:
-        import cudf
-        import dask_cudf
-        import cupy as cp
-    
-    
+    import cudf
+    import dask_cudf
+    import cupy as cp
     import dask.dataframe as dd
 
     QUERY_NUM = get_query_number()
@@ -857,10 +848,7 @@ def _get_benchmarked_method_time(
     """
     Returns the `elapsed_time_seconds` field from files generated using the `benchmark` decorator.
     """
-    if os.getenv("CPU_ONLY") == 'True':
-        import pandas as cudf
-    else:
-        import cudf
+    import cudf
 
     try:
         benchmark_results = cudf.read_csv(filename)
@@ -943,19 +931,16 @@ def left_semi_join(df_1, df_2, left_on, right_on):
 
 
 def convert_datestring_to_days(df):
-    if os.getenv("CPU_ONLY") == 'True':
-        import pandas as cudf
-        
-    else:
-        import cudf
+ 
+    import cudf
 
-        df["d_date"] = (
-            cudf.to_datetime(df["d_date"], format="%Y-%m-%d")
-            .astype("datetime64[s]")
-            .astype("int64")
-            / 86400
-        )
-        df["d_date"] = df["d_date"].astype("int64")
+    df["d_date"] = (
+        cudf.to_datetime(df["d_date"], format="%Y-%m-%d")
+        .astype("datetime64[s]")
+        .astype("int64")
+        / 86400
+    )
+    df["d_date"] = df["d_date"].astype("int64")
     return df
 
 

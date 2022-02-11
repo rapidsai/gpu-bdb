@@ -7,6 +7,7 @@ output_filetype: parquet
 split_row_groups: False
 repartition_small_table: True
 benchmark_runner_include_sql:
+backend: GPU
 
 scheduler_file_path:
 dask_profile: False

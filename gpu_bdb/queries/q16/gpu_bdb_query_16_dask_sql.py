@@ -16,6 +16,7 @@
 
 from bdb_tools.cluster_startup import attach_to_cluster
 
+import cudf
 import datetime
 from datetime import timedelta
 from bdb_tools.utils import (
@@ -45,7 +46,7 @@ def main(data_dir, client, c, config):
  
     cpu_dates = dates["d_date_sk"].compute()
     
-    if hasattr(cpu_dates, "to_pandas"):
+    if isinstance(cpu_dates, cudf.Series):
         cpu_dates = cpu_dates.to_pandas()
         
     cpu_dates.index = list(range(0, cpu_dates.shape[0]))
