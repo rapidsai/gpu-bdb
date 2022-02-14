@@ -246,8 +246,9 @@ def remove_benchmark_files():
 def run_query(
     config, client, query_func, write_func=write_result, sql_context=None
 ):
+    QUERY_NUM = get_query_number()
     if config.get("dask_profile"):
-        with performance_report(filename="profile.html"): 
+        with performance_report(filename=f"q{QUERY_NUM}_profile.html"): 
             if sql_context:
                 run_sql_query(
                     config=config,
