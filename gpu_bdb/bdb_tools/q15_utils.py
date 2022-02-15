@@ -32,6 +32,7 @@ def read_tables(config, c=None):
         data_format=config["file_format"],
         basepath=config["data_dir"],
         split_row_groups=config["split_row_groups"],
+        backend=config["backend"],
     )
 
     store_sales_df = table_reader.read("store_sales", relevant_cols=store_sales_cols)

@@ -34,6 +34,7 @@ from collections.abc import MutableMapping
 
 import numpy as np
 
+import cudf 
 import pandas as pd
 import dask.dataframe as dd
 from dask.utils import parse_bytes
@@ -91,8 +92,7 @@ def benchmark(func, *args, **kwargs):
 def write_result(payload, filetype="parquet", output_directory="./"):
     """
     """
-    import cudf
-
+    
     if isinstance(payload, MutableMapping):
         if payload.get("output_type", None) == "supervised":
             write_supervised_learning_result(
@@ -106,7 +106,7 @@ def write_result(payload, filetype="parquet", output_directory="./"):
                 filetype=filetype,
                 output_directory=output_directory,
             )
-    elif isinstance(payload, cudf.DataFrame) or isinstance(payload, dd.DataFrame):
+    elif isinstance(payload, (cudf.DataFrame, dd.DataFrame, pd.DataFrame)):
         write_etl_result(
             df=payload, filetype=filetype, output_directory=output_directory
         )
@@ -206,7 +206,11 @@ def write_clustering_result(result_dict, output_directory="./", filetype="csv"):
         fh.write(f"WSSSE: {result_dict.get('wssse')}\n")
 
         centers = result_dict.get("cluster_centers")
-        for center in centers.values.tolist():
+        
+        if not isinstance(centers, np.ndarray):
+            centers = centers.values
+            
+        for center in centers.tolist():
             fh.write(f"{center}\n")
 
     # this is a single partition dataframe, with cid_labels hard coded
@@ -220,7 +224,7 @@ def write_clustering_result(result_dict, output_directory="./", filetype="csv"):
         )
     else:
         clustering_result_name = f"q{QUERY_NUM}-results.parquet"
-        data.to_parquet(f"{output_directory}{clustering_result_name}", index=False)
+        data.to_parquet(f"{output_directory}{clustering_result_name}", write_index=False)
 
     return 0
 
@@ -938,6 +942,7 @@ def left_semi_join(df_1, df_2, left_on, right_on):
 
 
 def convert_datestring_to_days(df):
+ 
     import cudf
 
     df["d_date"] = (

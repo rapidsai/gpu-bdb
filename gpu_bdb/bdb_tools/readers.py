@@ -88,8 +88,15 @@ class ParquetReader(Reader):
     """Read GPU-BDB Parquet data"""
 
     def __init__(
-        self, basepath, split_row_groups=False,
+        self, basepath, split_row_groups=False, backend="GPU",
     ):
+        if backend == "GPU":
+            import dask_cudf
+            self.backend = dask_cudf
+        else:
+            import dask.dataframe
+            self.backend = dask.dataframe
+            
         self.table_path_mapping = {
             table: os.path.join(basepath, table, "*.parquet") for table in TABLE_NAMES
         }
@@ -99,13 +106,11 @@ class ParquetReader(Reader):
         return self.table_path_mapping.keys()
 
     def read(self, table, relevant_cols=None, **kwargs):
-        import dask_cudf
-
         filepath = self.table_path_mapping[table]
         # we ignore split_row_groups if gather_statistics=False
         if self.split_row_groups:
 
-            df = dask_cudf.read_parquet(
+            df = self.backend.read_parquet(
                 filepath,
                 columns=relevant_cols,
                 split_row_groups=self.split_row_groups,
@@ -113,7 +118,7 @@ class ParquetReader(Reader):
                 **kwargs,
             )
         else:
-            df = dask_cudf.read_parquet(
+            df = self.backend.read_parquet(
                 filepath,
                 columns=relevant_cols,
                 split_row_groups=self.split_row_groups,
