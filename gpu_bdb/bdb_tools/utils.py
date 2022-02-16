@@ -942,16 +942,22 @@ def left_semi_join(df_1, df_2, left_on, right_on):
 
 
 def convert_datestring_to_days(df):
- 
-    import cudf
+    if isinstance(df, cudf.DataFrame):
+        df["d_date"] = (
+            cudf.to_datetime(df["d_date"], format="%Y-%m-%d")
+            .astype("datetime64[s]")
+            .astype("int64")
+            / 86400
+        )
+        df["d_date"] = df["d_date"].astype("int64")
+    else:
+        df["d_date"] = (
+            pd.to_datetime(df["d_date"], format="%Y-%m-%d")
+            .view("int64")
+            / 8.64e+13
+        )
+        df["d_date"] = df["d_date"].astype("int64")
 
-    df["d_date"] = (
-        cudf.to_datetime(df["d_date"], format="%Y-%m-%d")
-        .astype("datetime64[s]")
-        .astype("int64")
-        / 86400
-    )
-    df["d_date"] = df["d_date"].astype("int64")
     return df
 
 

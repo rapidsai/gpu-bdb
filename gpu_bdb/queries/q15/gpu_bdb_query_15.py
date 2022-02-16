@@ -14,6 +14,12 @@
 # limitations under the License.
 #
 
+import numpy as np
+import pandas as pd
+
+import cudf
+import dask_cudf
+
 from bdb_tools.utils import (
     benchmark,
     gpubdb_argparser,
@@ -42,7 +48,17 @@ def main(client, config):
     store_sales_df = store_sales_df.query(f"ss_store_sk == {q15_store_sk}")
 
     ### Query 1. Date Time Filteration Logic
-    date_dim_cov_df = date_dim_df.map_partitions(convert_datestring_to_days)
+    meta_d = {
+        "d_date": np.ones(1, dtype=np.int64),
+        "d_date_sk": np.ones(1, dtype=np.int64)
+    }
+
+    if isinstance(date_dim_df, dask_cudf.DataFrame):
+        meta_df = cudf.DataFrame(meta_d)
+    else:
+        meta_df = pd.DataFrame(meta_d)
+
+    date_dim_cov_df = date_dim_df.map_partitions(convert_datestring_to_days, meta=meta_df)
 
     q15_start_dt = datetime.datetime.strptime(q15_startDate, "%Y-%m-%d")
     q15_start_dt = (q15_start_dt - datetime.datetime(1970, 1, 1)) / datetime.timedelta(

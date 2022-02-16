@@ -15,17 +15,19 @@
 #
 
 import cudf
+import dask_cudf
 
 from bdb_tools.utils import (
     benchmark,
     gpubdb_argparser,
     run_query,
-    convert_datestring_to_days,
+    convert_datestring_to_days
 )
 
 from bdb_tools.q11_utils import read_tables
 
 import numpy as np
+import pandas as pd
 
 q11_start_date = "2003-01-02"
 q11_end_date = "2003-02-02"
@@ -37,8 +39,18 @@ def main(client, config):
         config=config,
         compute_result=config["get_read_time"],
     )
+    
+    meta_d = {
+        "d_date_sk": np.ones(1, dtype=np.int64),
+        "d_date": np.ones(1, dtype=np.int64)
+    }
 
-    date_df = date_df.map_partitions(convert_datestring_to_days)
+    if isinstance(date_df, dask_cudf.DataFrame):
+        meta_df = cudf.DataFrame(meta_d)
+    else:
+        meta_df = pd.DataFrame(meta_d)
+
+    date_df = date_df.map_partitions(convert_datestring_to_days, meta=meta_df)
 
     # Filter limit in days
     min_date = np.datetime64(q11_start_date, "D").astype(int)
