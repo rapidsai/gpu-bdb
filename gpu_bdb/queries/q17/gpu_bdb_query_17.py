@@ -55,8 +55,8 @@ def main(client, config):
     ss_date_join = left_semi_join(
         store_sales_df,
         filtered_date_df,
-        left_on=["ss_sold_date_sk"],
-        right_on=["d_date_sk"],
+        left_on="ss_sold_date_sk",
+        right_on="d_date_sk",
     )
     ss_date_join = ss_date_join[store_sales_cols]
 
@@ -65,7 +65,7 @@ def main(client, config):
         item_df["i_category"].isin(q17_i_category_IN)
     ].reset_index(drop=True)
     ss_date_item_join = left_semi_join(
-        ss_date_join, filtered_item_df, left_on=["ss_item_sk"], right_on=["i_item_sk"]
+        ss_date_join, filtered_item_df, left_on="ss_item_sk", right_on="i_item_sk"
     )
 
     # LEFT SEMI JOIN store s ON ss.ss_store_sk = s.s_store_sk AND s.s_gmt_offset = ${hiveconf:q17_gmt_offset}
@@ -76,8 +76,8 @@ def main(client, config):
     ss_date_item_store_join = left_semi_join(
         ss_date_item_join,
         filtered_store_df,
-        left_on=["ss_store_sk"],
-        right_on=["s_store_sk"],
+        left_on="ss_store_sk",
+        right_on="s_store_sk",
     )
 
     #    (SELECT c.c_customer_sk FROM customer c LEFT SEMI JOIN customer_address ca
@@ -91,8 +91,8 @@ def main(client, config):
     sub_c = left_semi_join(
         customer_df,
         filtered_customer_address,
-        left_on=["c_current_addr_sk"],
-        right_on=["ca_address_sk"],
+        left_on="c_current_addr_sk",
+        right_on="ca_address_sk",
     )
 
     # sub_c ON ss.ss_customer_sk = sub_c.c_customer_sk
@@ -100,8 +100,8 @@ def main(client, config):
     ss_date_item_store_customer_join = left_semi_join(
         ss_date_item_store_join,
         sub_c,
-        left_on=["ss_customer_sk"],
-        right_on=["c_customer_sk"],
+        left_on="ss_customer_sk",
+        right_on="c_customer_sk",
     )
 
     # JOIN promotion p ON ss.ss_promo_sk = p.p_promo_sk
