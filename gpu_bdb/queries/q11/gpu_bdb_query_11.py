@@ -36,7 +36,6 @@ def main(client, config):
         read_tables,
         config=config,
         compute_result=config["get_read_time"],
-        dask_profile=config["dask_profile"],
     )
 
     date_df = date_df.map_partitions(convert_datestring_to_days)

@@ -34,6 +34,7 @@ from collections.abc import MutableMapping
 
 import numpy as np
 
+import cudf 
 import pandas as pd
 import dask.dataframe as dd
 from dask.utils import parse_bytes
@@ -50,15 +51,10 @@ from oauth2client.service_account import ServiceAccountCredentials
 #################################
 def benchmark(func, *args, **kwargs):
     csv = kwargs.pop("csv", True)
-    dask_profile = kwargs.pop("dask_profile", False)
     compute_result = kwargs.pop("compute_result", False)
     name = func.__name__
     t0 = time.time()
-    if dask_profile:
-        with performance_report(filename=f"profiled-{name}.html"):
-            result = func(*args, **kwargs)
-    else:
-        result = func(*args, **kwargs)
+    result = func(*args, **kwargs)
     elapsed_time = time.time() - t0
 
     logging_info = {}
@@ -96,8 +92,7 @@ def benchmark(func, *args, **kwargs):
 def write_result(payload, filetype="parquet", output_directory="./"):
     """
     """
-    import cudf
-
+    
     if isinstance(payload, MutableMapping):
         if payload.get("output_type", None) == "supervised":
             write_supervised_learning_result(
@@ -111,7 +106,7 @@ def write_result(payload, filetype="parquet", output_directory="./"):
                 filetype=filetype,
                 output_directory=output_directory,
             )
-    elif isinstance(payload, cudf.DataFrame) or isinstance(payload, dd.DataFrame):
+    elif isinstance(payload, (cudf.DataFrame, dd.DataFrame, pd.DataFrame)):
         write_etl_result(
             df=payload, filetype=filetype, output_directory=output_directory
         )
@@ -211,7 +206,11 @@ def write_clustering_result(result_dict, output_directory="./", filetype="csv"):
         fh.write(f"WSSSE: {result_dict.get('wssse')}\n")
 
         centers = result_dict.get("cluster_centers")
-        for center in centers.values.tolist():
+        
+        if not isinstance(centers, np.ndarray):
+            centers = centers.values
+            
+        for center in centers.tolist():
             fh.write(f"{center}\n")
 
     # this is a single partition dataframe, with cid_labels hard coded
@@ -225,7 +224,7 @@ def write_clustering_result(result_dict, output_directory="./", filetype="csv"):
         )
     else:
         clustering_result_name = f"q{QUERY_NUM}-results.parquet"
-        data.to_parquet(f"{output_directory}{clustering_result_name}", index=False)
+        data.to_parquet(f"{output_directory}{clustering_result_name}", write_index=False)
 
     return 0
 
@@ -251,18 +250,36 @@ def remove_benchmark_files():
 def run_query(
     config, client, query_func, write_func=write_result, sql_context=None
 ):
-    if sql_context:
-        run_sql_query(
-            config=config,
-            client=client,
-            query_func=query_func,
-            sql_context=sql_context,
-            write_func=write_func,
-        )
+    QUERY_NUM = get_query_number()
+    if config.get("dask_profile"):
+        with performance_report(filename=f"q{QUERY_NUM}_profile.html"): 
+            if sql_context:
+                run_sql_query(
+                    config=config,
+                    client=client,
+                    query_func=query_func,
+                    sql_context=sql_context,
+                    write_func=write_func,
+                )
+            else:
+                run_dask_cudf_query(
+                    config=config, client=client, query_func=query_func, write_func=write_func,
+                )
+
     else:
-        run_dask_cudf_query(
-            config=config, client=client, query_func=query_func, write_func=write_func,
-        )
+        if sql_context:
+            run_sql_query(
+                config=config,
+                client=client,
+                query_func=query_func,
+                sql_context=sql_context,
+                write_func=write_func,
+            )
+        else:
+            run_dask_cudf_query(
+                config=config, client=client, query_func=query_func, write_func=write_func,
+            )
+
 
 
 def run_dask_cudf_query(config, client, query_func, write_func=write_result):
@@ -275,7 +292,6 @@ def run_dask_cudf_query(config, client, query_func, write_func=write_result):
         config["start_time"] = time.time()
         results = benchmark(
             query_func,
-            dask_profile=config.get("dask_profile"),
             client=client,
             config=config,
         )
@@ -317,7 +333,6 @@ def run_sql_query(
         data_dir = config["data_dir"]
         results = benchmark(
             query_func,
-            dask_profile=config.get("dask_profile"),
             data_dir=data_dir,
             client=client,
             c=sql_context,
@@ -927,6 +942,7 @@ def left_semi_join(df_1, df_2, left_on, right_on):
 
 
 def convert_datestring_to_days(df):
+ 
     import cudf
 
     df["d_date"] = (

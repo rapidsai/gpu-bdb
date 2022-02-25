@@ -74,7 +74,6 @@ def main(client, config):
         read_tables,
         config=config,
         compute_result=config["get_read_time"],
-        dask_profile=config["dask_profile"],
     )
 
     items_filtered = items_ddf[items_ddf.i_category == Q26_CATEGORY].reset_index(

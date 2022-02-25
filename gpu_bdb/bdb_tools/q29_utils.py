@@ -22,7 +22,7 @@ q29_limit = 100
 
 def read_tables(config, c=None):
     table_reader = build_reader(
-        data_format=config["file_format"], basepath=config["data_dir"],
+        data_format=config["file_format"], basepath=config["data_dir"], backend=config["backend"],
     )
     item_cols = ["i_item_sk", "i_category_id"]
     item_df = table_reader.read("item", relevant_cols=item_cols)

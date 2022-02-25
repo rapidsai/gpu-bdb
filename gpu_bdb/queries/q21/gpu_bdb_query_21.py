@@ -41,7 +41,6 @@ def main(client, config):
         read_tables,
         config=config,
         compute_result=config["get_read_time"],
-        dask_profile=config["dask_profile"],
     )
 
     # SELECT sr_item_sk, sr_customer_sk, sr_ticket_number, sr_return_quantity

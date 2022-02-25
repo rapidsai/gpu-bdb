@@ -36,7 +36,7 @@ from bdb_tools.q27_utils import (
 )
 
 def main(data_dir, client, c, config):
-    benchmark(read_tables, config, c, dask_profile=config["dask_profile"])
+    benchmark(read_tables, config, c)
 
     import dask_cudf
 

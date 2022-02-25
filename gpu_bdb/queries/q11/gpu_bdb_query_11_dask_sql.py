@@ -13,9 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import cudf
+import dask_cudf
+import pandas as pd
 
 from bdb_tools.cluster_startup import attach_to_cluster
-import cudf
 
 from bdb_tools.utils import (
     benchmark,
@@ -23,10 +25,11 @@ from bdb_tools.utils import (
     run_query,
 )
 
+
 from bdb_tools.q11_utils import read_tables
 
 def main(data_dir, client, c, config):
-    benchmark(read_tables, config, c, dask_profile=config["dask_profile"])
+    benchmark(read_tables, config, c)
 
     query = """
         WITH p AS
@@ -56,7 +59,12 @@ def main(data_dir, client, c, config):
 
     result = c.sql(query)
     sales_corr = result["x"].corr(result["y"]).compute()
-    result_df = cudf.DataFrame([sales_corr])
+    
+    if isinstance(result, dask_cudf.DataFrame):
+        result_df = cudf.DataFrame([sales_corr])
+    else:
+        result_df = pd.DataFrame([sales_corr])
+        
     result_df.columns = ["corr(CAST(reviews_count AS DOUBLE), avg_rating)"]
     return result_df
 

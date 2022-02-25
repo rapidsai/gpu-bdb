@@ -16,6 +16,7 @@
 
 from bdb_tools.cluster_startup import attach_to_cluster
 
+import cudf
 import datetime
 from datetime import timedelta
 from bdb_tools.utils import (
@@ -27,7 +28,7 @@ from bdb_tools.utils import (
 from bdb_tools.q16_utils import read_tables
 
 def main(data_dir, client, c, config):
-    benchmark(read_tables, config, c, dask_profile=config["dask_profile"])
+    benchmark(read_tables, config, c)
 
     date = datetime.datetime(2001, 3, 16)
     start = (date + timedelta(days=-30)).strftime("%Y-%m-%d")
@@ -42,8 +43,12 @@ def main(data_dir, client, c, config):
     """
 
     dates = c.sql(date_query)
-
-    cpu_dates = dates["d_date_sk"].compute().to_pandas()
+ 
+    cpu_dates = dates["d_date_sk"].compute()
+    
+    if isinstance(cpu_dates, cudf.Series):
+        cpu_dates = cpu_dates.to_pandas()
+        
     cpu_dates.index = list(range(0, cpu_dates.shape[0]))
 
     last_query = f"""

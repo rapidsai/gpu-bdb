@@ -58,7 +58,6 @@ def main(client, config):
         read_tables,
         config=config,
         compute_result=config["get_read_time"],
-        dask_profile=config["dask_profile"],
     )
 
     high_price_items_df = create_high_price_items_df(item_df)
