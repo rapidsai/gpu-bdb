@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import os
 
 from bdb_tools.cluster_startup import attach_to_cluster
 
