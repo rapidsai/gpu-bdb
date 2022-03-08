@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 
+from nvtx import annotate
 from bdb_tools.cluster_startup import attach_to_cluster
 
 from bdb_tools.utils import (
@@ -68,7 +69,11 @@ def main(data_dir, client, c, config):
     return result
 
 
+@annotate("QUERY7", color="green", domain="gpu-bdb")
+def start_run():
+    config = gpubdb_argparser()
+    client, c = attach_to_cluster(config, create_sql_context=True)
+    run_query(config=config, client=client, query_func=main, sql_context=c)
+
 if __name__ == "__main__":
-	config = gpubdb_argparser()
-	client, c = attach_to_cluster(config, create_sql_context=True)
-	run_query(config=config, client=client, query_func=main, sql_context=c)
+    start_run()    

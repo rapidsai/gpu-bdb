@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
+from nvtx import annotate
 import cudf
 import dask_cudf
 import pandas as pd
@@ -69,7 +71,11 @@ def main(data_dir, client, c, config):
     return result_df
 
 
-if __name__ == "__main__":
+@annotate("QUERY11", color="green", domain="gpu-bdb")
+def start_run():
     config = gpubdb_argparser()
     client, c = attach_to_cluster(config, create_sql_context=True)
     run_query(config=config, client=client, query_func=main, sql_context=c)
+
+if __name__ == "__main__":
+    start_run()    

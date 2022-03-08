@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 
+from nvtx import annotate
 import cudf
 
 from bdb_tools.cluster_startup import attach_to_cluster
@@ -88,7 +89,11 @@ def main(data_dir, client, c, config):
     return result_df
 
 
-if __name__ == "__main__":
+@annotate("QUERY4", color="green", domain="gpu-bdb")
+def start_run():
     config = gpubdb_argparser()
     client, c = attach_to_cluster(config, create_sql_context=True)
     run_query(config=config, client=client, query_func=main, sql_context=c)
+
+if __name__ == "__main__":
+    start_run()    
