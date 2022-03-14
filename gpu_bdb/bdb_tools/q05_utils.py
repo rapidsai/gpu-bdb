@@ -14,9 +14,11 @@
 # limitations under the License.
 #
 
+import numpy as np
+import sklearn 
 import cupy as cp
-
 import cuml
+import cudf
 from cuml.metrics import confusion_matrix
 
 from bdb_tools.cupy_metrics import cupy_precision_score
@@ -43,6 +45,7 @@ def read_tables(config, c=None):
         data_format=config["file_format"],
         basepath=config["data_dir"],
         split_row_groups=config["split_row_groups"],
+        backend=config["backend"],
     )
 
     item_ddf = table_reader.read("item", relevant_cols=items_columns, index=False)
@@ -94,11 +97,16 @@ def build_and_predict_model(ml_input_df):
     results_dict = {}
     y_pred = model.predict(X)
 
-    results_dict["auc"] = roc_auc_score(y.values_host, y_pred.values_host)
+    results_dict["auc"] = roc_auc_score(y, y_pred)
     results_dict["precision"] = cupy_precision_score(cp.asarray(y), cp.asarray(y_pred))
-    results_dict["confusion_matrix"] = confusion_matrix(
-        cp.asarray(y, dtype="int32"), cp.asarray(y_pred, dtype="int32")
-    )
+    if isinstance(ml_input_df, cudf.DataFrame):
+        results_dict["confusion_matrix"] = confusion_matrix(
+            cp.asarray(y, dtype="int32"), cp.asarray(y_pred, dtype="int32")
+        )
+    else:
+         results_dict["confusion_matrix"] = confusion_matrix(
+            np.asarray(y, dtype="int32"), np.asarray(y_pred, dtype="int32")
+        )
     results_dict["output_type"] = "supervised"
     return results_dict
 

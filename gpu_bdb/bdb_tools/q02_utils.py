@@ -27,6 +27,7 @@ def read_tables(config, c=None):
         data_format=config["file_format"],
         basepath=config["data_dir"],
         split_row_groups=config["split_row_groups"],
+        backend=config["backend"],
     )
     wcs_cols = ["wcs_user_sk", "wcs_item_sk", "wcs_click_date_sk", "wcs_click_time_sk"]
     wcs_df = table_reader.read("web_clickstreams", relevant_cols=wcs_cols)
