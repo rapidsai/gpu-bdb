@@ -25,6 +25,7 @@ def read_tables(config, c=None):
         data_format=config["file_format"],
         basepath=config["data_dir"],
         split_row_groups=True,
+        backend=config["backend"],
     )
     product_reviews_cols = ["pr_item_sk", "pr_review_content", "pr_review_sk"]
 

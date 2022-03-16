@@ -16,8 +16,10 @@
 
 from nvtx import annotate
 import os
-
+import dask.dataframe as dd
 import dask_cudf
+import numpy as np
+import pandas as pd
 
 from bdb_tools.cluster_startup import attach_to_cluster
 
@@ -29,13 +31,13 @@ from bdb_tools.utils import (
 
 from bdb_tools.text import (
     create_sentences_from_reviews,
-    create_words_from_sentences
+    create_words_from_sentences,
 )
 
 from bdb_tools.q19_utils import (
     q19_returns_dates_IN,
     eol_char,
-    read_tables
+    read_tables,
 )
 
 from dask.distributed import wait
@@ -91,17 +93,19 @@ def main(data_dir, client, c, config):
 
     # second step -- Sentiment Word Extraction
     merged_df["pr_review_sk"] = merged_df["pr_review_sk"].astype("int32")
+    
     merged_df["pr_review_content"] = merged_df.pr_review_content.str.lower()
-    merged_df["pr_review_content"] = merged_df.pr_review_content.str.replace(
-        [".", "?", "!"], [eol_char], regex=False
-    )
-
+    
+    for char in [".", "?", "!"]:
+        merged_df["pr_review_content"]  = merged_df.pr_review_content.str.replace(char, eol_char, regex=False)
+        
     sentences = merged_df.map_partitions(create_sentences_from_reviews)
+    
     # need the global position in the sentence tokenized df
     sentences["x"] = 1
     sentences['sentence_tokenized_global_pos'] = sentences['x'].cumsum()
     del sentences["x"]
-
+    
     word_df = sentences.map_partitions(
         create_words_from_sentences,
         global_position_column="sentence_tokenized_global_pos",
@@ -111,7 +115,12 @@ def main(data_dir, client, c, config):
     # We extracted it from bigbenchqueriesmr.jar
     # Need to pass the absolute path for this txt file
     sentiment_dir = os.path.join(config["data_dir"], "sentiment_files")
-    ns_df = dask_cudf.read_csv(os.path.join(sentiment_dir, "negativeSentiment.txt"), names=["sentiment_word"])
+    
+    if isinstance(merged_df, dask_cudf.DataFrame):
+        ns_df = dask_cudf.read_csv(os.path.join(sentiment_dir, "negativeSentiment.txt"), names=["sentiment_word"])
+    else:
+        ns_df = dd.read_csv(os.path.join(sentiment_dir, "negativeSentiment.txt"), names=["sentiment_word"])
+    
     c.create_table('sent_df', ns_df, persist=False)
 
     sentences = sentences.persist()

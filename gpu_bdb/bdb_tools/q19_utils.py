@@ -24,7 +24,7 @@ eol_char = "è"
 
 def read_tables(config, c=None):
     table_reader = build_reader(
-        data_format=config["file_format"], basepath=config["data_dir"],
+        data_format=config["file_format"], basepath=config["data_dir"], backend=config["backend"],
     )
     date_dim_cols = ["d_week_seq", "d_date_sk", "d_date"]
     date_dim_df = table_reader.read("date_dim", relevant_cols=date_dim_cols)
@@ -40,6 +40,7 @@ def read_tables(config, c=None):
         data_format=config["file_format"],
         basepath=config["data_dir"],
         split_row_groups=True,
+        backend=config["backend"],
     )
 
     product_reviews_cols = ["pr_item_sk", "pr_review_content", "pr_review_sk"]

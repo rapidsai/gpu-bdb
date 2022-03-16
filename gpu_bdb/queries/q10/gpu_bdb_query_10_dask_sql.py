@@ -13,10 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
 from nvtx import annotate
-import os
 
+import os
+import dask.dataframe as dd
 import dask_cudf
 
 from bdb_tools.cluster_startup import attach_to_cluster
@@ -55,12 +55,10 @@ def main(data_dir, client, c, config):
     product_reviews_df[
         "pr_review_content"
     ] = product_reviews_df.pr_review_content.str.lower()
-    product_reviews_df[
-        "pr_review_content"
-    ] = product_reviews_df.pr_review_content.str.replace(
-        [".", "?", "!"], [eol_char], regex=False
-    )
-
+    
+    for char in [".", "?", "!"]:
+        product_reviews_df["pr_review_content"]  = product_reviews_df.pr_review_content.str.replace(char, eol_char, regex=False)
+        
     sentences = product_reviews_df.map_partitions(create_sentences_from_reviews)
 
     product_reviews_df = product_reviews_df[["pr_item_sk", "pr_review_sk"]]
@@ -88,9 +86,19 @@ def main(data_dir, client, c, config):
     # We extracted them from bigbenchqueriesmr.jar
     # Need to pass the absolute path for these txt files
     sentiment_dir = os.path.join(config["data_dir"], "sentiment_files")
-    ns_df = dask_cudf.read_csv(os.path.join(sentiment_dir, "negativeSentiment.txt"), names=["sentiment_word"], persist=False)
+    
+    if isinstance(product_reviews_df, dask_cudf.DataFrame):
+        ns_df = dask_cudf.read_csv(os.path.join(sentiment_dir, "negativeSentiment.txt"), names=["sentiment_word"], persist=False)
+    else:
+        ns_df = dd.read_csv(os.path.join(sentiment_dir, "negativeSentiment.txt"), names=["sentiment_word"])
+        
     c.create_table('negative_sentiment', ns_df, persist=False)
-    ps_df = dask_cudf.read_csv(os.path.join(sentiment_dir, "positiveSentiment.txt"), names=["sentiment_word"], persist=False)
+    
+    if isinstance(product_reviews_df, dask_cudf.DataFrame):
+        ps_df = dask_cudf.read_csv(os.path.join(sentiment_dir, "positiveSentiment.txt"), names=["sentiment_word"], persist=False)
+    else:
+        ps_df = dd.read_csv(os.path.join(sentiment_dir, "positiveSentiment.txt"), names=["sentiment_word"])
+        
     c.create_table('positive_sentiment', ps_df, persist=False)
 
     word_df = word_df.persist()
