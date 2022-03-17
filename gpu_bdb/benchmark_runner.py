@@ -58,10 +58,15 @@ if __name__ == "__main__":
 
     client, c = attach_to_cluster(config, create_sql_context=include_sql)
     # Preload required libraries for queries on all workers
-    import dask_sql
-    dask_sql_modules = [m for m in sys.modules if m.startswith('dask_sql')]
-    client.run(prevent_sql_import, dask_sql_modules)
-    print("is_jvm_started", client.run(is_jvm_started))
+    try:
+      import dask_sql
+    except ImportError:
+      dask_sql = None
+    
+    if dask_sql is not None:
+      dask_sql_modules = [m for m in sys.modules if m.startswith('dask_sql')]
+      client.run(prevent_sql_import, dask_sql_modules)
+      print("is_jvm_started", client.run(is_jvm_started))
     
     client.run(import_query_libs)
 
