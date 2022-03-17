@@ -4,6 +4,7 @@ import os
 import gc
 import time
 import uuid
+import sys
 
 N_REPEATS = 5
 
@@ -20,6 +21,16 @@ def load_query(qnum, fn):
     loader.exec_module(mod)
     return mod.main
 
+
+def prevent_sql_import(dask_sql_modules):
+    for mod in dask_sql_modules:
+        # set the dask_sql module to any placeholder module
+        # so that we never actually import dask_sql on the workers:
+        sys.modules[mod] = sys
+
+def is_jvm_started():
+    import jpype
+    return jpype.isJVMStarted()
 
 dask_qnums = [str(i).zfill(2) for i in range(1, 31)]
 sql_qnums = [str(i).zfill(2) for i in range(1, 31)]
@@ -47,6 +58,16 @@ if __name__ == "__main__":
 
     client, c = attach_to_cluster(config, create_sql_context=include_sql)
     # Preload required libraries for queries on all workers
+    try:
+      import dask_sql
+    except ImportError:
+      dask_sql = None
+    
+    if dask_sql is not None:
+      dask_sql_modules = [m for m in sys.modules if m.startswith('dask_sql')]
+      client.run(prevent_sql_import, dask_sql_modules)
+      print("is_jvm_started", client.run(is_jvm_started))
+    
     client.run(import_query_libs)
 
     base_path = os.getcwd()
