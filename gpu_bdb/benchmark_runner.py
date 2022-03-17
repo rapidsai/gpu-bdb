@@ -4,6 +4,7 @@ import os
 import gc
 import time
 import uuid
+import sys
 
 N_REPEATS = 5
 
