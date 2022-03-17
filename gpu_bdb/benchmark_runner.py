@@ -4,8 +4,6 @@ import os
 import gc
 import time
 import uuid
-from collections import defaultdict
-import sys
 
 N_REPEATS = 5
 
