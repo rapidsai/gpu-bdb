@@ -26,25 +26,16 @@ def create_sentences_from_reviews(
     import cudf
     import numpy as np
     
-    if isinstance(df, cudf.DataFrame):
-        sentences = df[review_column].str.tokenize(delimiter=end_of_line_char)   
-        tk_cnts = df[review_column].str.token_count(delimiter=end_of_line_char)
-    else:
-        sentences = df[review_column].str.split(end_of_line_char)
-        tk_cnts = sentences.str.len()
-        sentences = sentences.explode(ignore_index=True)
-        
-        
-    # use pr_review_sk as the global position
-    # (leaving hardcoded as it's consistent across all queries)
-    global_pos = df.pr_review_sk.repeat(tk_cnts).reset_index(drop=True)
+    sentences = df[review_column].str.split(end_of_line_char)
     
     if isinstance(df, cudf.DataFrame):
-        out = cudf.DataFrame({"sentence": sentences, "review_idx_global_pos": global_pos})
+        out = cudf.DataFrame({"sentence": sentences, "review_idx_global_pos": df.pr_review_sk})
     else:
-        out = pd.DataFrame({"sentence": sentences, "review_idx_global_pos": global_pos})
-        out["sentence"] = out.sentence.replace('', np.nan)
-        out = out.dropna().reset_index(drop=True)
+        out = pd.DataFrame({"sentence": sentences, "review_idx_global_pos": df.pr_review_sk})
+    
+    out= out.explode("sentence", ignore_index=True)
+    out["sentence"] = out.sentence.replace('', np.nan)
+    out = out.dropna().reset_index(drop=True)
         
     out["review_idx_global_pos"] = out["review_idx_global_pos"].astype("int32")
     return out
@@ -59,34 +50,23 @@ def create_words_from_sentences(
    
     import pandas as pd
     import cudf
+    import numpy as np
     
     cleaned_sentences = df[sentence_column].str.replace(".", "", regex=False) 
     
     for char in [",", ";", "-", '\"']:
         cleaned_sentences = cleaned_sentences.str.replace(char, "", regex=False) 
-    
-    if isinstance(df, cudf.DataFrame):
-        normalized_sentences = cleaned_sentences.str.normalize_spaces()
-        repeat_counts_per_sentence = normalized_sentences.str.token_count(
-            delimiter=delimiter
-        )
-        words = normalized_sentences.str.tokenize(delimiter=delimiter)
-    else:
-        normalized_sentences = cleaned_sentences.str.strip() 
-        words = normalized_sentences.str.split(delimiter)
-        repeat_counts_per_sentence = words.str.len()
-        words= words.explode(ignore_index=True)
         
-    # reassociate with the global position
-    global_pos = (
-        df[global_position_column]
-        .repeat(repeat_counts_per_sentence)
-        .reset_index(drop=True)
-    )
+    normalized_sentences = cleaned_sentences.str.strip() 
+    words = normalized_sentences.str.split(delimiter)
+
     if isinstance(df, cudf.DataFrame):
-        out = cudf.DataFrame({"word": words, "sentence_idx_global_pos": global_pos})
+        out = cudf.DataFrame({"word": words, "sentence_idx_global_pos": df[global_position_column]})
     else:
-        out = pd.DataFrame({"word": words, "sentence_idx_global_pos": global_pos})
-        out["word"] = out.sentence.replace('', np.nan)
-        out = out.dropna().reset_index(drop=True)
+        out = pd.DataFrame({"word": words, "sentence_idx_global_pos": df[global_position_column]})
+    
+    out = out.explode("word", ignore_index=True)
+    out["word"] = out.word.replace('', np.nan)
+    out = out.dropna().reset_index(drop=True)
+    
     return out
