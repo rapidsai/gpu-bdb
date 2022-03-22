@@ -16,7 +16,7 @@
 
 import cudf
 
-from numba import cuda
+from numba import cuda, jit
 
 from bdb_tools.readers import build_reader
 
@@ -31,6 +31,7 @@ def read_tables(config, c=None):
         data_format=config["file_format"],
         basepath=config["data_dir"],
         split_row_groups=config["split_row_groups"],
+        backend=config["backend"],
     )
 
     item_cols = ["i_category_id", "i_item_sk"]
@@ -53,7 +54,7 @@ def read_tables(config, c=None):
 
 
 @cuda.jit
-def find_items_viewed_before_purchase_kernel(
+def find_items_viewed_before_purchase_kernel_gpu(
     relevant_idx_col, user_col, timestamp_col, item_col, out_col, N
 ):
     """
@@ -88,11 +89,49 @@ def find_items_viewed_before_purchase_kernel(
             else:
                 out_col[i * N + k - 1] = 0
 
+@jit(nopython=True)
+def find_items_viewed_before_purchase_kernel_cpu(
+    relevant_idx_col, user_col, timestamp_col, item_col, out_col, N
+):
+    """
+    Find the past N items viewed after a relevant purchase was made,
+    as defined by the configuration of this query.
+    """
+#     i = cuda.grid(1)
+    relevant_item = q03_purchased_item_IN
 
+    for i in range(relevant_idx_col.size):  # boundary guard
+        # every relevant row gets N rows in the output, so we need to map the indexes
+        # back into their position in the original array
+        orig_idx = relevant_idx_col[i]
+        current_user = user_col[orig_idx]
+
+        # look at the previous N clicks (assume sorted descending)
+        rows_to_check = N
+        remaining_rows = user_col.size - orig_idx
+
+        if remaining_rows <= rows_to_check:
+            rows_to_check = remaining_rows - 1
+
+        for k in range(1, rows_to_check + 1):
+            if current_user != user_col[orig_idx + k]:
+                out_col[i * N + k - 1] = 0
+
+            # only checking relevant purchases via the relevant_idx_col
+            elif (timestamp_col[orig_idx + k] <= timestamp_col[orig_idx]) & (
+                timestamp_col[orig_idx + k]
+                >= (timestamp_col[orig_idx] - q03_days_in_sec_before_purchase)
+            ):
+                out_col[i * N + k - 1] = item_col[orig_idx + k]
+            else:
+                out_col[i * N + k - 1] = 0
+                
 def apply_find_items_viewed(df, item_mappings):
-
     # need to sort descending to ensure that the
     # next N rows are the previous N clicks
+    import pandas as pd
+    import numpy as np
+    
     df = df.sort_values(
         by=["wcs_user_sk", "tstamp", "wcs_sales_sk", "wcs_item_sk"],
         ascending=[False, False, False, False],
@@ -111,19 +150,29 @@ def apply_find_items_viewed(df, item_mappings):
     size = len(sample)
 
     # we know this can be int32, since it's going to contain item_sks
-    out_arr = cuda.device_array(size * N, dtype=df["wcs_item_sk"].dtype)
-
-    find_items_viewed_before_purchase_kernel.forall(size)(
-        sample["relevant_idx_pos"],
-        df["wcs_user_sk"],
-        df["tstamp"],
-        df["wcs_item_sk"],
-        out_arr,
-        N,
-    )
-
-    result = cudf.DataFrame({"prior_item_viewed": out_arr})
-
+    if isinstance(df, cudf.DataFrame):
+        out_arr = cuda.device_array(size * N, dtype=df["wcs_item_sk"].dtype)
+        find_items_viewed_before_purchase_kernel_gpu.forall(size)(
+            sample["relevant_idx_pos"],
+            df["wcs_user_sk"],
+            df["tstamp"],
+            df["wcs_item_sk"],
+            out_arr,
+            N,
+        ) 
+        result = cudf.DataFrame({"prior_item_viewed": out_arr})
+    else: 
+        out_arr = np.zeros(size * N, dtype=df["wcs_item_sk"].dtype, like=df["wcs_item_sk"].values)
+        find_items_viewed_before_purchase_kernel_cpu(
+            sample["relevant_idx_pos"].to_numpy(),
+            df["wcs_user_sk"].to_numpy(),
+            df["tstamp"].to_numpy(),
+            df["wcs_item_sk"].to_numpy(),
+            out_arr,
+            N,
+        )
+        result = pd.DataFrame({"prior_item_viewed": out_arr})
+        
     del out_arr
     del df
     del sample
