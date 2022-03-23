@@ -23,22 +23,31 @@ def get_session_id_from_session_boundry(session_change_df, last_session_len):
         This function returns session starts given a session change df
     """
     import cudf
+    import pandas as pd
 
     ## we dont really need the `session_id` to start from 0
     ## the total number of sessions per partition should be fairly limited
     ## and we really should not hit 2,147,483,647 sessions per partition
     ## Can switch to vec_arange code to match spark 1-1
-
-    user_session_ids = cp.arange(len(session_change_df), dtype=np.int32)
+    
+    if isinstance(session_change_df, cudf.DataFrame):
+        user_session_ids = cp.arange(len(session_change_df), dtype=np.int32)
+    else:
+        user_session_ids = np.arange(len(session_change_df), dtype=np.int32)
 
     ### up shift the session length df
     session_len = session_change_df["t_index"].diff().reset_index(drop=True)
     session_len = session_len.shift(-1)
     session_len.iloc[-1] = last_session_len
-
-    session_id_final_series = (
-        cudf.Series(user_session_ids).repeat(session_len).reset_index(drop=True)
-    )
+    
+    if isinstance(session_change_df, cudf.DataFrame):
+        session_id_final_series = (
+            cudf.Series(user_session_ids).repeat(session_len).reset_index(drop=True)
+        )
+    else:
+        session_id_final_series = (
+            pd.Series(user_session_ids).repeat(session_len).reset_index(drop=True)
+        )
     return session_id_final_series
 
 
@@ -48,7 +57,8 @@ def get_session_id(df, keep_cols, time_out):
         The session id grows in incremeant for each user's susbequent session
         Session boundry is defined by the time_out 
     """
-
+    import cudf
+    
     df["user_change_flag"] = df["wcs_user_sk"].diff(periods=1) != 0
     df["user_change_flag"] = df["user_change_flag"].fillna(True)
     df["session_timeout_flag"] = df["tstamp_inSec"].diff(periods=1) > time_out
@@ -62,7 +72,11 @@ def get_session_id(df, keep_cols, time_out):
     df = df[keep_cols]
 
     df = df.reset_index(drop=True)
-    df["t_index"] = cp.arange(start=0, stop=len(df), dtype=np.int32)
+    
+    if isinstance(df, cudf.DataFrame):
+        df["t_index"] = cp.arange(start=0, stop=len(df), dtype=np.int32)
+    else:
+        df["t_index"] = np.arange(start=0, stop=len(df), dtype=np.int32)
 
     session_change_df = df[df["session_change_flag"]].reset_index(drop=True)
     last_session_len = len(df) - session_change_df["t_index"].iloc[-1]
