@@ -51,20 +51,9 @@ def read_tables(config, c=None):
         c.create_table("item", item_df, persist=False)
 
     return item_df
-
-<<<<<<< Updated upstream
-
-<<<<<<< Updated upstream
-@cuda.jit
-def find_items_viewed_before_purchase_kernel_gpu(
-    relevant_idx_col, user_col, timestamp_col, item_col, out_col, N
-=======
-=======
->>>>>>> Stashed changes
 @jit(nopython=True)
 def find_items_viewed_before_purchase_kernel_both(
     relevant_idx_col, user_col, timestamp_col, item_col, out_col, N, i
->>>>>>> Stashed changes
 ):
 #     """
 #     Find the past N items viewed after a relevant purchase was made,
@@ -108,10 +97,6 @@ def find_items_viewed_before_purchase_kernel_gpu(
     i = cuda.grid(1)
     
     find_items_viewed_before_purchase_kernel_both(relevant_idx_col, user_col, timestamp_col, item_col, out_col, N, i)     
-<<<<<<< Updated upstream
-
-=======
->>>>>>> Stashed changes
 
 @jit(nopython=True)
 def find_items_viewed_before_purchase_kernel_cpu(
@@ -124,49 +109,6 @@ def find_items_viewed_before_purchase_kernel_cpu(
     i = 0
     
     find_items_viewed_before_purchase_kernel_both(relevant_idx_col, user_col, timestamp_col, item_col, out_col, N, i)  
-<<<<<<< Updated upstream
-
-<<<<<<< Updated upstream
-@jit(nopython=True)
-def find_items_viewed_before_purchase_kernel_cpu(
-    relevant_idx_col, user_col, timestamp_col, item_col, out_col, N
-):
-    """
-    Find the past N items viewed after a relevant purchase was made,
-    as defined by the configuration of this query.
-    """
-#     i = cuda.grid(1)
-    relevant_item = q03_purchased_item_IN
-=======
-=======
->>>>>>> Stashed changes
->>>>>>> Stashed changes
-
-    for i in range(relevant_idx_col.size):  # boundary guard
-        # every relevant row gets N rows in the output, so we need to map the indexes
-        # back into their position in the original array
-        orig_idx = relevant_idx_col[i]
-        current_user = user_col[orig_idx]
-
-        # look at the previous N clicks (assume sorted descending)
-        rows_to_check = N
-        remaining_rows = user_col.size - orig_idx
-
-        if remaining_rows <= rows_to_check:
-            rows_to_check = remaining_rows - 1
-
-        for k in range(1, rows_to_check + 1):
-            if current_user != user_col[orig_idx + k]:
-                out_col[i * N + k - 1] = 0
-
-            # only checking relevant purchases via the relevant_idx_col
-            elif (timestamp_col[orig_idx + k] <= timestamp_col[orig_idx]) & (
-                timestamp_col[orig_idx + k]
-                >= (timestamp_col[orig_idx] - q03_days_in_sec_before_purchase)
-            ):
-                out_col[i * N + k - 1] = item_col[orig_idx + k]
-            else:
-                out_col[i * N + k - 1] = 0
                 
 def apply_find_items_viewed(df, item_mappings):
     # need to sort descending to ensure that the
