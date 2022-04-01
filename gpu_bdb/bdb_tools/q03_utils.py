@@ -52,16 +52,24 @@ def read_tables(config, c=None):
 
     return item_df
 
+<<<<<<< Updated upstream
 
+<<<<<<< Updated upstream
 @cuda.jit
 def find_items_viewed_before_purchase_kernel_gpu(
     relevant_idx_col, user_col, timestamp_col, item_col, out_col, N
+=======
+=======
+>>>>>>> Stashed changes
+@jit(nopython=True)
+def find_items_viewed_before_purchase_kernel_both(
+    relevant_idx_col, user_col, timestamp_col, item_col, out_col, N, i
+>>>>>>> Stashed changes
 ):
-    """
-    Find the past N items viewed after a relevant purchase was made,
-    as defined by the configuration of this query.
-    """
-    i = cuda.grid(1)
+#     """
+#     Find the past N items viewed after a relevant purchase was made,
+#     as defined by the configuration of this query.
+#     """
 
     if i < (relevant_idx_col.size):  # boundary guard
         # every relevant row gets N rows in the output, so we need to map the indexes
@@ -88,7 +96,37 @@ def find_items_viewed_before_purchase_kernel_gpu(
                 out_col[i * N + k - 1] = item_col[orig_idx + k]
             else:
                 out_col[i * N + k - 1] = 0
+                
+@cuda.jit
+def find_items_viewed_before_purchase_kernel_gpu(
+    relevant_idx_col, user_col, timestamp_col, item_col, out_col, N
+):
+    """
+    Find the past N items viewed after a relevant purchase was made,
+    as defined by the configuration of this query.
+    """
+    i = cuda.grid(1)
+    
+    find_items_viewed_before_purchase_kernel_both(relevant_idx_col, user_col, timestamp_col, item_col, out_col, N, i)     
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
+
+@jit(nopython=True)
+def find_items_viewed_before_purchase_kernel_cpu(
+    relevant_idx_col, user_col, timestamp_col, item_col, out_col, N
+):
+    """
+    Find the past N items viewed after a relevant purchase was made,
+    as defined by the configuration of this query.
+    """
+    i = 0
+    
+    find_items_viewed_before_purchase_kernel_both(relevant_idx_col, user_col, timestamp_col, item_col, out_col, N, i)  
+<<<<<<< Updated upstream
+
+<<<<<<< Updated upstream
 @jit(nopython=True)
 def find_items_viewed_before_purchase_kernel_cpu(
     relevant_idx_col, user_col, timestamp_col, item_col, out_col, N
@@ -99,6 +137,10 @@ def find_items_viewed_before_purchase_kernel_cpu(
     """
 #     i = cuda.grid(1)
     relevant_item = q03_purchased_item_IN
+=======
+=======
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
 
     for i in range(relevant_idx_col.size):  # boundary guard
         # every relevant row gets N rows in the output, so we need to map the indexes
