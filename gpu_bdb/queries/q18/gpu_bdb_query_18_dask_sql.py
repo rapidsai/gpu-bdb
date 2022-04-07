@@ -21,6 +21,7 @@ from bdb_tools.cluster_startup import attach_to_cluster
 import numpy as np
 
 import dask_cudf
+import dask.dataframe as dd
 
 from bdb_tools.text import create_sentences_from_reviews, create_words_from_sentences
 
@@ -98,16 +99,29 @@ def main(data_dir, client, c, config):
         stores_with_regression.s_store_name.str.lower()
         .unique()
         .compute()
-        .to_arrow()
-        .to_pylist()
     )
-
+    
+    if isinstance(no_nulls, dask_cudf.DataFrame):
+        targets = targets.to_arrow().to_pylist()
+    else:
+        targets = targets.tolist()
+        
     # perssiting because no_nulls is used twice
     no_nulls = no_nulls.persist()
 
     import cudf
-
-    temp_table2_meta_empty_df = cudf.DataFrame(
+    import pandas as pd
+    
+    if isinstance(no_nulls, dask_cudf.DataFrame):
+        temp_table2_meta_empty_df = cudf.DataFrame(
+            {
+                "word": ["a"],
+                "pr_review_sk": np.ones(1, dtype=np.int64),
+                "pr_review_date": ["a"],
+            }
+        ).head(0)
+    else:
+        temp_table2_meta_empty_df = pd.DataFrame(
         {
             "word": ["a"],
             "pr_review_sk": np.ones(1, dtype=np.int64),
@@ -119,10 +133,9 @@ def main(data_dir, client, c, config):
     combined = no_nulls.map_partitions(
         find_relevant_reviews, targets, meta=temp_table2_meta_empty_df,
     )
-
-    no_nulls["pr_review_content"] = no_nulls.pr_review_content.str.replace(
-        [". ", "? ", "! "], [EOL_CHAR], regex=False
-    )
+    print(no_nulls.compute().head())
+    for char in [". ", "? ", "! "]:
+        no_nulls["pr_review_content"]  = no_nulls.pr_review_content.str.replace(char, EOL_CHAR, regex=False)
 
     stores_with_regression["store_ID"] = stores_with_regression.s_store_sk.astype(
         "str"
@@ -156,6 +169,7 @@ def main(data_dir, client, c, config):
     del combined
 
     # REAL QUERY
+    print(no_nulls.compute().head())
     sentences = no_nulls.map_partitions(create_sentences_from_reviews)
 
     # need the global position in the sentence tokenized df
@@ -172,7 +186,12 @@ def main(data_dir, client, c, config):
     # We extracted it from bigbenchqueriesmr.jar
     # Need to pass the absolute path for this txt file
     sentiment_dir = os.path.join(config["data_dir"], "sentiment_files")
-    ns_df = dask_cudf.read_csv(os.path.join(sentiment_dir, "negativeSentiment.txt"), names=["sentiment_word"])
+    
+    if isinstance(word_df, dask_cudf.DataFrame):
+        ns_df = dask_cudf.read_csv(os.path.join(sentiment_dir, "negativeSentiment.txt"), names=["sentiment_word"])
+    else:
+        ns_df = dd.read_csv(os.path.join(sentiment_dir, "negativeSentiment.txt"), names=["sentiment_word"])
+    
     c.create_table('sent_df', ns_df, persist=False)
 
     word_df = word_df.persist()
