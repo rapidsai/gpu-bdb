@@ -15,7 +15,9 @@
 #
 
 from nvtx import annotate
+import dask_cudf
 import cudf
+import pandas as pd
 
 from bdb_tools.cluster_startup import attach_to_cluster
 
@@ -46,7 +48,11 @@ def main(data_dir, client, c, config):
     wp["wp_type"] = wp["wp_type"].map_partitions(
                                     lambda ser: ser.astype("category"))
     
-    cpu_categories = wp["wp_type"].compute().cat.categories.to_pandas()
+    cpu_categories = wp["wp_type"].compute().cat.categories
+    
+    if isinstance(wp, dask_cudf.DataFrame):
+        cpu_categories = cpu_categories.to_pandas()
+      
 
     DYNAMIC_CAT_CODE = cpu_categories.get_loc("dynamic")
     ORDER_CAT_CODE = cpu_categories.get_loc("order")
@@ -84,7 +90,12 @@ def main(data_dir, client, c, config):
     result = result.persist()
 
     result = result.compute()
-    result_df = cudf.DataFrame({"sum(pagecount)/count(*)": [result]})
+    
+    if isinstance(wp, dask_cudf.DataFrame):
+        result_df = cudf.DataFrame({"sum(pagecount)/count(*)": [result]})
+    else:
+        result_df = pd.DataFrame({"sum(pagecount)/count(*)": [result]})
+        
     c.drop_table("web_page")
     return result_df
 

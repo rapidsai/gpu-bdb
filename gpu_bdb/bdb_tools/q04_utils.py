@@ -15,6 +15,7 @@
 #
 
 import cudf
+import pandas as pd
 
 from bdb_tools.sessionization import get_sessions
 
@@ -26,6 +27,7 @@ def read_tables(config, c=None):
         data_format=config["file_format"],
         basepath=config["data_dir"],
         split_row_groups=config["split_row_groups"],
+        backend=config["backend"],
     )
 
     wp_cols = ["wp_type", "wp_web_page_sk"]
@@ -58,8 +60,8 @@ def abandonedShoppingCarts(df, DYNAMIC_CAT_CODE, ORDER_CAT_CODE):
     # (eg:123456:3, 234567:5)
     filtered_df["wp_type_codes"] = (
         filtered_df["tstamp_inSec"]
-        .astype("str")
-        .str.cat(filtered_df["wp_type_codes"].astype("str"), sep=":")
+        .astype(str)
+        .str.cat(filtered_df["wp_type_codes"].astype(str), sep=":")
     )
     # This gives the last occurrence (by timestamp) within the "order", "dynamic" wp_types
     filtered_df = filtered_df.groupby(
@@ -82,10 +84,15 @@ def abandonedShoppingCarts(df, DYNAMIC_CAT_CODE, ORDER_CAT_CODE):
         grouped_count_df, on=["wcs_user_sk", "session_id"], how="inner"
     )
     del (last_dynamic_df, grouped_count_df)
-    return cudf.DataFrame(
-        {"pagecount": result.tstamp_inSec.sum(), "count": len(result)}
-    )
-
+    
+    if isinstance(df, cudf.DataFrame):
+        return cudf.DataFrame(
+            {"pagecount": result.tstamp_inSec.sum(), "count": len(result)}
+        )
+    else:
+        return pd.DataFrame(
+            {"pagecount": result.tstamp_inSec.sum(), "count": [len(result)]}
+        )
 
 def reduction_function(df, keep_cols, DYNAMIC_CAT_CODE, ORDER_CAT_CODE):
     df = get_sessions(df, keep_cols=keep_cols)
