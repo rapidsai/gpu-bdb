@@ -15,15 +15,22 @@
 #
 
 import cupy as cp
+import numpy as np
 
 import cuml
-from cuml.metrics import confusion_matrix
+import sklearn 
+
+from cuml.metrics import confusion_matrix as cuml_confusion_matrix
 
 from bdb_tools.cupy_metrics import cupy_precision_score
 
 from bdb_tools.readers import build_reader
 
-from sklearn.metrics import roc_auc_score
+from sklearn.metrics import (
+    roc_auc_score, 
+    precision_score,
+    confusion_matrix
+)
 
 # Logistic Regression params
 # solver = "LBFGS" Used by passing `penalty=None` or "l2"
@@ -43,6 +50,7 @@ def read_tables(config, c=None):
         data_format=config["file_format"],
         basepath=config["data_dir"],
         split_row_groups=config["split_row_groups"],
+        backend=config["backend"],
     )
 
     item_ddf = table_reader.read("item", relevant_cols=items_columns, index=False)
@@ -69,7 +77,8 @@ def build_and_predict_model(ml_input_df):
     Create a standardized feature matrix X and target array y.
     Returns the model and accuracy statistics
     """
-
+    import cudf
+    
     feature_names = ["college_education", "male"] + [
         "clicks_in_%d" % i for i in range(1, 8)
     ]
@@ -77,15 +86,20 @@ def build_and_predict_model(ml_input_df):
     # Standardize input matrix
     X = (X - X.mean()) / X.std()
     y = ml_input_df["clicks_in_category"]
+    
+    if isinstance(ml_input_df, cudf.DataFrame):
+        model_backend = cuml.LogisticRegression
+    else:
+        model_backend = sklearn.linear_model.LogisticRegression
 
-    model = cuml.LogisticRegression(
+    model = model_backend(
         tol=convergence_tol,
         penalty="none",
-        solver="qn",
         fit_intercept=True,
         max_iter=iterations,
         C=C,
     )
+    
     model.fit(X, y)
     #
     # Predict and evaluate accuracy
@@ -94,11 +108,17 @@ def build_and_predict_model(ml_input_df):
     results_dict = {}
     y_pred = model.predict(X)
 
-    results_dict["auc"] = roc_auc_score(y.values_host, y_pred.values_host)
-    results_dict["precision"] = cupy_precision_score(cp.asarray(y), cp.asarray(y_pred))
-    results_dict["confusion_matrix"] = confusion_matrix(
-        cp.asarray(y, dtype="int32"), cp.asarray(y_pred, dtype="int32")
-    )
+    if isinstance(ml_input_df, cudf.DataFrame):
+        results_dict["auc"] = roc_auc_score(y.values_host, y_pred.values_host)
+        results_dict["precision"] = cupy_precision_score(cp.asarray(y), cp.asarray(y_pred))
+        results_dict["confusion_matrix"] = cuml_confusion_matrix(
+            cp.asarray(y, dtype="int32"), cp.asarray(y_pred, dtype="int32")
+        )
+    else:
+        results_dict["auc"] = roc_auc_score(y.to_numpy(), y_pred)
+        results_dict["precision"] = precision_score(y.to_numpy(), y_pred)
+        results_dict["confusion_matrix"] = confusion_matrix(y.to_numpy(dtype="int32"), y_pred)
+ 
     results_dict["output_type"] = "supervised"
     return results_dict
 
