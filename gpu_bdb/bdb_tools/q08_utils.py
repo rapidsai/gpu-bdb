@@ -15,6 +15,7 @@
 #
 
 import cudf
+import pandas as pd
 
 import cupy as cp
 import numpy as np
@@ -31,6 +32,7 @@ def read_tables(config, c=None):
         data_format=config["file_format"],
         basepath=config["data_dir"],
         split_row_groups=config["split_row_groups"],
+        backend=config["backend"],
     )
 
     date_dim_cols = ["d_date_sk", "d_date"]
@@ -71,11 +73,19 @@ def get_session_id_from_session_boundary(session_change_df, last_session_len):
     try:
         session_len.iloc[-1] = last_session_len
     except (AssertionError, IndexError):  # IndexError in numba >= 0.48
-        session_len = cudf.Series([])
-
-    session_id_final_series = (
-        cudf.Series(user_session_ids).repeat(session_len).reset_index(drop=True)
-    )
+        if isinstance(session_change_df, cudf.DataFrame):
+            session_len = cudf.Series([])
+        else:
+            session_len = pd.Series([]) 
+   
+    if isinstance(session_change_df, cudf.DataFrame):
+        session_id_final_series = (
+            cudf.Series(user_session_ids).repeat(session_len).reset_index(drop=True)
+        )
+    else:
+        session_id_final_series = (
+           pd.Series(user_session_ids).repeat(session_len).reset_index(drop=True)
+        )
     return session_id_final_series
 
 
@@ -91,8 +101,12 @@ def get_session_id(df):
     df["session_change_flag"] = df["review_flag"] | df["user_change_flag"]
 
     df = df.reset_index(drop=True)
-    df["t_index"] = cp.arange(start=0, stop=len(df), dtype=np.int32)
-
+    
+    if isinstance(df, cudf.DataFrame):
+        df["t_index"] = cp.arange(start=0, stop=len(df), dtype=np.int32)
+    else:
+        df["t_index"] = np.arange(start=0, stop=len(df), dtype=np.int32)
+        
     session_change_df = df[df["session_change_flag"]].reset_index(drop=True)
     try:
         last_session_len = len(df) - session_change_df["t_index"].iloc[-1]

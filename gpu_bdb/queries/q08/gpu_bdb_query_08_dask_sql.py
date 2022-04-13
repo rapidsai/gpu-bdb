@@ -14,6 +14,10 @@
 # limitations under the License.
 #
 
+import dask_cudf
+import pandas as pd
+import dask.dataframe as dd
+
 from nvtx import annotate
 from bdb_tools.cluster_startup import attach_to_cluster
 
@@ -64,7 +68,11 @@ def main(data_dir, client, c, config):
         lambda ser: ser.astype("category")
     )
 
-    cpu_categories = web_page_df["wp_type"].compute().cat.categories.to_pandas()
+    cpu_categories = web_page_df["wp_type"].compute().cat.categories
+        
+    if isinstance(web_page_df, dask_cudf.DataFrame):    
+        cpu_categories = cpu_categories.to_pandas()
+        
     REVIEW_CAT_CODE = cpu_categories.get_loc("review")
 
     web_page_df["wp_type_codes"] = web_page_df["wp_type"].cat.codes
@@ -106,9 +114,11 @@ def main(data_dir, client, c, config):
     unique_review_sales = sessionized.map_partitions(
         get_unique_sales_keys_from_sessions, review_cat_code=REVIEW_CAT_CODE
     )
-    
-    unique_review_sales = unique_review_sales.to_frame()
-
+    if isinstance(merged_df, dask_cudf.DataFrame):
+        unique_review_sales = unique_review_sales.to_frame()
+    else: 
+        unique_review_sales = dd.from_dask_array(unique_review_sales, columns='wcs_sales_sk').to_frame() 
+        
     unique_review_sales = unique_review_sales.persist()
     wait(unique_review_sales)
     c.create_table("reviews", unique_review_sales, persist=False)
