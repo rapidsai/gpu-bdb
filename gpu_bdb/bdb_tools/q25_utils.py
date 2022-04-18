@@ -13,7 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import os
 
+import dask.dataframe as dd
 import dask_cudf
 
 from bdb_tools.utils import train_clustering_model
@@ -33,6 +35,7 @@ def read_tables(config, c=None):
         data_format=config["file_format"],
         basepath=config["data_dir"],
         split_row_groups=config["split_row_groups"],
+        backend=config["backend"],
     )
 
     ss_cols = ["ss_customer_sk", "ss_sold_date_sk", "ss_ticket_number", "ss_net_paid"]
@@ -65,10 +68,15 @@ def get_clusters(client, ml_input_df):
     results_dict = client.compute(*ml_tasks, sync=True)
 
     output = ml_input_df.index.to_frame().reset_index(drop=True)
-
-    labels_final = dask_cudf.from_cudf(
-        results_dict["cid_labels"], npartitions=output.npartitions
-    )
+    
+    if isinstance(ml_input_df, cudf.DataFrame):
+        labels_final = dask_cudf.from_cudf(
+            results_dict["cid_labels"], npartitions=output.npartitions
+        )
+    else:
+         labels_final = dd.from_cudf(
+            results_dict["cid_labels"], npartitions=output.npartitions
+        )
     output["label"] = labels_final.reset_index()[0]
 
     # Sort based on CDH6.1 q25-result formatting
