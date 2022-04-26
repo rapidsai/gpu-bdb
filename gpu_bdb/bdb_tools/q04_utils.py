@@ -60,8 +60,8 @@ def abandonedShoppingCarts(df, DYNAMIC_CAT_CODE, ORDER_CAT_CODE):
     # (eg:123456:3, 234567:5)
     filtered_df["wp_type_codes"] = (
         filtered_df["tstamp_inSec"]
-        .astype(str)
-        .str.cat(filtered_df["wp_type_codes"].astype(str), sep=":")
+        .astype("string")
+        .str.cat(filtered_df["wp_type_codes"].astype("string"), sep=":")
     )
     # This gives the last occurrence (by timestamp) within the "order", "dynamic" wp_types
     filtered_df = filtered_df.groupby(
