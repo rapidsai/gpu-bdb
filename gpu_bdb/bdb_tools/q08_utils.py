@@ -102,11 +102,8 @@ def get_session_id(df):
 
     df = df.reset_index(drop=True)
     
-    if isinstance(df, cudf.DataFrame):
-        df["t_index"] = cp.arange(start=0, stop=len(df), dtype=np.int32)
-    else:
-        df["t_index"] = np.arange(start=0, stop=len(df), dtype=np.int32)
-        
+    df["t_index"] = np.arange(start=0, stop=len(df), dtype=np.int32, like=df["wcs_user_sk"].values)
+    
     session_change_df = df[df["session_change_flag"]].reset_index(drop=True)
     try:
         last_session_len = len(df) - session_change_df["t_index"].iloc[-1]
