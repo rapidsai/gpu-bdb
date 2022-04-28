@@ -134,8 +134,9 @@ def apply_find_items_viewed(df, item_mappings):
     size = len(sample)
 
     # we know this can be int32, since it's going to contain item_sks
+    out_arr = np.zeros(size * N, dtype=df["wcs_item_sk"].dtype, like=df["wcs_item_sk"].values)
+    
     if isinstance(df, cudf.DataFrame):
-        out_arr = cuda.device_array(size * N, dtype=df["wcs_item_sk"].dtype)
         find_items_viewed_before_purchase_kernel_gpu.forall(size)(
             sample["relevant_idx_pos"],
             df["wcs_user_sk"],
@@ -146,7 +147,6 @@ def apply_find_items_viewed(df, item_mappings):
         ) 
         result = cudf.DataFrame({"prior_item_viewed": out_arr})
     else: 
-        out_arr = np.zeros(size * N, dtype=df["wcs_item_sk"].dtype, like=df["wcs_item_sk"].values)
         find_items_viewed_before_purchase_kernel_cpu(
             sample["relevant_idx_pos"].to_numpy(),
             df["wcs_user_sk"].to_numpy(),
