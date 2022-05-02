@@ -29,7 +29,9 @@ from cuml.dask.naive_bayes import MultinomialNB as DistMNB
 from cuml.dask.common import to_dask_cudf
 
 from sklearn.feature_extraction.text import HashingVectorizer as SKHashingVectorizer
-from sklearn.naive_bayes import MultinomialNB as MultMNB
+from sklearn.naive_bayes import MultinomialNB as MultNB
+
+from dask_ml.wrappers import ParallelPostFit
 
 import scipy
 
@@ -43,8 +45,6 @@ from cuml.dask.common.part_utils import _extract_partitions
 
 N_FEATURES = 2 ** 23  # Spark is doing 2^20
 ngram_range = (1, 2)
-gpu_preprocessor = lambda s:s.str.lower()
-cpu_preprocessor = lambda s:s.lower()
 norm = None
 alternate_sign = False
 
@@ -357,9 +357,6 @@ def accuracy_score(client, y, y_hat):
 
 
 def post_etl_processing(client, train_data, test_data):
-    import dask.array
-    from sklearn.naive_bayes import MultinomialNB
-    from dask_ml.wrappers import ParallelPostFit
 
     # Feature engineering
     X_train = build_features(train_data)
@@ -373,7 +370,7 @@ def post_etl_processing(client, train_data, test_data):
         model = DistMNB(client=client, alpha=0.001)
         model.fit(X_train, y_train)
     else:
-        model = ParallelPostFit(estimator=MultinomialNB(alpha=0.001))
+        model = ParallelPostFit(estimator=MultNB(alpha=0.001))
         model.fit(X_train.compute(), y_train.compute())
 
     ### this regression seems to be coming from here
