@@ -157,10 +157,7 @@ def sum_tp_fp(y_y_pred, nclasses):
 
     y, y_pred = y_y_pred
 
-    if isinstance(y, cp.ndarray):
-        res = cp.zeros((nclasses, 2), order="F")
-    else:
-        res = np.zeros((nclasses, 2), order="F")
+    res = np.zeros((nclasses, 2), order="F", like=y)
 
     for i in range(nclasses):
         if isinstance(y, cp.ndarray):
@@ -203,19 +200,13 @@ def precision_score(client, y, y_pred, average="binary"):
         sync=True,
     )
 
-    if isinstance(y._meta, cp.ndarray):
-        res = cp.zeros((nclasses, 2), order="F")
-    else:
-        res = np.zeros((nclasses, 2), order="F")
+    res = np.zeros((nclasses, 2), order="F", like=y._meta)
 
     for i in precision_scores:
         res += i
 
     if average == "binary" or average == "macro":
-        if isinstance(y, dask_cudf.Series):
-            prec = cp.zeros(nclasses)
-        else:
-            prec = np.zeros(nclasses)
+        prec = np.zeros(nclasses, like=y._meta)
 
         for i in range(nclasses):
             tp_sum, fp_sum = res[i]
@@ -302,10 +293,7 @@ def confusion_matrix(client, y_true, y_pred, normalize=None, sample_weight=None)
         sync=True,
     )
 
-    if isinstance(y_true._meta, cp.ndarray):
-        cm = cp.zeros((nclasses, nclasses))
-    else:
-        cm = np.zeros((nclasses, nclasses))
+    cm = np.zeros((nclasses, nclasses), like=y_true._meta)
 
     for i in cms:
         cm += i
