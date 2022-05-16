@@ -458,7 +458,7 @@ def assert_dataframes_pseudo_equal(df1, df2, significant=6):
         - Column presence does not vary between files
         - Datetime columns are read into memory consistently as either Object or Datetime columns
     """
-    from cudf.tests.utils import assert_eq
+    from cudf.testing._utils import assert_eq
 
     # check shape is the same
     assert df1.shape == df2.shape
