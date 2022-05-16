@@ -122,18 +122,17 @@ def main(data_dir, client, c, config):
         ).head(0)
     else:
         temp_table2_meta_empty_df = pd.DataFrame(
-        {
-            "word": ["a"],
-            "pr_review_sk": np.ones(1, dtype=np.int64),
-            "pr_review_date": ["a"],
-        }
-    ).head(0)
+            {
+                "word": ["a"],
+                "pr_review_sk": np.ones(1, dtype=np.int64),
+                "pr_review_date": ["a"],
+            }
+        ).head(0)
 
     # get relevant reviews
     combined = no_nulls.map_partitions(
         find_relevant_reviews, targets, meta=temp_table2_meta_empty_df,
     )
-    print(no_nulls.compute().head())
     for char in [". ", "? ", "! "]:
         no_nulls["pr_review_content"]  = no_nulls.pr_review_content.str.replace(char, EOL_CHAR, regex=False)
 
@@ -169,7 +168,6 @@ def main(data_dir, client, c, config):
     del combined
 
     # REAL QUERY
-    print(no_nulls.compute().head())
     sentences = no_nulls.map_partitions(create_sentences_from_reviews)
 
     # need the global position in the sentence tokenized df
