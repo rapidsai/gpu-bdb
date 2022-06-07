@@ -88,17 +88,17 @@ def main(data_dir, client, c, config):
     sentiment_dir = os.path.join(config["data_dir"], "sentiment_files")
     
     if isinstance(product_reviews_df, dask_cudf.DataFrame):
-        ns_df = dask_cudf.read_csv(os.path.join(sentiment_dir, "negativeSentiment.txt"), names=["sentiment_word"], persist=False)
+        ns_df = dask_cudf.read_csv(os.path.join(sentiment_dir, "negativeSentiment.txt"), names=["sentiment_word"])
     else:
         ns_df = dd.read_csv(os.path.join(sentiment_dir, "negativeSentiment.txt"), names=["sentiment_word"])
         
     c.create_table('negative_sentiment', ns_df, persist=False)
-    
+
     if isinstance(product_reviews_df, dask_cudf.DataFrame):
-        ps_df = dask_cudf.read_csv(os.path.join(sentiment_dir, "positiveSentiment.txt"), names=["sentiment_word"], persist=False)
+        ps_df = dask_cudf.read_csv(os.path.join(sentiment_dir, "positiveSentiment.txt"), names=["sentiment_word"])
     else:
         ps_df = dd.read_csv(os.path.join(sentiment_dir, "positiveSentiment.txt"), names=["sentiment_word"])
-        
+
     c.create_table('positive_sentiment', ps_df, persist=False)
 
     word_df = word_df.persist()
