@@ -16,16 +16,18 @@
 
 import os
 
+import cudf
+
+import pandas as pd
+
+import numpy as np
+
 EOL_CHAR = "è"
 
 
 def create_sentences_from_reviews(
     df, review_column="pr_review_content", end_of_line_char=EOL_CHAR,
 ):
-    import pandas as pd
-    import cudf
-    import numpy as np
-    
     sentences = df[review_column].str.split(end_of_line_char)
     
     if isinstance(df, cudf.DataFrame):
@@ -47,11 +49,6 @@ def create_words_from_sentences(
     global_position_column="sentence_tokenized_global_pos",
     delimiter=" ",
 ):
-   
-    import pandas as pd
-    import cudf
-    import numpy as np
-    
     cleaned_sentences = df[sentence_column].str.replace(".", "", regex=False) 
     
     for char in [",", ";", "-", '\"']:
