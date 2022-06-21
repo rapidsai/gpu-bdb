@@ -17,19 +17,15 @@
 from bdb_tools.utils import (
     benchmark,
     gpubdb_argparser,
-    train_clustering_model,
-    run_query,
+    run_query
 )
 from bdb_tools.q26_utils import (
     Q26_CATEGORY,
     Q26_ITEM_COUNT,
-    N_CLUSTERS,
-    CLUSTER_ITERATIONS,
-    N_ITER,
-    read_tables
+    read_tables,
+    get_clusters
 )
 import numpy as np
-from dask import delayed
 
 def agg_count_distinct(df, group_key, counted_key):
     """Returns a Series that is the result of counting distinct instances of 'counted_key' within each 'group_key'.
@@ -41,30 +37,6 @@ def agg_count_distinct(df, group_key, counted_key):
         .groupby(group_key)[counted_key]
         .count()
     )
-
-
-def get_clusters(client, kmeans_input_df):
-    import dask_cudf
-
-    ml_tasks = [
-        delayed(train_clustering_model)(df, N_CLUSTERS, CLUSTER_ITERATIONS, N_ITER)
-        for df in kmeans_input_df.to_delayed()
-    ]
-    results_dict = client.compute(*ml_tasks, sync=True)
-
-    output = kmeans_input_df.index.to_frame().reset_index(drop=True)
-
-    labels_final = dask_cudf.from_cudf(
-        results_dict["cid_labels"], npartitions=output.npartitions
-    )
-    output["label"] = labels_final.reset_index()[0]
-
-    # Sort based on CDH6.1 q26-result formatting
-    output = output.sort_values(["ss_customer_sk"])
-
-    # Based on CDH6.1 q26-result formatting
-    results_dict["cid_labels"] = output
-    return results_dict
 
 
 def main(client, config):
@@ -102,7 +74,9 @@ def main(client, config):
 
     # Aggregate using agg to get sorted ss_customer_sk
     agg_dict = dict.fromkeys(all_categories, "sum")
-    rollup_ddf = merged_ddf.groupby("ss_customer_sk").agg(agg_dict)
+    rollup_ddf = merged_ddf.groupby("ss_customer_sk", as_index=False).agg(agg_dict)
+    rollup_ddf = rollup_ddf.sort_values(["ss_customer_sk"])
+    rollup_ddf = rollup_ddf.set_index("ss_customer_sk")
     rollup_ddf = rollup_ddf[rollup_ddf.total > Q26_ITEM_COUNT][all_categories[1:]]
 
     # Prepare data for KMeans clustering
