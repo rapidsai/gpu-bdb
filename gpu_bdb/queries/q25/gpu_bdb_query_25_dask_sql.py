@@ -13,8 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import os
-
 from nvtx import annotate
 
 from bdb_tools.cluster_startup import attach_to_cluster
@@ -22,48 +20,14 @@ from bdb_tools.cluster_startup import attach_to_cluster
 from bdb_tools.utils import (
     benchmark,
     gpubdb_argparser,
-    run_query,
-    train_clustering_model
+    run_query
 )
 
 from bdb_tools.q25_utils import (
     q25_date,
-    N_CLUSTERS,
-    CLUSTER_ITERATIONS,
-    N_ITER,
-    read_tables
+    read_tables,
+    get_clusters
 )
-
-from dask import delayed
-
-def get_clusters(client, ml_input_df):
-    import dask.dataframe as dd
-    import dask_cudf
-    import cudf
-    import pandas as pd
-    
-    ml_tasks = [
-        delayed(train_clustering_model)(df, N_CLUSTERS, CLUSTER_ITERATIONS, N_ITER)
-        for df in ml_input_df.to_delayed()
-    ]
-    results_dict = client.compute(*ml_tasks, sync=True)
-
-    output = ml_input_df.index.to_frame().reset_index(drop=True)
-    
-    if isinstance(ml_input_df, dask_cudf.DataFrame):
-        labels_final = dask_cudf.from_cudf(
-            results_dict["cid_labels"], npartitions=output.npartitions
-        )
-    else:
-        labels_final = dd.from_pandas(
-            pd.DataFrame(results_dict["cid_labels"]), npartitions=output.npartitions
-        )
-    output["label"] = labels_final.reset_index()[0]
-
-    # Based on CDH6.1 q25-result formatting
-    results_dict["cid_labels"] = output
-    return results_dict
-
 
 def agg_count_distinct(df, group_key, counted_key):
     """Returns a Series that is the result of counting distinct instances of 'counted_key' within each 'group_key'.
