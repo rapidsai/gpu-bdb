@@ -34,9 +34,11 @@ from collections.abc import MutableMapping
 
 import numpy as np
 
-import cudf 
+import cudf
+import dask_cudf
 import pandas as pd
 import dask.dataframe as dd
+from dask import delayed
 from dask.utils import parse_bytes
 from dask_cuda import LocalCUDACluster
 from dask.distributed import Client, wait, performance_report, SSHCluster
@@ -61,8 +63,6 @@ def benchmark(func, *args, **kwargs):
     logging_info["elapsed_time_seconds"] = elapsed_time
     logging_info["function_name"] = name
     if compute_result:
-        import dask_cudf
-
         if isinstance(result, dask_cudf.DataFrame):
             len_tasks = [dask.delayed(len)(df) for df in result.to_delayed()]
         else:
@@ -618,7 +618,6 @@ def verify_results(verify_dir):
     verify_dir: Directory which contains verification results
     """
     import cudf
-    import dask_cudf
     import cupy as cp
     import dask.dataframe as dd
 
@@ -990,3 +989,30 @@ def train_clustering_model(training_df, n_clusters, max_iter, n_init):
         "cluster_centers": model.cluster_centers_,
         "nclusters": n_clusters,
     }
+
+
+def get_clusters(client, kmeans_input_df):
+    N_CLUSTERS = 8
+    CLUSTER_ITERATIONS = 20
+    N_ITER = 5
+
+    ml_tasks = [
+        delayed(train_clustering_model)(df, N_CLUSTERS, CLUSTER_ITERATIONS, N_ITER)
+        for df in kmeans_input_df.to_delayed()
+    ]
+    results_dict = client.compute(*ml_tasks, sync=True)
+
+    output = kmeans_input_df.index.to_frame().reset_index(drop=True)
+    
+    if isinstance(kmeans_input_df, dask_cudf.DataFrame):
+        labels_final = dask_cudf.from_cudf(
+            results_dict["cid_labels"], npartitions=output.npartitions
+        )
+    else:
+        labels_final = dd.from_pandas(
+            pd.DataFrame(results_dict["cid_labels"]), npartitions=output.npartitions
+        )
+    output["label"] = labels_final.reset_index()[0]
+
+    results_dict["cid_labels"] = output
+    return results_dict

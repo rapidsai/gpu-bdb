@@ -20,13 +20,13 @@ from bdb_tools.cluster_startup import attach_to_cluster
 from bdb_tools.utils import (
     benchmark,
     gpubdb_argparser,
-    run_query
+    run_query,
+    get_clusters
 )
 
 from bdb_tools.q25_utils import (
     q25_date,
-    read_tables,
-    get_clusters
+    read_tables
 )
 
 def agg_count_distinct(df, group_key, counted_key):
@@ -149,7 +149,7 @@ def main(data_dir, client, c, config):
     cluster_input_ddf = cluster_input_ddf.repartition(npartitions=1)
     cluster_input_ddf = cluster_input_ddf.persist()
     cluster_input_ddf = cluster_input_ddf.set_index('cid')
-    results_dict = get_clusters(client=client, ml_input_df=cluster_input_ddf)
+    results_dict = get_clusters(client=client, kmeans_input_df=cluster_input_ddf)
 
     return results_dict
 
