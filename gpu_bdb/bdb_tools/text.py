@@ -16,24 +16,29 @@
 
 import os
 
+import cudf
+
+import pandas as pd
+
+import numpy as np
 
 EOL_CHAR = "è"
 
 
 def create_sentences_from_reviews(
-    df, review_column="pr_review_content", end_of_line_char=EOL_CHAR
+    df, review_column="pr_review_content", end_of_line_char=EOL_CHAR,
 ):
-    import cudf
+    sentences = df[review_column].str.split(end_of_line_char)
 
-    sentences = df[review_column].str.tokenize(delimiter=end_of_line_char)
+    if isinstance(df, cudf.DataFrame):
+        out = cudf.DataFrame({"sentence": sentences, "review_idx_global_pos": df.pr_review_sk})
+    else:
+        out = pd.DataFrame({"sentence": sentences, "review_idx_global_pos": df.pr_review_sk})
 
-    # expand the reviews
-    tk_cnts = df[review_column].str.token_count(delimiter=end_of_line_char)
+    out= out.explode("sentence", ignore_index=True)
+    out["sentence"] = out.sentence.replace('', np.nan)
+    out = out.dropna().reset_index(drop=True)
 
-    # use pr_review_sk as the global position
-    # (leaving hardcoded as it's consistent across all queries)
-    global_pos = df.pr_review_sk.repeat(tk_cnts).reset_index(drop=True)
-    out = cudf.DataFrame({"sentence": sentences, "review_idx_global_pos": global_pos})
     out["review_idx_global_pos"] = out["review_idx_global_pos"].astype("int32")
     return out
 
@@ -44,22 +49,21 @@ def create_words_from_sentences(
     global_position_column="sentence_tokenized_global_pos",
     delimiter=" ",
 ):
-    import cudf
+    cleaned_sentences = df[sentence_column].str.replace(".", "", regex=False) 
 
-    cleaned_sentences = df[sentence_column].str.replace(
-        [",", ";", "-", '"', "."], ["", "", "", "", " "], regex=False
-    )
-    normalized_sentences = cleaned_sentences.str.normalize_spaces()
-    repeat_counts_per_sentence = normalized_sentences.str.token_count(
-        delimiter=delimiter
-    )
-    words = normalized_sentences.str.tokenize(delimiter=delimiter)
+    for char in [",", ";", "-", '\"']:
+        cleaned_sentences = cleaned_sentences.str.replace(char, "", regex=False) 
 
-    # reassociate with the global position
-    global_pos = (
-        df[global_position_column]
-        .repeat(repeat_counts_per_sentence)
-        .reset_index(drop=True)
-    )
-    out = cudf.DataFrame({"word": words, "sentence_idx_global_pos": global_pos})
+    normalized_sentences = cleaned_sentences.str.strip() 
+    words = normalized_sentences.str.split(delimiter)
+
+    if isinstance(df, cudf.DataFrame):
+        out = cudf.DataFrame({"word": words, "sentence_idx_global_pos": df[global_position_column]})
+    else:
+        out = pd.DataFrame({"word": words, "sentence_idx_global_pos": df[global_position_column]})
+
+    out = out.explode("word", ignore_index=True)
+    out["word"] = out.word.replace('', np.nan)
+    out = out.dropna().reset_index(drop=True)
+
     return out
