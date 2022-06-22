@@ -12,20 +12,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 from bdb_tools.readers import build_reader
 
 Q26_CATEGORY = "Books"
 Q26_ITEM_COUNT = 5
-N_CLUSTERS = 8
-CLUSTER_ITERATIONS = 20
-N_ITER = 5
 
 def read_tables(config, c=None):
     table_reader = build_reader(
         data_format=config["file_format"],
         basepath=config["data_dir"],
         split_row_groups=config["split_row_groups"],
+        backend=config["backend"],
     )
 
     ss_cols = ["ss_customer_sk", "ss_item_sk"]
@@ -39,4 +36,3 @@ def read_tables(config, c=None):
         c.create_table("item", items_ddf, persist=False)
 
     return ss_ddf, items_ddf
-

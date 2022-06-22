@@ -34,9 +34,11 @@ from collections.abc import MutableMapping
 
 import numpy as np
 
-import cudf 
+import cudf
+import dask_cudf
 import pandas as pd
 import dask.dataframe as dd
+from dask import delayed
 from dask.utils import parse_bytes
 from dask_cuda import LocalCUDACluster
 from dask.distributed import Client, wait, performance_report, SSHCluster
@@ -61,8 +63,6 @@ def benchmark(func, *args, **kwargs):
     logging_info["elapsed_time_seconds"] = elapsed_time
     logging_info["function_name"] = name
     if compute_result:
-        import dask_cudf
-
         if isinstance(result, dask_cudf.DataFrame):
             len_tasks = [dask.delayed(len)(df) for df in result.to_delayed()]
         else:
@@ -618,7 +618,6 @@ def verify_results(verify_dir):
     verify_dir: Directory which contains verification results
     """
     import cudf
-    import dask_cudf
     import cupy as cp
     import dask.dataframe as dd
 
@@ -960,35 +959,60 @@ def train_clustering_model(training_df, n_clusters, max_iter, n_init):
     given dataframe and returns the resulting
     labels and WSSSE"""
 
-    from cuml.cluster.kmeans import KMeans
-
-    best_sse = 0
-    best_model = None
+    from cuml.cluster.kmeans import KMeans as cuKMeans
+    from sklearn.cluster import KMeans
 
     # Optimizing by doing multiple seeding iterations.
-    for i in range(n_init):
-        model = KMeans(
+    if isinstance(training_df, pd.DataFrame): 
+         model = KMeans(
+            n_clusters=n_clusters,
+            max_iter=max_iter,
+            random_state=np.random.randint(0, 500),
+            init="k-means++",
+            n_init=n_init,
+        )
+    else:
+         model = cuKMeans(
             oversampling_factor=0,
             n_clusters=n_clusters,
             max_iter=max_iter,
             random_state=np.random.randint(0, 500),
             init="k-means++",
+            n_init=n_init,
         )
-        model.fit(training_df)
+    model.fit(training_df)
 
-        score = model.inertia_
-
-        if best_model is None:
-            best_sse = score
-            best_model = model
-
-        elif abs(score) < abs(best_sse):
-            best_sse = score
-            best_model = model
-
+        
     return {
-        "cid_labels": best_model.labels_,
-        "wssse": best_model.inertia_,
-        "cluster_centers": best_model.cluster_centers_,
+        "cid_labels": model.labels_,
+        "wssse": model.inertia_,
+        "cluster_centers": model.cluster_centers_,
         "nclusters": n_clusters,
     }
+
+
+def get_clusters(client, kmeans_input_df):
+    N_CLUSTERS = 8
+    CLUSTER_ITERATIONS = 20
+    N_ITER = 5
+
+    ml_tasks = [
+        delayed(train_clustering_model)(df, N_CLUSTERS, CLUSTER_ITERATIONS, N_ITER)
+        for df in kmeans_input_df.to_delayed()
+    ]
+    results_dict = client.compute(*ml_tasks, sync=True)
+
+    output = kmeans_input_df.index.to_frame().reset_index(drop=True)
+    
+    if isinstance(kmeans_input_df, dask_cudf.DataFrame):
+        labels_final = dask_cudf.from_cudf(
+            results_dict["cid_labels"], npartitions=output.npartitions
+        )
+    else:
+        labels_final = dd.from_pandas(
+            pd.DataFrame(results_dict["cid_labels"]), npartitions=output.npartitions
+        )
+    output["label"] = labels_final.reset_index()[0]
+
+    results_dict["cid_labels"] = output
+    return results_dict

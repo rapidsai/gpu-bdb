@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
 import numpy as np
 
 import dask_cudf
@@ -21,18 +20,14 @@ import dask_cudf
 from bdb_tools.utils import (
     benchmark,
     gpubdb_argparser,
-    train_clustering_model,
     run_query,
     convert_datestring_to_days,
+    get_clusters
 )
 from bdb_tools.q25_utils import (
     q25_date,
-    N_CLUSTERS,
-    CLUSTER_ITERATIONS,
-    N_ITER,
     read_tables
 )
-from dask import delayed
 
 def agg_count_distinct(df, group_key, counted_key, client):
     """Returns a Series that is the result of counting distinct instances of 'counted_key' within each 'group_key'.
@@ -48,28 +43,6 @@ def agg_count_distinct(df, group_key, counted_key, client):
     unique_df = unique_df.map_partitions(lambda df: df.drop_duplicates())
 
     return unique_df.groupby(group_key)[counted_key].count(split_every=2)
-
-
-def get_clusters(client, ml_input_df):
-
-    ml_tasks = [
-        delayed(train_clustering_model)(df, N_CLUSTERS, CLUSTER_ITERATIONS, N_ITER)
-        for df in ml_input_df.to_delayed()
-    ]
-    results_dict = client.compute(*ml_tasks, sync=True)
-
-    output = ml_input_df.index.to_frame().reset_index(drop=True)
-
-    labels_final = dask_cudf.from_cudf(
-        results_dict["cid_labels"], npartitions=output.npartitions
-    )
-    output["label"] = labels_final.reset_index()[0]
-
-    # Sort based on CDH6.1 q25-result formatting
-    output = output.sort_values(["cid"])
-
-    results_dict["cid_labels"] = output
-    return results_dict
 
 
 def main(client, config):
@@ -123,11 +96,14 @@ def main(client, config):
     agg_web_sales_ddf.columns = shared_columns
     agg_sales_ddf = dask_cudf.concat([agg_store_sales_ddf, agg_web_sales_ddf])
 
-    cluster_input_ddf = agg_sales_ddf.groupby("cid").agg(
+    cluster_input_ddf = agg_sales_ddf.groupby("cid", as_index=False).agg(
         {"most_recent_date": "max", "frequency": "sum", "amount": "sum"}
     )
 
     cluster_input_ddf["recency"] = (37621 - cluster_input_ddf["most_recent_date"]) < 60
+
+    cluster_input_ddf = cluster_input_ddf.sort_values(["cid"])
+    cluster_input_ddf = cluster_input_ddf.set_index("cid")
 
     # Reorder to match refererence examples
     cluster_input_ddf = cluster_input_ddf[["recency", "frequency", "amount"]]
@@ -138,7 +114,7 @@ def main(client, config):
 
     cluster_input_ddf = cluster_input_ddf.persist()
 
-    results_dict = get_clusters(client=client, ml_input_df=cluster_input_ddf)
+    results_dict = get_clusters(client=client, kmeans_input_df=cluster_input_ddf)
     return results_dict
 
 
