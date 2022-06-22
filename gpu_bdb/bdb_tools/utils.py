@@ -299,7 +299,7 @@ def run_dask_cudf_query(config, client, query_func, write_func=write_result):
         benchmark(
             write_func,
             results,
-            output_directory=config["output_dir"],
+            output_directory=config["output_dir"] or "./",
             filetype=config["output_filetype"],
         )
         config["query_status"] = "Success"
@@ -342,7 +342,7 @@ def run_sql_query(
         benchmark(
             write_func,
             results,
-            output_directory=config["output_dir"],
+            output_directory=config["output_dir"] or "./",
             filetype=config["output_filetype"],
         )
         config["query_status"] = "Success"
