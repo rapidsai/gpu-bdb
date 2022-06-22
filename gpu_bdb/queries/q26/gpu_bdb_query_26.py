@@ -17,13 +17,13 @@
 from bdb_tools.utils import (
     benchmark,
     gpubdb_argparser,
-    run_query
+    run_query,
+    get_clusters
 )
 from bdb_tools.q26_utils import (
     Q26_CATEGORY,
     Q26_ITEM_COUNT,
-    read_tables,
-    get_clusters
+    read_tables
 )
 import numpy as np
 

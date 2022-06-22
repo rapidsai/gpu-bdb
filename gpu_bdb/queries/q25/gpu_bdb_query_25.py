@@ -21,12 +21,12 @@ from bdb_tools.utils import (
     benchmark,
     gpubdb_argparser,
     run_query,
-    convert_datestring_to_days
+    convert_datestring_to_days,
+    get_clusters
 )
 from bdb_tools.q25_utils import (
     q25_date,
-    read_tables,
-    get_clusters
+    read_tables
 )
 
 def agg_count_distinct(df, group_key, counted_key, client):
@@ -114,7 +114,7 @@ def main(client, config):
 
     cluster_input_ddf = cluster_input_ddf.persist()
 
-    results_dict = get_clusters(client=client, ml_input_df=cluster_input_ddf)
+    results_dict = get_clusters(client=client, kmeans_input_df=cluster_input_ddf)
     return results_dict
 
 
