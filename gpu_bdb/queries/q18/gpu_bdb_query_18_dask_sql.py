@@ -160,6 +160,7 @@ def main(data_dir, client, c, config):
         INNER JOIN combined ON s_store_name = word
     """
     temp_table2 = c.sql(query_3)
+    temp_table2["pr_review_sk"] = temp_table2["pr_review_sk"].astype("int32")
 
     c.drop_table("stores_with_regression")
     del stores_with_regression
