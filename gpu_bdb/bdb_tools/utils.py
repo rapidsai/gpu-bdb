@@ -393,7 +393,7 @@ def gpubdb_argparser():
     # if yaml configuration missing
     KEYS_TO_ENV_VAR_MAPPING = {
         "data_dir": os.environ.get("DATA_DIRECTORY"),
-        "output_dir": os.environ.get("OUTPUT_DIRECTORY"),
+        "output_dir": os.environ.get("OUTPUT_DIRECTORY", "./"),
         "sheet": os.environ.get("GOOGLE_SPREADSHEET_NAME"),
         "tab": os.environ.get("GOOGLE_SPREADSHEET_TAB"),
         "scheduler_file_path": os.environ.get("SCHEDULER_FILE"),
