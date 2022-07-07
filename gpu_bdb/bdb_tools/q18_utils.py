@@ -136,7 +136,7 @@ def find_targets_in_reviews_helper(ddf, targets, str_col_name="pr_review_content
 
     resdf = resdf.replace([0, -1], [1, 0])
     found_mask = resdf.any(axis=1)
-    resdf["pr_review_sk"] = ddf["pr_review_sk"]
+    resdf["pr_review_sk"] = ddf["pr_review_sk"].reset_index(drop=True)
     found = resdf.loc[found_mask]
     return create_found_reshaped_with_global_pos(found, targets)
 
