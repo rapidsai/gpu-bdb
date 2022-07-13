@@ -27,7 +27,6 @@ dependencies:
   - ipykernel
   - jupyterlab
   - gspread
-  - oauth2client
   - pytest
   - pip
   - pip:
