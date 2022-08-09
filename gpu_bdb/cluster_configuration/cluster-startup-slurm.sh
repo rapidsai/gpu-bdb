@@ -75,7 +75,7 @@ if [ "$ROLE" = "SCHEDULER" ]; then
   fi
   
   if [ "$CLUSTER_MODE" = "IB" ]; then
-     DASK_RMM__POOL_SIZE=1GB CUDA_VISIBLE_DEVICES='0' DASK_UCX__CUDA_COPY=True DASK_UCX__TCP=True DASK_UCX__NVLINK=True DASK_UCX__INFINIBAND=True DASK_UCX__RDMACM=False UCX_NET_DEVICES=mlx5_1:1 nohup dask-scheduler --dashboard-address 8787 --protocol ucx --interface ibp18s0 --scheduler-file $SCHEDULER_FILE > $LOGDIR/$HOSTNAME-scheduler.log 2>&1 &
+     DASK_RMM__POOL_SIZE=1GB CUDA_VISIBLE_DEVICES='0' DASK_DISTRIBUTED__COMM__UCX__CREATE_CUDA_CONTEXT=True nohup dask-scheduler --dashboard-address 8787 --protocol ucx --interface ibp18s0 --scheduler-file $SCHEDULER_FILE > $LOGDIR/$HOSTNAME-scheduler.log 2>&1 &
   fi
 
   if [ "$CLUSTER_MODE" = "TCP" ]; then
@@ -90,30 +90,7 @@ if [ "$CLUSTER_MODE" = "NVLINK" ]; then
 fi
 
 if [ "$CLUSTER_MODE" = "IB" ]; then
-    # GPU 0
-    CUDA_VISIBLE_DEVICES=0 UCX_NET_DEVICES=mlx5_1:1 python -m dask_cuda.cli.dask_cuda_worker --rmm-pool-size $POOL_SIZE --scheduler-file $SCHEDULER_FILE --local-directory $LOCAL_DIRECTORY --interface ibp18s0 --enable-tcp-over-ucx --device-memory-limit $DEVICE_MEMORY_LIMIT --enable-nvlink --enable-infiniband --disable-rdmacm 2>&1 | tee $LOGDIR/$HOSTNAME-worker-0.log &
-
-    # GPU 1
-    CUDA_VISIBLE_DEVICES=1 UCX_NET_DEVICES=mlx5_0:1 python -m dask_cuda.cli.dask_cuda_worker --rmm-pool-size $POOL_SIZE --scheduler-file $SCHEDULER_FILE --local-directory $LOCAL_DIRECTORY --interface ibp12s0 --enable-tcp-over-ucx --device-memory-limit $DEVICE_MEMORY_LIMIT --enable-nvlink --enable-infiniband --disable-rdmacm 2>&1 | tee $LOGDIR/$HOSTNAME-worker-1.log &
-
-    # GPU 2
-    CUDA_VISIBLE_DEVICES=2 UCX_NET_DEVICES=mlx5_3:1 python -m dask_cuda.cli.dask_cuda_worker --rmm-pool-size $POOL_SIZE --scheduler-file $SCHEDULER_FILE --local-directory $LOCAL_DIRECTORY --interface ibp84s0 --enable-tcp-over-ucx --device-memory-limit $DEVICE_MEMORY_LIMIT --enable-nvlink --enable-infiniband --disable-rdmacm 2>&1 | tee $LOGDIR/$HOSTNAME-worker-2.log &
-
-    # GPU 3
-    CUDA_VISIBLE_DEVICES=3 UCX_NET_DEVICES=mlx5_2:1 python -m dask_cuda.cli.dask_cuda_worker --rmm-pool-size $POOL_SIZE --scheduler-file $SCHEDULER_FILE --local-directory $LOCAL_DIRECTORY --interface ibp75s0 --enable-tcp-over-ucx --device-memory-limit $DEVICE_MEMORY_LIMIT --enable-nvlink --enable-infiniband --disable-rdmacm 2>&1 | tee $LOGDIR/$HOSTNAME-worker-3.log &
-
-    # GPU 4
-    CUDA_VISIBLE_DEVICES=4 UCX_NET_DEVICES=mlx5_7:1 python -m dask_cuda.cli.dask_cuda_worker --rmm-pool-size $POOL_SIZE --scheduler-file $SCHEDULER_FILE --local-directory $LOCAL_DIRECTORY --interface ibp148s0 --enable-tcp-over-ucx --device-memory-limit $DEVICE_MEMORY_LIMIT --enable-nvlink --enable-infiniband --disable-rdmacm 2>&1 | tee $LOGDIR/$HOSTNAME-worker-4.log &
-
-    # GPU 5
-    CUDA_VISIBLE_DEVICES=5 UCX_NET_DEVICES=mlx5_6:1 python -m dask_cuda.cli.dask_cuda_worker --rmm-pool-size $POOL_SIZE --scheduler-file $SCHEDULER_FILE --local-directory $LOCAL_DIRECTORY --interface ibp141s0 --enable-tcp-over-ucx --device-memory-limit $DEVICE_MEMORY_LIMIT --enable-nvlink --enable-infiniband --disable-rdmacm 2>&1 | tee $LOGDIR/$HOSTNAME-worker-5.log &
-
-    # GPU 6
-    CUDA_VISIBLE_DEVICES=6 UCX_NET_DEVICES=mlx5_9:1 python -m dask_cuda.cli.dask_cuda_worker --rmm-pool-size $POOL_SIZE --scheduler-file $SCHEDULER_FILE --local-directory $LOCAL_DIRECTORY --interface ibp204s0 --enable-tcp-over-ucx --device-memory-limit $DEVICE_MEMORY_LIMIT --enable-nvlink --enable-infiniband --disable-rdmacm 2>&1 | tee $LOGDIR/$HOSTNAME-worker-6.log &
-
-    # GPU 7
-    CUDA_VISIBLE_DEVICES=7 UCX_NET_DEVICES=mlx5_8:1 python -m dask_cuda.cli.dask_cuda_worker --rmm-pool-size $POOL_SIZE --scheduler-file $SCHEDULER_FILE --local-directory $LOCAL_DIRECTORY --interface ibp186s0 --enable-tcp-over-ucx --device-memory-limit $DEVICE_MEMORY_LIMIT --enable-nvlink --enable-infiniband --disable-rdmacm 2>&1 | tee $LOGDIR/$HOSTNAME-worker-7.log &
-
+    python -m dask_cuda.cli.dask_cuda_worker --rmm-pool-size $POOL_SIZE --scheduler-file $SCHEDULER_FILE --local-directory $LOCAL_DIRECTORY --interface ibp18s0 --enable-tcp-over-ucx --device-memory-limit $DEVICE_MEMORY_LIMIT 2>&1 | tee $LOGDIR/$HOSTNAME-worker.log &
 fi
 
 if [ "$CLUSTER_MODE" = "TCP" ]; then
