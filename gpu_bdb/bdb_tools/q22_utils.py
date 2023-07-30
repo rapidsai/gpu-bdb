@@ -14,6 +14,12 @@
 # limitations under the License.
 #
 
+import numpy as np
+import pandas as pd
+
+import cudf
+import dask_cudf
+
 from bdb_tools.readers import build_reader
 from bdb_tools.utils import convert_datestring_to_days
 
@@ -45,7 +51,18 @@ def read_tables(config, c=None):
 
     dd_columns = ["d_date_sk", "d_date"]
     date_dim = table_reader.read("date_dim", relevant_cols=dd_columns)
-    date_dim = date_dim.map_partitions(convert_datestring_to_days)
+
+    meta_d = {
+        "d_date_sk": np.ones(1, dtype=np.int64),
+        "d_date": np.ones(1, dtype=np.int64)
+    }
+
+    if isinstance(date_dim, dask_cudf.DataFrame):
+        meta_df = cudf.DataFrame(meta_d)
+    else:
+        meta_df = pd.DataFrame(meta_d)
+
+    date_dim = date_dim.map_partitions(convert_datestring_to_days, meta=meta_df)
 
     if c:
         c.create_table('inventory', inventory, persist=False)

@@ -930,27 +930,37 @@ def left_semi_join(df_1, df_2, left_on, right_on):
     """
         Pefrorm left semi join b/w tables
     """
-    left_merge = lambda df_1, df_2: df_1.merge(
-        df_2, left_on=left_on, right_on=right_on, how="leftsemi"
-    )
+    if instance(df_1, dask_cudf.DataFrame):
+        left_merge = lambda df_1, df_2: df_1.merge(
+            df_2, left_on=left_on, right_on=right_on, how="leftsemi"
+        )
 
-    ## asserting that number of partitions of the right frame is always 1
-    assert df_2.npartitions == 1
+        ## asserting that number of partitions of the right frame is always 1
+        assert df_2.npartitions == 1
 
-    return df_1.map_partitions(left_merge, df_2.to_delayed()[0], meta=df_1._meta)
+        return df_1.map_partitions(left_merge, df_2.to_delayed()[0], meta=df_1._meta)
+
+    else:
+        return df_1[df_1[right_on].isin(df_2[left_on].compute())].copy()
 
 
 def convert_datestring_to_days(df):
- 
-    import cudf
+    if isinstance(df, cudf.DataFrame):
+        df["d_date"] = (
+            cudf.to_datetime(df["d_date"], format="%Y-%m-%d")
+            .astype("datetime64[s]")
+            .astype("int64")
+            / 86400
+        )
+        df["d_date"] = df["d_date"].astype("int64")
+    else:
+        df["d_date"] = (
+            pd.to_datetime(df["d_date"], format="%Y-%m-%d")
+            .view("int64")
+            / 8.64e+13
+        )
+        df["d_date"] = df["d_date"].astype("int64")
 
-    df["d_date"] = (
-        cudf.to_datetime(df["d_date"], format="%Y-%m-%d")
-        .astype("datetime64[s]")
-        .astype("int64")
-        / 86400
-    )
-    df["d_date"] = df["d_date"].astype("int64")
     return df
 
 

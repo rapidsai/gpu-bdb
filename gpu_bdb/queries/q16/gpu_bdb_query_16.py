@@ -15,6 +15,7 @@
 #
 
 import cudf
+import dask_cudf
 
 from bdb_tools.utils import (
     benchmark,
@@ -28,6 +29,7 @@ from bdb_tools.q16_utils import read_tables
 from dask.distributed import wait
 
 import numpy as np
+import pandas as pd
 
 
 ### conf
@@ -104,7 +106,18 @@ def main(client, config):
     # AND unix_timestamp(d.d_date, 'yyyy-MM-dd') <= unix_timestamp('${hiveconf:q16_date}', 'yyyy-MM-dd') + 30*24*60*60 --add 30 days in seconds
 
     ##todo: remove below
-    date_dim_cov_df = date_dim_df.map_partitions(convert_datestring_to_days)
+    meta_d = {
+        "d_date": np.ones(1, dtype=np.int64),
+        "d_date_sk": np.ones(1, dtype=np.int64)
+    }
+
+    if isinstance(date_dim_df, dask_cudf.DataFrame):
+        meta_df = cudf.DataFrame(meta_d)
+    else:
+        meta_df = pd.DataFrame(meta_d)
+
+    date_dim_cov_df = date_dim_df.map_partitions(convert_datestring_to_days, meta=meta_df)
+
     q16_timestamp = np.datetime64(q16_date, "D").astype(int)
     filtered_date_df = date_dim_cov_df.query(
         f"d_date >={q16_timestamp- 30} and d_date <= {q16_timestamp+30}",

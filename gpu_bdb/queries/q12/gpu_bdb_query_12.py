@@ -29,6 +29,7 @@ from bdb_tools.q12_utils import read_tables
 
 from distributed import wait
 import numpy as np
+import pandas as pd
 from dask import delayed
 
 ### Current Implementation Assumption
@@ -80,9 +81,15 @@ def filter_wcs_table(web_clickstreams_fn, filtered_item_df):
         "wcs_item_sk",
         "wcs_sales_sk",
     ]
-    web_clickstreams_df = cudf.read_parquet(
-        web_clickstreams_fn, columns=web_clickstreams_cols
-    )
+
+    if isinstance(filtered_item_df, dask_cudf.DataFrame):
+        web_clickstreams_df = cudf.read_parquet(
+            web_clickstreams_fn, columns=web_clickstreams_cols
+        )
+    else:
+        web_clickstreams_df = pd.read_parquet(
+            web_clickstreams_fn, columns=web_clickstreams_cols
+        )
 
     filter_wcs_df = web_clickstreams_df[
         web_clickstreams_df["wcs_user_sk"].notnull()
@@ -155,7 +162,12 @@ def main(client, config):
         "wcs_user_sk": np.ones(1, dtype=np.int64),
         "wcs_click_date_sk": np.ones(1, dtype=np.int64),
     }
-    meta_df = cudf.DataFrame(meta_d)
+    
+    if isinstance(filtered_item_df, dask_cudf.DataFrame):
+        meta_df = cudf.DataFrame(meta_d)
+    else:
+        meta_df = pd.DataFrame(meta_d)
+
     web_clickstream_flist = glob.glob(os.path.join(config["data_dir"], "web_clickstreams/*.parquet"))
     task_ls = [
         delayed(filter_wcs_table)(fn, filtered_item_df.to_delayed()[0])
@@ -172,7 +184,11 @@ def main(client, config):
         "ss_customer_sk": np.ones(1, dtype=store_sales_df["ss_customer_sk"].dtype),
         "ss_sold_date_sk": np.ones(1, dtype=np.int64),
     }
-    meta_df = cudf.DataFrame(meta_d)
+
+    if isinstance(filtered_item_df, dask_cudf.DataFrame):
+        meta_df = cudf.DataFrame(meta_d)
+    else:
+        meta_df = pd.DataFrame(meta_d)
 
     filtered_ss_df = store_sales_df.map_partitions(
         filter_ss_table, filtered_item_df.to_delayed()[0], meta=meta_df
