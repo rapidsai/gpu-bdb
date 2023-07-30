@@ -76,9 +76,8 @@ def benchmark(func, *args, **kwargs):
         logging_info["compute_time_seconds"] = compute_et - compute_st
 
     logdf = pd.DataFrame.from_dict(logging_info, orient="index").T
-
     if csv:
-        logdf.to_csv(f"benchmarked_{name}.csv", index=False)
+        logdf.to_csv(f"benchmarked_{name}.{kwargs.get('config',{}).get('run_id','_')}.csv", index=False)
     else:
         print(logdf)
     return result
@@ -229,16 +228,12 @@ def write_clustering_result(result_dict, output_directory="./", filetype="csv"):
     return 0
 
 
-def remove_benchmark_files():
+def remove_benchmark_files( run_id='_'):
     """
     Removes benchmark result files from cwd
     to ensure that we don't upload stale results
     """
-    fname_ls = [
-        "benchmarked_write_result.csv",
-        "benchmarked_read_tables.csv",
-        "benchmarked_main.csv",
-    ]
+    fname_ls = glob.glob(f"benchmarked_*.{run_id}.csv")
     for fname in fname_ls:
         if os.path.exists(fname):
             os.remove(fname)
@@ -328,7 +323,7 @@ def run_sql_query(
     """
     # TODO: Unify this with dask-cudf version
     try:
-        remove_benchmark_files()
+        remove_benchmark_files(run_id=config.get('run_id'))
         config["start_time"] = time.time()
         data_dir = config["data_dir"]
         results = benchmark(
@@ -771,20 +766,20 @@ def build_benchmark_googlesheet_payload(config):
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     query_time = _get_benchmarked_method_time(
-        filename="benchmarked_main.csv", query_start_time=config.get("start_time")
+        filename=f"benchmarked_main.{config.get('run_id')}.csv", query_start_time=config.get("start_time")
     )
     writing_time = _get_benchmarked_method_time(
-        filename="benchmarked_write_result.csv",
+        filename=f"benchmarked_write_result.{config.get('run_id')}.csv",
         query_start_time=config.get("start_time"),
     )
     read_graph_creation_time = _get_benchmarked_method_time(
-        filename="benchmarked_read_tables.csv",
+        filename=f"benchmarked_read_tables.{config.get('run_id')}.csv",
         query_start_time=config.get("start_time"),
     )
     if data["get_read_time"] and read_graph_creation_time and query_time:
         ### below contains the computation time
         compute_read_table_time = _get_benchmarked_method_time(
-            filename="benchmarked_read_tables.csv",
+            filename=f"benchmarked_read_tables.{config.get('run_id')}.csv",
             field="compute_time_seconds",
             query_start_time=config.get("start_time"),
         )
