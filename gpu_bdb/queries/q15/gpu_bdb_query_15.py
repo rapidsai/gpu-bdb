@@ -42,7 +42,9 @@ def main(client, config):
     store_sales_df = store_sales_df.query(f"ss_store_sk == {q15_store_sk}")
 
     ### Query 1. Date Time Filteration Logic
-    date_dim_cov_df = date_dim_df.map_partitions(convert_datestring_to_days)
+    date_meta_df = date_dim_df._meta
+    date_meta_df["d_date"] = date_meta_df["d_date"].astype("int64")
+    date_dim_cov_df = date_dim_df.map_partitions(convert_datestring_to_days, meta=date_meta_df)
 
     q15_start_dt = datetime.datetime.strptime(q15_startDate, "%Y-%m-%d")
     q15_start_dt = (q15_start_dt - datetime.datetime(1970, 1, 1)) / datetime.timedelta(

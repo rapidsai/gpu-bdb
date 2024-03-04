@@ -38,7 +38,9 @@ def main(client, config):
         compute_result=config["get_read_time"],
     )
 
-    date_df = date_df.map_partitions(convert_datestring_to_days)
+    date_meta_df = date_df._meta
+    date_meta_df["d_date"] = date_meta_df["d_date"].astype("int64")
+    date_df = date_df.map_partitions(convert_datestring_to_days, meta=date_meta_df)
 
     # Filter limit in days
     min_date = np.datetime64(q11_start_date, "D").astype(int)

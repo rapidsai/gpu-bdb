@@ -100,7 +100,9 @@ def main(client, config):
         compute_result=config["get_read_time"],
     )
 
-    date_dim_cov_df = date_dim_df.map_partitions(convert_datestring_to_days)
+    date_meta_df = date_dim_df._meta
+    date_meta_df["d_date"] = date_meta_df["d_date"].astype("int64")
+    date_dim_cov_df = date_dim_df.map_partitions(convert_datestring_to_days, meta=date_meta_df)
     q08_start_dt = np.datetime64(q08_STARTDATE, "D").astype(int)
     q08_end_dt = np.datetime64(q08_ENDDATE, "D").astype(int)
     filtered_date_df = date_dim_cov_df.query(
