@@ -138,8 +138,6 @@ def worker_count_info(client):
     counts_by_gpu_size = dict.fromkeys(gpu_sizes, 0)
     tolerance = "6.3GB"
 
-    # counts_by_gpu_size["32GB"] = 7
-
     worker_info = client.scheduler_info()["workers"]
     for worker, info in worker_info.items():
         worker_device_memory = info["metrics"]["gpu_memory_used"]
