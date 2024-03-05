@@ -96,8 +96,8 @@ def attach_to_cluster(config, create_sql_context=False):
     # CuPy should use RMM on all worker and client processes
     import cupy as cp
     import rmm
-    cp.cuda.set_allocator(rmm.rmm_cupy_allocator)
-    client.run(cp.cuda.set_allocator, rmm.rmm_cupy_allocator)
+    cp.cuda.set_allocator(rmm.allocators.cupy.rmm_cupy_allocator)
+    client.run(cp.cuda.set_allocator, rmm.allocators.cupy.rmm_cupy_allocator)
 
     # Save worker information
     # Assumes all GPUs are the same size
@@ -140,7 +140,7 @@ def worker_count_info(client):
 
     worker_info = client.scheduler_info()["workers"]
     for worker, info in worker_info.items():
-        worker_device_memory = info["gpu"]["memory-total"]
+        worker_device_memory = info["metrics"]["gpu_memory_used"]
         for gpu_size in gpu_sizes:
             if abs(parse_bytes(gpu_size) - worker_device_memory) < parse_bytes(tolerance):
                 counts_by_gpu_size[gpu_size] += 1

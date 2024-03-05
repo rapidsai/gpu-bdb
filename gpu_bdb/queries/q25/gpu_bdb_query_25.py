@@ -52,7 +52,9 @@ def main(client, config):
         config=config,
         compute_result=config["get_read_time"],
     )
-    datedim_ddf = datedim_ddf.map_partitions(convert_datestring_to_days)
+    date_meta_df = datedim_ddf._meta
+    date_meta_df["d_date"] = date_meta_df["d_date"].astype("int64")
+    datedim_ddf = datedim_ddf.map_partitions(convert_datestring_to_days, meta=date_meta_df)
     min_date = np.datetime64(q25_date, "D").astype(int)
     # Filter by date
     valid_dates_ddf = datedim_ddf[datedim_ddf["d_date"] > min_date].reset_index(

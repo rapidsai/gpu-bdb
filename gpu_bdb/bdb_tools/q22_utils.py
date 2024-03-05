@@ -45,7 +45,9 @@ def read_tables(config, c=None):
 
     dd_columns = ["d_date_sk", "d_date"]
     date_dim = table_reader.read("date_dim", relevant_cols=dd_columns)
-    date_dim = date_dim.map_partitions(convert_datestring_to_days)
+    date_meta_df = date_dim._meta
+    date_meta_df["d_date"] = date_meta_df["d_date"].astype("int64")
+    date_dim = date_dim.map_partitions(convert_datestring_to_days, meta=date_meta_df)
 
     if c:
         c.create_table('inventory', inventory, persist=False)

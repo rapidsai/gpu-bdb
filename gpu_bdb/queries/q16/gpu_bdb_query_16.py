@@ -104,7 +104,9 @@ def main(client, config):
     # AND unix_timestamp(d.d_date, 'yyyy-MM-dd') <= unix_timestamp('${hiveconf:q16_date}', 'yyyy-MM-dd') + 30*24*60*60 --add 30 days in seconds
 
     ##todo: remove below
-    date_dim_cov_df = date_dim_df.map_partitions(convert_datestring_to_days)
+    date_meta_df = date_dim_df._meta
+    date_meta_df["d_date"] = date_meta_df["d_date"].astype("int64")
+    date_dim_cov_df = date_dim_df.map_partitions(convert_datestring_to_days, meta=date_meta_df)
     q16_timestamp = np.datetime64(q16_date, "D").astype(int)
     filtered_date_df = date_dim_cov_df.query(
         f"d_date >={q16_timestamp- 30} and d_date <= {q16_timestamp+30}",
