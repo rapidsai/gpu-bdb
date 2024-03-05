@@ -42,7 +42,7 @@ def read_tables(config, c=None):
 def ner_parser(df, col_string, batch_size=256):
     spacy.require_gpu()
     nlp = spacy.load("en_core_web_sm")
-    docs = nlp.pipe(df[col_string], disable=["tagger", "parser"], batch_size=batch_size)
+    docs = nlp.pipe(df[col_string].tolist(), disable=["tagger", "parser"], batch_size=batch_size)
     out = []
     for doc in docs:
         l = [ent.text for ent in doc.ents if ent.label_ == "ORG"]
