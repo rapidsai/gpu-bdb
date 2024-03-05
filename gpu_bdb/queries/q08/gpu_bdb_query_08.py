@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019-2022, NVIDIA CORPORATION.
+# Copyright (c) 2019-2024, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,7 +26,6 @@ from bdb_tools.utils import (
     run_query,
     convert_datestring_to_days
 )
-from bdb_tools.merge_util import hash_merge
 from bdb_tools.q08_utils import (
     get_sessions,
     get_unique_sales_keys_from_sessions,
@@ -166,13 +165,9 @@ def main(client, config):
     all_sales_in_year = all_sales_in_year.persist()
     wait(all_sales_in_year)
 
-    # note: switch to mainline
-    # once https://github.com/dask/dask/pull/6066
-    # lands
 
-    q08_reviewed_sales = hash_merge(
-        lhs=all_sales_in_year,
-        rhs=reviewed_sales,
+    q08_reviewed_sales = all_sales_in_year.merge(
+        reviewed_sales,
         left_on=["ws_order_number"],
         right_on=["wcs_sales_sk"],
         how="inner",
