@@ -63,7 +63,9 @@ def main(client, config):
 
     # Do the NER
     sentences = sentences.to_dask_dataframe()
-    ner_parsed = sentences.map_partitions(ner_parser, "sentence")
+    meta_df = sentences._meta.copy()
+    meta_df["company_name_list"] = ""
+    ner_parsed = sentences.map_partitions(ner_parser, "sentence", meta=meta_df)
     ner_parsed = dask_cudf.from_dask_dataframe(ner_parsed)
     ner_parsed = ner_parsed.persist()
     wait(ner_parsed)
