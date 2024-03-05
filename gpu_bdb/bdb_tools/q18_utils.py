@@ -124,7 +124,7 @@ def find_targets_in_reviews_helper(ddf, targets, str_col_name="pr_review_content
     if isinstance(ddf, cudf.DataFrame):
         resdf = cudf.DataFrame(
             cp.asarray(
-                cudf.Series(find_multiple.find_multiple(lowered._column, targets._column)).explode()
+                lowered.str.find_multiple(targets).explode()
             ).reshape(-1, len(targets))
         )
     else:
