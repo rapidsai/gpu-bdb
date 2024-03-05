@@ -233,6 +233,7 @@ def get_org_sentences(sentence_boundary_df, org_df):
         inplace=True,
     )
     valid_left_loc = valid_left_loc.reset_index(drop=False)
+    valid_left_loc = valid_left_loc.rename(columns={"index":"flat_loc_org"})
 
     ### Better way to get the closeset row/col maybe
     valid_right_loc = (
@@ -249,8 +250,9 @@ def get_org_sentences(sentence_boundary_df, org_df):
     valid_right_loc = valid_right_loc[["r_fs_seq_row", "r_fs_seq_col"]].reset_index(
         drop=False
     )
+    valid_right_loc = valid_right_loc.rename(columns={"index":"flat_loc_org"})
 
-    valid_df = valid_left_loc.merge(valid_right_loc)
+    valid_df = valid_left_loc.merge(valid_right_loc, on="flat_loc_org")
     valid_df = valid_df.set_index(["flat_loc_org"])
 
     return valid_df
@@ -352,3 +354,4 @@ def get_org_df(pr_label_f, metadata_df, seq_len):
     org_df = org_df[flag]
 
     return org_df[["org_seq_row", "org_seq_col", "input_text_index", "flat_loc_org"]]
+

@@ -172,23 +172,30 @@ def tokenize_text_series(text_ser, seq_len, stride, vocab_hash_file):
          A dictionary with these keys {'token_ar':,'attention_ar':,'metadata':}
 
     """
+    from cudf._lib.nvtext.subword_tokenize import Hashed_Vocabulary as cpp_hashed_vocabulary
+    from cudf._lib.nvtext.subword_tokenize import subword_tokenize_inmem_hash as cpp_subword_tokenize
+
+    vocab_file = cpp_hashed_vocabulary(vocab_hash_file)
+
     if len(text_ser) == 0:
         return {"token_ar": None, "attention_ar": None, "metadata": None}
 
-    max_num_chars = text_ser.str.len().sum() + 1
-    max_rows_tensor = len(text_ser) * 2
+    # max_num_chars = text_ser.str.len().sum() + 1
+    # max_rows_tensor = len(text_ser) * 2
     max_length = seq_len - 2
 
-    tokens, attention_masks, metadata = text_ser.str.subword_tokenize(
-        vocab_hash_file,
-        do_lower=False,
-        max_num_strings=max_rows_tensor,
-        max_rows_tensor=max_rows_tensor,
-        max_num_chars=max_num_chars,
-        stride=stride,
-        max_length=max_length,
-        do_truncate=False,
-    )
+    tokens, attention_mask, metadata = cpp_subword_tokenize(
+            text_ser._column,
+            vocab_file,
+            do_lower=False,
+            stride=stride,
+            max_sequence_length=max_length,
+            do_truncate=False,
+        )
+    
+    tokens = cp.asarray(tokens)
+    attention_masks = cp.asarray(attention_mask)
+    metadata = cp.asarray(metadata)
     del text_ser
     ### reshape metadata into a matrix
     metadata = metadata.reshape(-1, 3)
@@ -301,7 +308,7 @@ def create_vocab_table(vocabpath):
     """
     id2vocab = []
     vocab2id = {}
-    with open(vocabpath) as f:
+    with open(vocabpath, encoding="utf-8") as f:
         for index, line in enumerate(f):
             token = line.split()[0]
             id2vocab.append(token)
