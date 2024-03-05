@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019-2022, NVIDIA CORPORATION.
+# Copyright (c) 2019-2024, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@ from bdb_tools.utils import (
     gpubdb_argparser,
     run_query,
 )
-from bdb_tools.merge_util import hash_merge
 
 from bdb_tools.q21_utils import read_tables
 
@@ -94,9 +93,8 @@ def main(client, config):
     # part_ws ON (
     # part_sr.sr_item_sk = part_ws.ws_item_sk
     # AND part_sr.sr_customer_sk = part_ws.ws_bill_customer_sk
-    part_ws_part_sr_m = hash_merge(
-        lhs=part_sr,
-        rhs=part_ws,
+    part_ws_part_sr_m = part_sr.merge(
+        part_ws,
         left_on=["sr_item_sk", "sr_customer_sk"],
         right_on=["ws_item_sk", "ws_bill_customer_sk"],
         how="inner",
@@ -144,9 +142,8 @@ def main(client, config):
     # AND part_ss.ss_item_sk = part_sr.sr_item_sk
     # AND part_ss.ss_customer_sk = part_sr.sr_customer_sk
 
-    part_ws_part_sr_m_part_ss_join_df = hash_merge(
-        lhs=part_ss,
-        rhs=part_ws_part_sr_m,
+    part_ws_part_sr_m_part_ss_join_df = part_ss.merge(
+        part_ws_part_sr_m,
         left_on=["ss_ticket_number", "ss_item_sk", "ss_customer_sk"],
         right_on=["sr_ticket_number", "sr_item_sk", "sr_customer_sk"],
         how="inner",

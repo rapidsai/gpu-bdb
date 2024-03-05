@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019-2022, NVIDIA CORPORATION.
+# Copyright (c) 2019-2024, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,7 +22,6 @@ from bdb_tools.utils import (
     run_query,
     convert_datestring_to_days,
 )
-from bdb_tools.merge_util import hash_merge
 from bdb_tools.q16_utils import read_tables
 
 from dask.distributed import wait
@@ -138,9 +137,8 @@ def main(client, config):
     # AND ws.ws_item_sk = wr.wr_item_sk)
     # ) a1
 
-    web_sales_web_returns_join = hash_merge(
-        lhs=web_sales_df,
-        rhs=web_returns_df,
+    web_sales_web_returns_join = web_sales_df.merge(
+        web_returns_df,
         left_on=["ws_order_number", "ws_item_sk"],
         right_on=["wr_order_number", "wr_item_sk"],
         how="left",
