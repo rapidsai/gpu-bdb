@@ -119,12 +119,11 @@ def main(client, config):
 
     import cudf
 
-    model_path = os.path.join(config["data_dir"], "../../q27_model_dir")
+    model_path = os.path.join(config["data_dir"], "/datasets/vjawa/distilbert-base-en-cased/")
     product_reviews_df = benchmark(
         read_tables,
         config=config,
         compute_result=config["get_read_time"],
-        dask_profile=config["dask_profile"],
     )
     product_reviews_df = product_reviews_df[
         product_reviews_df.pr_item_sk == q27_pr_item_sk
@@ -142,7 +141,8 @@ def main(client, config):
     )
     output_df = output_df.persist()
     wait(output_df)
-    client.run(del_model_attribute)
+    print(output_df.head())
+    #client.run(del_model_attribute)
     return output_df
 
 
@@ -153,5 +153,6 @@ if __name__ == "__main__":
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)
-    client.run(rmm.reinitialize, pool_allocator=True, initial_pool_size=14e9)
+    
+    #client.run(rmm.reinitialize, pool_allocator=True, initial_pool_size=14e9)
     run_query(config=config, client=client, query_func=main)
